@@ -1,0 +1,182 @@
+"use client";
+
+import { useState } from "react";
+import { useFamily } from "@/context/family-context";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { PlusCircle, Target } from "lucide-react";
+import { format, differenceInDays } from "date-fns";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Confetti } from "@/components/confetti";
+import { Textarea } from "@/components/ui/textarea";
+
+export default function GoalsPage() {
+  const { goals, users, currentUser, contributeToGoal, addGoal } = useFamily();
+  const [activeConfettiGoal, setActiveConfettiGoal] = useState<string | null>(null);
+  const [contribution, setContribution] = useState<{ goalId: string, amount: string }>({ goalId: '', amount: '' });
+  const [newGoal, setNewGoal] = useState({ name: '', description: '', targetAmount: '', deadline: '' });
+  
+  const isActionAllowed = currentUser.role === 'Parent';
+
+  const getUserById = (id: string) => users.find((u) => u.id === id);
+  const getInitials = (name: string) => name.split(" ").map((n) => n[0]).join("");
+
+  const handleContribute = () => {
+    if (contribution.goalId && contribution.amount) {
+        contributeToGoal(contribution.goalId, parseFloat(contribution.amount));
+        const goal = goals.find(g => g.id === contribution.goalId);
+        if (goal && goal.currentAmount + parseFloat(contribution.amount) >= goal.targetAmount) {
+          setActiveConfettiGoal(goal.id);
+          setTimeout(() => setActiveConfettiGoal(null), 5000);
+        }
+        setContribution({ goalId: '', amount: '' });
+        // Close dialog - needs state management
+    }
+  };
+
+  const handleAddGoal = () => {
+    if (newGoal.name && newGoal.targetAmount && newGoal.deadline) {
+        addGoal({
+            name: newGoal.name,
+            description: newGoal.description,
+            targetAmount: parseFloat(newGoal.targetAmount),
+            deadline: new Date(newGoal.deadline).toISOString(),
+        });
+        setNewGoal({ name: '', description: '', targetAmount: '', deadline: '' });
+        // Close dialog
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold font-headline">Family Goals</h1>
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button size="sm" className="gap-1" disabled={!isActionAllowed}>
+                    <PlusCircle className="h-3.5 w-3.5" />
+                    <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                        New Goal
+                    </span>
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Create a New Family Goal</DialogTitle>
+                    <DialogDescription>Set a target for your family to achieve together.</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="goal-name">Goal Name</Label>
+                        <Input id="goal-name" value={newGoal.name} onChange={(e) => setNewGoal({...newGoal, name: e.target.value})} placeholder="e.g., Summer Vacation Fund" />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="goal-desc">Description</Label>
+                        <Textarea id="goal-desc" value={newGoal.description} onChange={(e) => setNewGoal({...newGoal, description: e.target.value})} placeholder="A short description of the goal."/>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="goal-amount">Target Amount</Label>
+                            <Input id="goal-amount" type="number" value={newGoal.targetAmount} onChange={(e) => setNewGoal({...newGoal, targetAmount: e.target.value})} placeholder="$2000" />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="goal-deadline">Deadline</Label>
+                            <Input id="goal-deadline" type="date" value={newGoal.deadline} onChange={(e) => setNewGoal({...newGoal, deadline: e.target.value})} />
+                        </div>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button onClick={handleAddGoal}>Create Goal</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+      </div>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {goals.map((goal) => {
+          const progress = (goal.currentAmount / goal.targetAmount) * 100;
+          const isCompleted = progress >= 100;
+          const daysLeft = differenceInDays(new Date(goal.deadline), new Date());
+          
+          return (
+            <Card key={goal.id} className="relative overflow-hidden flex flex-col">
+              <Confetti active={activeConfettiGoal === goal.id} />
+              <CardHeader>
+                <CardTitle className="flex items-start justify-between">
+                  <span className="flex items-center gap-2"><Target className="h-5 w-5"/>{goal.name}</span>
+                  {isCompleted && <span className="text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 px-2 py-1 rounded-full">Completed!</span>}
+                </CardTitle>
+                <CardDescription>{goal.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="flex-grow">
+                <div className="mb-2 flex justify-between text-sm text-muted-foreground">
+                  <span>Progress</span>
+                  <span>{daysLeft >= 0 ? `${daysLeft} days left` : 'Past deadline'}</span>
+                </div>
+                <Progress value={progress} aria-label={`${goal.name} progress`} />
+                <div className="mt-2 flex justify-between text-sm font-semibold">
+                  <span>${goal.currentAmount.toLocaleString()}</span>
+                  <span className="text-muted-foreground">${goal.targetAmount.toLocaleString()}</span>
+                </div>
+              </CardContent>
+              <CardFooter className="flex-col items-start gap-4">
+                 <div className="flex items-center -space-x-2">
+                    {goal.contributors.map(userId => {
+                        const user = getUserById(userId);
+                        return user ? (
+                            <Avatar key={userId} className="h-8 w-8 border-2 border-card">
+                                <AvatarImage src={user.avatarUrl} alt={user.name} />
+                                <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+                            </Avatar>
+                        ) : null;
+                    })}
+                    {goal.contributors.length > 0 && <span className="pl-4 text-xs text-muted-foreground">
+                        {goal.contributors.length} contributor{goal.contributors.length > 1 ? 's' : ''}
+                    </span>}
+                 </div>
+                <Dialog onOpenChange={(open) => !open && setContribution({ goalId: '', amount: '' })}>
+                  <DialogTrigger asChild>
+                    <Button className="w-full" disabled={isCompleted} onClick={() => setContribution({...contribution, goalId: goal.id})}>
+                      Contribute
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Contribute to {goal.name}</DialogTitle>
+                        <DialogDescription>Every bit helps the family reach its goals!</DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <Label htmlFor="contribution-amount">Amount</Label>
+                        <Input id="contribution-amount" type="number" placeholder="$50.00" value={contribution.amount} onChange={(e) => setContribution({...contribution, amount: e.target.value})} />
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={handleContribute}>Add Contribution</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </CardFooter>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

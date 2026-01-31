@@ -1,3 +1,28 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "avatar-1",
+      "description": "Avatar for Alex Johnson",
+      "imageUrl": "https://images.unsplash.com/photo-1583195763986-0231686dcd43?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxtYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3Njk3NTQzOTB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man portrait"
+    },
+    {
+      "id": "avatar-2",
+      "description": "Avatar for Maya Johnson",
+      "imageUrl": "https://images.unsplash.com/photo-1610655507808-a59293f4e332?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx3b21hbiUyMHBvcnRyYWl0fGVufDB8fHx8MTc2OTgzOTYyNnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman portrait"
+    },
+    {
+      "id": "avatar-3",
+      "description": "Avatar for Leo Johnson",
+      "imageUrl": "https://images.unsplash.com/photo-1598096969068-7f52cac10c83?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxib3klMjBwb3J0cmFpdHxlbnwwfHx8fDE3Njk4NDI0NjJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "boy portrait"
+    },
+    {
+      "id": "avatar-4",
+      "description": "Avatar for Grandma Rose",
+      "imageUrl": "https://images.unsplash.com/photo-1558891184-593534590a55?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxncmFuZG1vdGhlciUyMHBvcnRyYWl0fGVufDB8fHx8MTc2OTg0MzcyMXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "grandmother portrait"
+    }
+  ]
 }
