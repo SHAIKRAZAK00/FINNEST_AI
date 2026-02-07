@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { useFamily } from "@/context/family-context";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,11 +38,13 @@ import {
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, MoreHorizontal } from "lucide-react";
-import { expenseCategories, mockUsers } from "@/lib/data";
+import { PlusCircle, MoreHorizontal, Camera, Loader2 } from "lucide-react";
+import { expenseCategories } from "@/lib/data";
 import { format } from 'date-fns';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { Expense, ExpenseCategory } from "@/lib/types";
+import { getExpenseFromReceipt } from "@/app/actions";
+import { useToast } from "@/hooks/use-toast";
 
 
 export default function ExpensesPage() {
@@ -53,9 +55,16 @@ export default function ExpensesPage() {
       amount: '',
       category: '' as ExpenseCategory | ''
   });
+  const [isScanning, setIsScanning] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   const getUserById = (id: string) => users.find((u) => u.id === id);
   const getInitials = (name: string) => name.split(" ").map((n) => n[0]).join("");
+  
+  const resetForm = () => {
+    setNewExpense({ description: '', amount: '', category: '' });
+  }
 
   const handleAddExpense = () => {
     if (newExpense.description && newExpense.amount && newExpense.category) {
@@ -64,9 +73,52 @@ export default function ExpensesPage() {
             amount: parseFloat(newExpense.amount),
             category: newExpense.category,
         });
-        setNewExpense({ description: '', amount: '', category: '' });
+        resetForm();
         setOpen(false);
     }
+  };
+  
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsScanning(true);
+    
+    // Convert file to data URI
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = async () => {
+        const dataUri = reader.result as string;
+        const result = await getExpenseFromReceipt(dataUri);
+        
+        if (result.success && result.expense) {
+            setNewExpense({
+                description: result.expense.description,
+                amount: String(result.expense.amount),
+                category: result.expense.category,
+            });
+            toast({
+                title: "Scan Successful",
+                description: "Receipt details have been filled in. Please review and confirm.",
+            });
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Scan Failed",
+                description: result.error || "Could not extract details from the receipt.",
+            });
+        }
+        setIsScanning(false);
+    };
+    reader.onerror = (error) => {
+        console.error("Error reading file:", error);
+        toast({
+            variant: "destructive",
+            title: "File Error",
+            description: "Could not read the uploaded image.",
+        });
+        setIsScanning(false);
+    };
   };
 
   const canAddExpense = currentUser.role === 'Parent' || currentUser.role === 'Child';
@@ -86,7 +138,12 @@ export default function ExpensesPage() {
             Manage and track all family expenses.
           </CardDescription>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(isOpen) => {
+          setOpen(isOpen);
+          if (!isOpen) {
+            resetForm();
+          }
+        }}>
           <DialogTrigger asChild>
             <Button size="sm" className="gap-1" disabled={!canAddExpense}>
               <PlusCircle className="h-3.5 w-3.5" />
@@ -99,10 +156,38 @@ export default function ExpensesPage() {
             <DialogHeader>
               <DialogTitle>Add New Expense</DialogTitle>
               <DialogDescription>
-                Log a new transaction for the family.
+                Log a new transaction or scan a receipt to get started.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
+            
+            <div className="relative grid gap-4 py-4">
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileChange} 
+                className="hidden" 
+                accept="image/*"
+              />
+              <Button 
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isScanning}
+              >
+                <Camera className="mr-2 h-4 w-4" />
+                Scan Receipt with AI
+              </Button>
+
+              <div className="relative my-2">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or Enter Manually
+                  </span>
+                </div>
+              </div>
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="description" className="text-right">
                   Description
@@ -132,9 +217,19 @@ export default function ExpensesPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {isScanning && (
+                <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2 rounded-lg">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">Scanning receipt...</p>
+                </div>
+              )}
             </div>
+
             <DialogFooter>
-              <Button type="submit" onClick={handleAddExpense}>Add Expense</Button>
+              <Button type="submit" onClick={handleAddExpense} disabled={isScanning}>
+                {isScanning ? "Please wait..." : "Add Expense"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
