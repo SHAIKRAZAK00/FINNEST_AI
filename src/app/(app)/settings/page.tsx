@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useFamily } from "@/context/family-context";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, Trash2 } from "lucide-react";
+import { Copy, Trash2, Loader2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,14 +23,17 @@ import {
 import type { User } from "@/lib/types";
 
 export default function SettingsPage() {
-  const { family, currentUser, users, removeUser } = useFamily();
+  const { family, currentUser, users, removeUser, updateUserAvatar } = useFamily();
   const { toast } = useToast();
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [userToRemove, setUserToRemove] = useState<User | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getInitials = (name: string) => name.split(" ").map((n) => n[0]).join("");
 
   const handleCopy = () => {
+    if (!family) return;
     navigator.clipboard.writeText(family.familyCode);
     toast({
       title: "Copied!",
@@ -66,6 +69,41 @@ export default function SettingsPage() {
     setIsAlertOpen(false);
     setUserToRemove(null);
   };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      updateUserAvatar(dataUrl);
+      setIsUploading(false);
+      toast({
+        title: "Photo updated!",
+        description: "Your new profile photo has been saved.",
+      });
+    };
+    reader.onerror = (error) => {
+        console.error("Error reading file:", error);
+        toast({
+            variant: "destructive",
+            title: "File Error",
+            description: "Could not read the uploaded image.",
+        });
+        setIsUploading(false);
+    };
+  };
+
+  const handlePhotoChangeClick = () => {
+    fileInputRef.current?.click();
+  };
+  
+  if (!currentUser || !family) {
+    return null; // Or a loading state
+  }
 
   return (
     <div className="grid gap-6">
@@ -135,12 +173,22 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent>
           <form className="grid gap-6">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+              accept="image/*"
+            />
             <div className="flex items-center gap-4">
               <Avatar className="h-20 w-20">
                 <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
                 <AvatarFallback>{getInitials(currentUser.name)}</AvatarFallback>
               </Avatar>
-              <Button variant="outline">Change Photo</Button>
+              <Button type="button" variant="outline" onClick={handlePhotoChangeClick} disabled={isUploading}>
+                {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {isUploading ? 'Uploading...' : 'Change Photo'}
+              </Button>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="name">Full Name</Label>
@@ -198,7 +246,7 @@ export default function SettingsPage() {
                     <h3 className="font-semibold">Leave Family</h3>
                     <p className="text-sm text-muted-foreground">You will lose access to all shared data.</p>
                 </div>
-                <Button variant="destructive" disabled={currentUser.role !== 'Parent'}>Leave Family</Button>
+                <Button variant="destructive" disabled={users.filter(u => u.role === 'Parent').length <= 1}>Leave Family</Button>
             </div>
         </CardContent>
       </Card>

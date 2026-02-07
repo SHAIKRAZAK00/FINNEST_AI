@@ -13,6 +13,7 @@ interface FamilyContextType {
   addGoal: (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors'>) => void;
   contributeToGoal: (goalId: string, amount: number) => void;
   removeUser: (userId: string) => void;
+  updateUserAvatar: (avatarUrl: string) => void;
   loading: boolean;
 }
 
@@ -50,7 +51,6 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
       setGoals(storedGoals ? JSON.parse(storedGoals) : []);
     } catch (error) {
         console.error("Failed to load data from localStorage", error);
-        localStorage.clear();
     } finally {
         setLoading(false);
     }
@@ -134,7 +134,21 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('familyGoals', JSON.stringify(updatedGoals));
   };
 
-  const value = { family, users, currentUser, expenses, goals, addExpense, addGoal, contributeToGoal, removeUser, loading };
+  const updateUserAvatar = (avatarUrl: string) => {
+    if (!currentUser) return;
+
+    const updatedUsers = users.map(u => 
+      u.id === currentUser.id ? { ...u, avatarUrl } : u
+    );
+    setUsers(updatedUsers);
+    localStorage.setItem('familyUsers', JSON.stringify(updatedUsers));
+
+    const updatedCurrentUser = { ...currentUser, avatarUrl };
+    setCurrentUser(updatedCurrentUser);
+    localStorage.setItem('currentUser', JSON.stringify(updatedCurrentUser));
+  };
+
+  const value = { family, users, currentUser, expenses, goals, addExpense, addGoal, contributeToGoal, removeUser, loading, updateUserAvatar };
 
   return (
     <FamilyContext.Provider value={value}>
