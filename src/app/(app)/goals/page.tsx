@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useFamily } from "@/context/family-context";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,28 +28,38 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Confetti } from "@/components/confetti";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+
 
 export default function GoalsPage() {
-  const { goals, users, currentUser, contributeToGoal, addGoal } = useFamily();
-  const [activeConfettiGoal, setActiveConfettiGoal] = useState<string | null>(null);
-  const [contribution, setContribution] = useState<{ goalId: string, amount: string }>({ goalId: '', amount: '' });
+  const { goals, users, currentUser, contributeToGoal, addGoal, activeConfettiGoal, clearConfetti } = useFamily();
+  const [isNewGoalOpen, setIsNewGoalOpen] = useState(false);
+  const [isContributeOpen, setIsContributeOpen] = useState(false);
+  const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
+  const [contributionAmount, setContributionAmount] = useState('');
   const [newGoal, setNewGoal] = useState({ name: '', description: '', targetAmount: '', deadline: '' });
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (activeConfettiGoal) {
+      const timer = setTimeout(() => {
+        clearConfetti();
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [activeConfettiGoal, clearConfetti]);
   
-  const isActionAllowed = currentUser.role === 'Parent';
+  const isActionAllowed = currentUser?.role === 'Parent';
 
   const getUserById = (id: string) => users.find((u) => u.id === id);
   const getInitials = (name: string) => name.split(" ").map((n) => n[0]).join("");
 
   const handleContribute = () => {
-    if (contribution.goalId && contribution.amount) {
-        contributeToGoal(contribution.goalId, parseFloat(contribution.amount));
-        const goal = goals.find(g => g.id === contribution.goalId);
-        if (goal && goal.currentAmount + parseFloat(contribution.amount) >= goal.targetAmount) {
-          setActiveConfettiGoal(goal.id);
-          setTimeout(() => setActiveConfettiGoal(null), 5000);
-        }
-        setContribution({ goalId: '', amount: '' });
-        // Close dialog - needs state management
+    if (selectedGoalId && contributionAmount) {
+        contributeToGoal(selectedGoalId, parseFloat(contributionAmount));
+        setContributionAmount('');
+        setIsContributeOpen(false);
+        setSelectedGoalId(null);
     }
   };
 
@@ -62,15 +72,21 @@ export default function GoalsPage() {
             deadline: new Date(newGoal.deadline).toISOString(),
         });
         setNewGoal({ name: '', description: '', targetAmount: '', deadline: '' });
-        // Close dialog
+        setIsNewGoalOpen(false);
+        toast({ title: "Goal Created!", description: "Your new family goal has been set." });
     }
   };
+
+  const openContributeDialog = (goalId: string) => {
+    setSelectedGoalId(goalId);
+    setIsContributeOpen(true);
+  }
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold font-headline">Family Goals</h1>
-        <Dialog>
+        <Dialog open={isNewGoalOpen} onOpenChange={setIsNewGoalOpen}>
             <DialogTrigger asChild>
                 <Button size="sm" className="gap-1" disabled={!isActionAllowed}>
                     <PlusCircle className="h-3.5 w-3.5" />
@@ -112,7 +128,7 @@ export default function GoalsPage() {
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {goals.map((goal) => {
-          const progress = (goal.currentAmount / goal.targetAmount) * 100;
+          const progress = (goal.targetAmount > 0) ? (goal.currentAmount / goal.targetAmount) * 100 : 100;
           const isCompleted = progress >= 100;
           const daysLeft = differenceInDays(new Date(goal.deadline), new Date());
           
@@ -152,31 +168,36 @@ export default function GoalsPage() {
                         {goal.contributors.length} contributor{goal.contributors.length > 1 ? 's' : ''}
                     </span>}
                  </div>
-                <Dialog onOpenChange={(open) => !open && setContribution({ goalId: '', amount: '' })}>
-                  <DialogTrigger asChild>
-                    <Button className="w-full" disabled={isCompleted} onClick={() => setContribution({...contribution, goalId: goal.id})}>
-                      Contribute
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Contribute to {goal.name}</DialogTitle>
-                        <DialogDescription>Every bit helps the family reach its goals!</DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4">
-                        <Label htmlFor="contribution-amount">Amount</Label>
-                        <Input id="contribution-amount" type="number" placeholder="₹5000" value={contribution.amount} onChange={(e) => setContribution({...contribution, amount: e.target.value})} />
-                    </div>
-                    <DialogFooter>
-                        <Button onClick={handleContribute}>Add Contribution</Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                <Button className="w-full" disabled={isCompleted} onClick={() => openContributeDialog(goal.id)}>
+                    Contribute
+                </Button>
               </CardFooter>
             </Card>
           );
         })}
       </div>
+
+       <Dialog open={isContributeOpen} onOpenChange={(open) => {
+            if (!open) {
+                setIsContributeOpen(false);
+                setSelectedGoalId(null);
+                setContributionAmount('');
+            }
+       }}>
+            <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Contribute to {goals.find(g => g.id === selectedGoalId)?.name}</DialogTitle>
+                <DialogDescription>Every bit helps the family reach its goals!</DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+                <Label htmlFor="contribution-amount">Amount</Label>
+                <Input id="contribution-amount" type="number" placeholder="₹5000" value={contributionAmount} onChange={(e) => setContributionAmount(e.target.value)} />
+            </div>
+            <DialogFooter>
+                <Button onClick={handleContribute}>Add Contribution</Button>
+            </DialogFooter>
+            </DialogContent>
+       </Dialog>
     </div>
   );
 }

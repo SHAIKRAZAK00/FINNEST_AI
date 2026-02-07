@@ -2,11 +2,11 @@
 
 import { useMemo } from 'react';
 import { useFamily } from "@/context/family-context";
-import { mockBadges, userBadges } from "@/lib/data";
+import { mockBadges, getLevelFromPoints } from "@/lib/data";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Crown, Medal, Trophy } from 'lucide-react';
+import { Crown, Medal, Trophy, Star } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
@@ -22,10 +22,10 @@ export default function LeaderboardPage() {
   );
   
   const RankIcon = ({ rank }: { rank: number }) => {
-    if (rank === 1) return <Crown className="h-5 w-5 text-yellow-500" />;
-    if (rank === 2) return <Medal className="h-5 w-5 text-slate-400" />;
-    if (rank === 3) return <Trophy className="h-5 w-5 text-amber-700" />;
-    return <span className="text-sm font-bold w-5 text-center">{rank}</span>;
+    if (rank === 1) return <Crown className="h-6 w-6 text-yellow-500" />;
+    if (rank === 2) return <Medal className="h-6 w-6 text-slate-400" />;
+    if (rank === 3) return <Trophy className="h-6 w-6 text-amber-700" />;
+    return <span className="text-sm font-bold w-6 text-center">{rank}</span>;
   }
 
   return (
@@ -41,8 +41,9 @@ export default function LeaderboardPage() {
             <Table>
             <TableHeader>
                 <TableRow>
-                <TableHead className="w-[80px]">Rank</TableHead>
+                <TableHead className="w-[80px] text-center">Rank</TableHead>
                 <TableHead>Member</TableHead>
+                <TableHead className="text-center">Level</TableHead>
                 <TableHead>Badges</TableHead>
                 <TableHead className="text-right">Points</TableHead>
                 </TableRow>
@@ -50,6 +51,7 @@ export default function LeaderboardPage() {
             <TableBody>
                 {rankedUsers.map((user, index) => {
                     const rank = index + 1;
+                    const level = getLevelFromPoints(user.points);
                     return (
                         <TableRow key={user.id}>
                             <TableCell>
@@ -69,14 +71,21 @@ export default function LeaderboardPage() {
                                     </div>
                                 </div>
                             </TableCell>
+                             <TableCell className="text-center">
+                                <div className="flex flex-col items-center">
+                                    <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 border-2 border-primary/20 text-primary font-bold">
+                                        {level}
+                                    </div>
+                                </div>
+                            </TableCell>
                             <TableCell>
                                 <div className="flex items-center gap-2">
-                                    {(userBadges[user.id] || []).map(badgeId => {
+                                    {(user.badges || []).map(badgeId => {
                                         const badge = getBadgeById(badgeId);
                                         return badge ? (
                                             <Tooltip key={badgeId}>
                                                 <TooltipTrigger asChild>
-                                                    <span className="p-1.5 bg-muted rounded-full cursor-pointer">
+                                                    <span className="p-1.5 bg-muted rounded-full cursor-pointer transition-transform hover:scale-110">
                                                         <badge.icon className="h-5 w-5 text-primary" />
                                                     </span>
                                                 </TooltipTrigger>

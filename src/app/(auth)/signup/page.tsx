@@ -72,6 +72,7 @@ export default function SignupPage() {
               avatarUrl: `https://picsum.photos/seed/${fullName.split(' ')[0]}/200/200`,
               points: 0,
               role: 'Parent',
+              badges: [],
             };
 
             allFamilies.push(newFamily);
@@ -96,6 +97,7 @@ export default function SignupPage() {
                   avatarUrl: `https://picsum.photos/seed/${fullName.split(' ')[0]}/200/200`,
                   points: 0,
                   role: roleForUserObject,
+                  badges: [],
                 };
                 
                 allUsers.push(newUser);

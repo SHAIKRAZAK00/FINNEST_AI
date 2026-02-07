@@ -8,11 +8,17 @@ export const mockFamily: Family = {
     familyCode: 'JHN-2024'
 }
 
+export const levelThresholds = [0, 500, 1500, 3000, 5000, 10000];
+export const getLevelFromPoints = (points: number) => {
+    const level = levelThresholds.filter(threshold => points >= threshold).length;
+    return level > 0 ? level : 1;
+};
+
 export const mockUsers: User[] = [
-  { id: 'user-1', familyId: 'family-1', name: 'Alex Johnson', avatarUrl: 'https://picsum.photos/seed/avatar1/200/200', email: 'alex@example.com', role: 'Parent', points: 1250 },
-  { id: 'user-2', familyId: 'family-1', name: 'Maya Johnson', avatarUrl: 'https://picsum.photos/seed/avatar2/200/200', email: 'maya@example.com', role: 'Parent', points: 1500 },
-  { id: 'user-3', familyId: 'family-1', name: 'Leo Johnson', avatarUrl: 'https://picsum.photos/seed/avatar3/200/200', email: 'leo@example.com', role: 'Child', points: 800 },
-  { id: 'user-4', familyId: 'family-1', name: 'Grandma Rose', avatarUrl: 'https://picsum.photos/seed/avatar4/200/200', email: 'rose@example.com', role: 'Viewer', points: 300 },
+  { id: 'user-1', familyId: 'family-1', name: 'Alex Johnson', avatarUrl: 'https://picsum.photos/seed/avatar1/200/200', email: 'alex@example.com', role: 'Parent', points: 1250, badges: ['badge-1'] },
+  { id: 'user-2', familyId: 'family-1', name: 'Maya Johnson', avatarUrl: 'https://picsum.photos/seed/avatar2/200/200', email: 'maya@example.com', role: 'Parent', points: 1500, badges: ['badge-1', 'badge-3'] },
+  { id: 'user-3', familyId: 'family-1', name: 'Leo Johnson', avatarUrl: 'https://picsum.photos/seed/avatar3/200/200', email: 'leo@example.com', role: 'Child', points: 800, badges: ['badge-1'] },
+  { id: 'user-4', familyId: 'family-1', name: 'Grandma Rose', avatarUrl: 'https://picsum.photos/seed/avatar4/200/200', email: 'rose@example.com', role: 'Viewer', points: 300, badges: [] },
 ];
 
 export const mockCurrentUser = mockUsers[0];
@@ -44,15 +50,8 @@ export const mockGoals: Goal[] = [
 
 export const mockBadges: Badge[] = [
   { id: 'badge-1', name: 'Savings Starter', icon: PiggyBank, description: 'Made your first contribution to a goal.' },
-  { id: 'badge-2', name: 'Budget Master', icon: ReceiptText, description: 'Kept spending below average for a week.' },
-  { id: 'badge-3', name: 'Goal Getter', icon: Target, description: 'Completed a family goal.' },
-  { id: 'badge-4', name: 'Team Player', icon: Coins, description: 'Contributed to every active goal.' },
-  { id: 'badge-5', name: 'Financial Fortress', icon: ShieldCheck, description: 'Reached a major emergency fund milestone.' },
+  { id: 'badge-2', name: 'Expense Explorer', icon: ReceiptText, description: 'Added 5 expenses.' },
+  { id: 'badge-3', name: 'Goal Getter', icon: Target, description: 'Helped complete a family goal.' },
+  { id: 'badge-4', name: 'Team Player', icon: Coins, description: 'Contributed to 3 different goals.' },
+  { id: 'badge-5', name: 'Financial Fortress', icon: ShieldCheck, description: 'Helped the family reach a ₹10,000 goal.' },
 ];
-
-export const userBadges: { [key: string]: string[] } = {
-    'user-1': ['badge-1', 'badge-2', 'badge-4'],
-    'user-2': ['badge-1', 'badge-2', 'badge-3', 'badge-4', 'badge-5'],
-    'user-3': ['badge-1', 'badge-3'],
-    'user-4': ['badge-1'],
-};

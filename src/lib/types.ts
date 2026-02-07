@@ -10,6 +10,7 @@ export type User = {
   email: string;
   role: UserRole;
   points: number;
+  badges: string[];
 };
 
 export type ExpenseCategory = "Groceries" | "Utilities" | "Transport" | "Entertainment" | "Healthcare" | "Education" | "Other";

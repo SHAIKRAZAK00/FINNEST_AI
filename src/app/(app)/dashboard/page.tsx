@@ -23,6 +23,8 @@ import {
   PiggyBank,
   TrendingUp,
   Users,
+  Zap,
+  CheckCircle2,
 } from "lucide-react";
 import {
   ChartContainer,
@@ -107,6 +109,36 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5 text-primary"/>
+                Weekly Challenges
+            </CardTitle>
+            <CardDescription>Complete challenges to earn bonus points!</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+            <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+                <div>
+                    <p className="font-semibold">Expense Tracker</p>
+                    <p className="text-sm text-muted-foreground">Add 5 expenses this week.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="font-semibold text-primary">+50 PTS</span>
+                </div>
+            </div>
+            <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+                <div>
+                    <p className="font-semibold">Savings Boost</p>
+                    <p className="text-sm text-muted-foreground">Contribute to any goal.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="font-semibold text-primary">+25 PTS</span>
+                </div>
+            </div>
+        </CardContent>
+    </Card>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
         <Card className="lg:col-span-4">
