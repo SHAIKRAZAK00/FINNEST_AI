@@ -9,7 +9,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const ExtractExpenseInputSchema = z.object({
+const ExtractExpenseInputSchema = z.object({
   receiptImage: z
     .string()
     .describe(
@@ -18,7 +18,7 @@ export const ExtractExpenseInputSchema = z.object({
 });
 export type ExtractExpenseInput = z.infer<typeof ExtractExpenseInputSchema>;
 
-export const ExtractExpenseOutputSchema = z.object({
+const ExtractExpenseOutputSchema = z.object({
     description: z.string().describe("The most likely item or service purchased from the receipt. Be concise, e.g., 'Groceries from Walmart' or 'Dinner at The Grand'. If you can't determine it, leave it empty."),
     amount: z.number().describe("The total amount of the expense. Look for a 'Total' or 'Amount Due' field. If you can't find it, extract the largest number that looks like a price."),
     category: z.enum(["Groceries", "Utilities", "Transport", "Entertainment", "Healthcare", "Education", "Other"]).describe("Categorize the expense based on the items or store name on the receipt. If unsure, default to 'Other'."),
