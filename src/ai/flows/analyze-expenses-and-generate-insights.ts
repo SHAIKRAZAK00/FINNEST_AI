@@ -47,11 +47,11 @@ const analyzeExpensesPrompt = ai.definePrompt({
   name: 'analyzeExpensesPrompt',
   input: {schema: AnalyzeExpensesAndGenerateInsightsInputSchema},
   output: {schema: AnalyzeExpensesAndGenerateInsightsOutputSchema},
-  prompt: `You are a personal finance advisor. Analyze the family's expenses and provide personalized insights and recommendations on how to optimize their financial habits and prevent overspending. Consider potential overspending in certain categories. Be brief and to the point.
+  prompt: `You are a personal finance advisor. The currency for all amounts is Indian Rupees (₹). Analyze the family's expenses and provide personalized insights and recommendations on how to optimize their financial habits and prevent overspending. Consider potential overspending in certain categories. Be brief and to the point.
 
-Family Expenses:
+Family Expenses (in ₹):
 {{#each expenses}}
-- Category: {{this.category}}, Amount: {{this.amount}}, Contributor: {{this.contributor}}, Date: {{this.date}}
+- Category: {{this.category}}, Amount: ₹{{this.amount}}, Contributor: {{this.contributor}}, Date: {{this.date}}
 {{/each}}`,
 });
 
