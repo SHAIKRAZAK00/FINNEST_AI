@@ -33,7 +33,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function SignupPage() {
     const router = useRouter();
     const { toast } = useToast();
-    const [role, setRole] = useState<UserRole | "">("");
+    const [role, setRole] = useState<string>("");
     const [step, setStep] = useState<'form' | 'code'>('form');
     const [generatedCode, setGeneratedCode] = useState('');
     const [error, setError] = useState('');
@@ -51,7 +51,9 @@ export default function SignupPage() {
         const usersRaw = localStorage.getItem('familyUsers');
         let allUsers = usersRaw ? JSON.parse(usersRaw) : mockUsers;
 
-        if (role === 'Parent') {
+        const roleForUserObject: UserRole = role === 'ParentCreate' || role === 'ParentJoin' ? 'Parent' : role as UserRole;
+
+        if (role === 'ParentCreate') {
             const familyNamePart = fullName.split(' ').pop() || 'User';
             const newFamilyCode = `${familyNamePart.substring(0, 3).toUpperCase()}-${String(Date.now()).slice(-4)}`;
             const familyId = `family-${Date.now()}`;
@@ -70,7 +72,7 @@ export default function SignupPage() {
               email,
               avatarUrl: `https://picsum.photos/seed/${fullName.split(' ')[0]}/200/200`,
               points: 0,
-              role: role as UserRole,
+              role: 'Parent',
             };
 
             allFamilies.push(newFamily);
@@ -83,7 +85,7 @@ export default function SignupPage() {
 
             setGeneratedCode(newFamilyCode);
             setStep('code');
-        } else if (role === 'Child' || role === 'Viewer') {
+        } else if (role === 'Child' || role === 'Viewer' || role === 'ParentJoin') {
             const familyToJoin = allFamilies.find((f: Family) => f.familyCode === familyCode);
 
             if (familyToJoin) {
@@ -94,7 +96,7 @@ export default function SignupPage() {
                   email,
                   avatarUrl: `https://picsum.photos/seed/${fullName.split(' ')[0]}/200/200`,
                   points: 0,
-                  role: role as UserRole,
+                  role: roleForUserObject,
                 };
                 
                 allUsers.push(newUser);
@@ -180,19 +182,20 @@ export default function SignupPage() {
           </div>
           <div className="grid gap-2">
             <Label htmlFor="role">Your Role</Label>
-            <Select required onValueChange={(value: UserRole) => setRole(value)}>
+            <Select required onValueChange={(value: string) => setRole(value)}>
               <SelectTrigger id="role">
                 <SelectValue placeholder="Select your role in the family" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Parent">Parent (Create a new family)</SelectItem>
+                <SelectItem value="ParentCreate">Parent (Create a new family)</SelectItem>
+                <SelectItem value="ParentJoin">Parent (Join a family)</SelectItem>
                 <SelectItem value="Child">Child (Join a family)</SelectItem>
                 <SelectItem value="Viewer">Viewer (Join a family)</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {(role === 'Child' || role === 'Viewer') && (
+          {(role === 'Child' || role === 'Viewer' || role === 'ParentJoin') && (
             <div className="grid gap-2">
                 <Label htmlFor="family-code">Family Code</Label>
                 <Input id="family-code" name="family-code" placeholder="Enter code from parent" required />
