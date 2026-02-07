@@ -96,7 +96,7 @@ export default function GoalsPage() {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-2">
                             <Label htmlFor="goal-amount">Target Amount</Label>
-                            <Input id="goal-amount" type="number" value={newGoal.targetAmount} onChange={(e) => setNewGoal({...newGoal, targetAmount: e.target.value})} placeholder="$2000" />
+                            <Input id="goal-amount" type="number" value={newGoal.targetAmount} onChange={(e) => setNewGoal({...newGoal, targetAmount: e.target.value})} placeholder="₹150000" />
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="goal-deadline">Deadline</Label>
@@ -133,8 +133,8 @@ export default function GoalsPage() {
                 </div>
                 <Progress value={progress} aria-label={`${goal.name} progress`} />
                 <div className="mt-2 flex justify-between text-sm font-semibold">
-                  <span>${goal.currentAmount.toLocaleString()}</span>
-                  <span className="text-muted-foreground">${goal.targetAmount.toLocaleString()}</span>
+                  <span>₹{goal.currentAmount.toLocaleString('en-IN')}</span>
+                  <span className="text-muted-foreground">₹{goal.targetAmount.toLocaleString('en-IN')}</span>
                 </div>
               </CardContent>
               <CardFooter className="flex-col items-start gap-4">
@@ -165,7 +165,7 @@ export default function GoalsPage() {
                     </DialogHeader>
                     <div className="py-4">
                         <Label htmlFor="contribution-amount">Amount</Label>
-                        <Input id="contribution-amount" type="number" placeholder="$50.00" value={contribution.amount} onChange={(e) => setContribution({...contribution, amount: e.target.value})} />
+                        <Input id="contribution-amount" type="number" placeholder="₹5000" value={contribution.amount} onChange={(e) => setContribution({...contribution, amount: e.target.value})} />
                     </div>
                     <DialogFooter>
                         <Button onClick={handleContribute}>Add Contribution</Button>

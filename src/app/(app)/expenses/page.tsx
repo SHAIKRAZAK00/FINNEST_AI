@@ -112,7 +112,7 @@ export default function ExpensesPage() {
                 <Label htmlFor="amount" className="text-right">
                   Amount
                 </Label>
-                <Input id="amount" type="number" value={newExpense.amount} onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})} className="col-span-3" placeholder="$50.00"/>
+                <Input id="amount" type="number" value={newExpense.amount} onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})} className="col-span-3" placeholder="₹4000"/>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="category" className="text-right">
@@ -172,7 +172,7 @@ export default function ExpensesPage() {
                   </TableCell>
                   <TableCell>{format(new Date(expense.date), "MMM d, yyyy")}</TableCell>
                   <TableCell className="text-right">
-                    ${expense.amount.toFixed(2)}
+                    ₹{expense.amount.toFixed(2)}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
