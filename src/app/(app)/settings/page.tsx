@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useFamily } from "@/context/family-context";
@@ -7,13 +8,49 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
+import { Copy } from "lucide-react";
 
 export default function SettingsPage() {
-  const { currentUser } = useFamily();
+  const { family, currentUser } = useFamily();
+  const { toast } = useToast();
   const getInitials = (name: string) => name.split(" ").map((n) => n[0]).join("");
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(family.familyCode);
+    toast({
+      title: "Copied!",
+      description: "Family code copied to clipboard.",
+    });
+  };
 
   return (
     <div className="grid gap-6">
+       {currentUser.role === 'Parent' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Family Settings</CardTitle>
+            <CardDescription>Manage your family group and invite members.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+                <Label>Family Name</Label>
+                <Input value={family.familyName} readOnly />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="family-code">Family Code</Label>
+                <div className="flex items-center gap-2">
+                    <Input id="family-code" value={family.familyCode} readOnly />
+                    <Button variant="outline" size="icon" onClick={handleCopy}>
+                        <Copy className="h-4 w-4" />
+                        <span className="sr-only">Copy code</span>
+                    </Button>
+                </div>
+                <p className="text-sm text-muted-foreground">Share this code with family members to let them join.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       <Card>
         <CardHeader>
           <CardTitle>Profile Settings</CardTitle>
