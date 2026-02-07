@@ -16,12 +16,31 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AppLogo } from "@/components/app-logo";
+import { mockUsers } from "@/lib/data";
 
 export default function LoginPage() {
   const router = useRouter();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const email = (form.elements.namedItem("email") as HTMLInputElement).value;
+    
+    const user = mockUsers.find(u => u.email === email);
+    
+    if (user) {
+        localStorage.setItem('currentUser', JSON.stringify(user));
+    } else {
+        // For demo, if user not found, let's just log in as the default user
+        localStorage.setItem('currentUser', JSON.stringify(mockUsers[0]));
+    }
+    
+    router.push("/dashboard");
+  };
+
+  const handleBiometricLogin = () => {
+    // For demo purposes, log in as the default user
+    localStorage.setItem('currentUser', JSON.stringify(mockUsers[0]));
     router.push("/dashboard");
   };
 
@@ -40,6 +59,7 @@ export default function LoginPage() {
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
+              name="email"
               type="email"
               placeholder="alex@example.com"
               required
@@ -69,7 +89,7 @@ export default function LoginPage() {
             </span>
           </div>
         </div>
-        <Button variant="outline" className="w-full" onClick={handleLogin}>
+        <Button variant="outline" className="w-full" onClick={handleBiometricLogin}>
           <Fingerprint className="mr-2 h-4 w-4" />
           Login with Biometrics
         </Button>

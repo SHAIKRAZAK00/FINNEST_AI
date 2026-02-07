@@ -2,12 +2,16 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import type { UserRole } from "@/lib/types";
+import { mockFamily } from "@/lib/data";
 
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -21,16 +25,92 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AppLogo } from "@/components/app-logo";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Copy } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
 
 export default function SignupPage() {
     const router = useRouter();
+    const { toast } = useToast();
+    const [role, setRole] = useState<UserRole | "">("");
+    const [step, setStep] = useState<'form' | 'code'>('form');
+    const [generatedCode, setGeneratedCode] = useState('');
+    const [error, setError] = useState('');
 
-    const handleSignup = (e: React.FormEvent) => {
+    const handleSignup = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        // Here you would typically handle family creation/joining logic
-        // For this demo, we'll just redirect to the dashboard
-        router.push("/dashboard");
+        setError('');
+        const form = e.target;
+        const fullName = (form.elements.namedItem("full-name") as HTMLInputElement).value;
+        const email = (form.elements.namedItem("email") as HTMLInputElement).value;
+        const familyCode = (form.elements.namedItem("family-code") as HTMLInputElement)?.value;
+        
+        const newUser = {
+          id: `user-${Date.now()}`,
+          name: fullName,
+          email,
+          avatarUrl: `https://picsum.photos/seed/${fullName.split(' ')[0]}/200/200`,
+          points: 0,
+          role: role as UserRole,
+        };
+
+        if (role === 'Parent') {
+            // In a real app, this code would be generated and stored securely.
+            const newFamilyCode = mockFamily.familyCode;
+            localStorage.setItem('currentUser', JSON.stringify(newUser));
+            setGeneratedCode(newFamilyCode);
+            setStep('code');
+        } else if (role === 'Child' || role === 'Viewer') {
+            if (familyCode === mockFamily.familyCode) {
+                localStorage.setItem('currentUser', JSON.stringify(newUser));
+                router.push('/dashboard');
+            } else {
+                setError('Invalid family code. Please check with your parent and try again.');
+            }
+        }
     };
+    
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(generatedCode);
+        toast({
+            title: "Copied!",
+            description: "Family code copied to clipboard.",
+        });
+    };
+
+    if (step === 'code') {
+        return (
+            <Card className="mx-auto max-w-sm">
+                <CardHeader className="items-center text-center">
+                    <AppLogo />
+                    <CardTitle className="text-2xl font-headline">Welcome to the Family!</CardTitle>
+                    <CardDescription>
+                        Your family is all set up. Share this code with other members to let them join.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-4">
+                    <p className="text-sm text-muted-foreground">Your unique family code is:</p>
+                    <div className="flex items-center justify-between rounded-lg border bg-muted p-3">
+                        <span className="text-2xl font-bold tracking-widest">{generatedCode}</span>
+                        <Button variant="ghost" size="icon" onClick={copyToClipboard}>
+                            <Copy className="h-5 w-5"/>
+                            <span className="sr-only">Copy code</span>
+                        </Button>
+                    </div>
+                     <Button onClick={() => router.push('/dashboard')}>Go to Dashboard</Button>
+                </CardContent>
+                 <CardFooter className="justify-center">
+                    <div className="text-sm">
+                        Finished?{" "}
+                        <Link href="/login" className="underline">
+                            Sign in
+                        </Link>
+                    </div>
+                </CardFooter>
+            </Card>
+        )
+    }
 
   return (
     <Card className="mx-auto max-w-sm">
@@ -45,12 +125,13 @@ export default function SignupPage() {
         <form onSubmit={handleSignup} className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="full-name">Full Name</Label>
-            <Input id="full-name" placeholder="Alex Johnson" required />
+            <Input id="full-name" name="full-name" placeholder="Alex Johnson" required />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
+              name="email"
               type="email"
               placeholder="alex@example.com"
               required
@@ -62,18 +143,32 @@ export default function SignupPage() {
           </div>
           <div className="grid gap-2">
             <Label htmlFor="role">Your Role</Label>
-            <Select required defaultValue="Parent">
-              <SelectTrigger>
+            <Select required onValueChange={(value: UserRole) => setRole(value)}>
+              <SelectTrigger id="role">
                 <SelectValue placeholder="Select your role in the family" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Parent">Parent</SelectItem>
-                <SelectItem value="Child">Child</SelectItem>
-                <SelectItem value="Viewer">Viewer</SelectItem>
+                <SelectItem value="Parent">Parent (Create a new family)</SelectItem>
+                <SelectItem value="Child">Child (Join a family)</SelectItem>
+                <SelectItem value="Viewer">Viewer (Join a family)</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <Button type="submit" className="w-full">
+
+          {(role === 'Child' || role === 'Viewer') && (
+            <div className="grid gap-2">
+                <Label htmlFor="family-code">Family Code</Label>
+                <Input id="family-code" name="family-code" placeholder="Enter code from parent" required />
+            </div>
+          )}
+          
+          {error && (
+            <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <Button type="submit" className="w-full" disabled={!role}>
             Create an account
           </Button>
         </form>
