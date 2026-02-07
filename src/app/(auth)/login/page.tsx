@@ -16,11 +16,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AppLogo } from "@/components/app-logo";
-import { mockUsers, mockFamily } from "@/lib/data";
 import type { User, Family } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { toast } = useToast();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +29,7 @@ export default function LoginPage() {
     const email = (form.elements.namedItem("email") as HTMLInputElement).value;
     
     const familyUsersRaw = localStorage.getItem("familyUsers");
-    const allUsers = familyUsersRaw ? JSON.parse(familyUsersRaw) : mockUsers;
+    const allUsers = familyUsersRaw ? JSON.parse(familyUsersRaw) : [];
 
     const user = allUsers.find((u: User) => u.email === email);
     
@@ -36,7 +37,7 @@ export default function LoginPage() {
         localStorage.setItem('currentUser', JSON.stringify(user));
         
         const familiesRaw = localStorage.getItem("families");
-        const allFamilies = familiesRaw ? JSON.parse(familiesRaw) : [mockFamily];
+        const allFamilies = familiesRaw ? JSON.parse(familiesRaw) : [];
         const family = allFamilies.find((f: Family) => f.id === user.familyId);
 
         if (family) {
@@ -44,27 +45,39 @@ export default function LoginPage() {
         } else {
             localStorage.removeItem('family');
         }
-
+        router.push("/dashboard");
     } else {
-        // For demo, if user not found, let's just log in as the default user
-        localStorage.setItem('currentUser', JSON.stringify(mockUsers[0]));
-        localStorage.setItem('family', JSON.stringify(mockFamily));
+        toast({
+            variant: "destructive",
+            title: "Login Failed",
+            description: "No user found with that email. Please sign up.",
+        });
     }
-    
-    router.push("/dashboard");
   };
 
   const handleBiometricLogin = () => {
-    // For demo purposes, log in as the default user
     const familyUsersRaw = localStorage.getItem("familyUsers");
-    const allUsers = familyUsersRaw ? JSON.parse(familyUsersRaw) : mockUsers;
-    const defaultUser = allUsers[0];
+    if (!familyUsersRaw || JSON.parse(familyUsersRaw).length === 0) {
+        toast({
+            variant: "destructive",
+            title: "Biometric Login Failed",
+            description: "No users found on this device. Please sign in manually first.",
+        });
+        return;
+    }
+    const allUsers = JSON.parse(familyUsersRaw);
+    const defaultUser = allUsers[0]; // Log in as first user found.
     localStorage.setItem('currentUser', JSON.stringify(defaultUser));
     
     const familiesRaw = localStorage.getItem("families");
-    const allFamilies = familiesRaw ? JSON.parse(familiesRaw) : [mockFamily];
-    const family = allFamilies.find((f: Family) => f.id === defaultUser.familyId) || mockFamily;
-    localStorage.setItem('family', JSON.stringify(family));
+    const allFamilies = familiesRaw ? JSON.parse(familiesRaw) : [];
+    const family = allFamilies.find((f: Family) => f.id === defaultUser.familyId);
+    
+    if (family) {
+        localStorage.setItem('family', JSON.stringify(family));
+    } else {
+        localStorage.removeItem('family');
+    }
 
     router.push("/dashboard");
   };
@@ -88,12 +101,11 @@ export default function LoginPage() {
               type="email"
               placeholder="alex@example.com"
               required
-              defaultValue="alex@example.com"
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" required defaultValue="password" />
+            <Input id="password" type="password" required />
           </div>
           <div className="flex items-center">
             <Link href="#" className="ml-auto inline-block text-sm underline">

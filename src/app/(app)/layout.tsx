@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Avatar,
   AvatarFallback,
@@ -33,6 +35,7 @@ import {
   Bot,
   CircleUser,
   LayoutDashboard,
+  Loader2,
   LogOut,
   ReceiptText,
   Settings,
@@ -51,6 +54,16 @@ function AppSidebar() {
       .map((n) => n[0])
       .join("");
   };
+
+  if (!currentUser || !family) {
+    return (
+       <Sidebar>
+        <SidebarHeader>
+          <AppLogo />
+        </SidebarHeader>
+      </Sidebar>
+    )
+  }
 
   return (
     <Sidebar>
@@ -164,20 +177,43 @@ function AppSidebar() {
   );
 }
 
+function AppLayoutContent({ children }: { children: React.ReactNode }) {
+  const { loading, currentUser } = useFamily();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !currentUser) {
+      router.push('/login');
+    }
+  }, [loading, currentUser, router]);
+
+  if (loading || !currentUser) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:h-16 sm:px-6">
+          <SidebarTrigger className="md:hidden" />
+          {/* Header content like breadcrumbs can go here */}
+        </header>
+        <main className="flex-1 p-4 sm:p-6">{children}</main>
+      </SidebarInset>
+    </SidebarProvider>
+  );
+}
+
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <FamilyProvider>
-      <SidebarProvider>
-        <AppSidebar />
-        <SidebarInset>
-            <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:h-16 sm:px-6">
-                <SidebarTrigger className="md:hidden"/>
-                {/* Header content like breadcrumbs can go here */}
-            </header>
-            <main className="flex-1 p-4 sm:p-6">{children}</main>
-        </SidebarInset>
-      </SidebarProvider>
+      <AppLayoutContent>{children}</AppLayoutContent>
     </FamilyProvider>
   );
 }

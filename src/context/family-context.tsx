@@ -1,113 +1,120 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { mockUsers, mockExpenses, mockGoals, mockFamily, mockCurrentUser } from '@/lib/data';
 import type { User, Expense, Goal, Family } from '@/lib/types';
 
 interface FamilyContextType {
-  family: Family;
+  family: Family | null;
   users: User[];
-  currentUser: User;
+  currentUser: User | null;
   expenses: Expense[];
   goals: Goal[];
   addExpense: (expense: Omit<Expense, 'id' | 'contributorId' | 'date'>) => void;
   addGoal: (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors'>) => void;
   contributeToGoal: (goalId: string, amount: number) => void;
+  loading: boolean;
 }
 
 const FamilyContext = createContext<FamilyContextType | undefined>(undefined);
 
 export function FamilyProvider({ children }: { children: ReactNode }) {
-  const [family, setFamily] = useState<Family>(mockFamily);
-  const [users, setUsers] = useState<User[]>(mockUsers);
-  const [currentUser, setCurrentUser] = useState<User>(mockCurrentUser);
-  const [expenses, setExpenses] = useState<Expense[]>(mockExpenses);
-  const [goals, setGoals] = useState<Goal[]>(mockGoals);
+  const [family, setFamily] = useState<Family | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // This effect runs only on the client, after initial render, to avoid hydration mismatch.
-    const storedFamily = localStorage.getItem('family');
-    if (storedFamily) {
-        try {
-            setFamily(JSON.parse(storedFamily));
-        } catch (e) {
-            console.error("Failed to parse family from localStorage", e);
-        }
+    try {
+      const storedFamily = localStorage.getItem('family');
+      const storedUsers = localStorage.getItem('familyUsers');
+      const storedCurrentUser = localStorage.getItem('currentUser');
+      const storedExpenses = localStorage.getItem('familyExpenses');
+      const storedGoals = localStorage.getItem('familyGoals');
+
+      const loadedFamily = storedFamily ? JSON.parse(storedFamily) : null;
+      const loadedUsers = storedUsers ? JSON.parse(storedUsers) : [];
+      const loadedCurrentUser = storedCurrentUser ? JSON.parse(storedCurrentUser) : null;
+      
+      setFamily(loadedFamily);
+      setUsers(loadedUsers);
+      
+      if (loadedCurrentUser) {
+          const fullUser = loadedUsers.find((u: User) => u.id === loadedCurrentUser.id) || loadedCurrentUser;
+          setCurrentUser(fullUser);
+      }
+
+      setExpenses(storedExpenses ? JSON.parse(storedExpenses) : []);
+      setGoals(storedGoals ? JSON.parse(storedGoals) : []);
+    } catch (error) {
+        console.error("Failed to load data from localStorage", error);
+        localStorage.clear();
+    } finally {
+        setLoading(false);
     }
-    
-    const storedUsersRaw = localStorage.getItem('familyUsers');
-    let familyUsers: User[] = storedUsersRaw ? JSON.parse(storedUsersRaw) : mockUsers;
-
-    const storedUserRaw = localStorage.getItem('currentUser');
-    if (storedUserRaw) {
-        try {
-            const parsedUser = JSON.parse(storedUserRaw) as User;
-            // Ensure the currentUser from storage is the one we use.
-            const fullUser = familyUsers.find(u => u.id === parsedUser.id) || parsedUser;
-            setCurrentUser(fullUser);
-
-            const userExists = familyUsers.some((u: User) => u.id === fullUser.id);
-            if (!userExists) {
-                familyUsers = [...familyUsers, fullUser];
-            }
-        } catch (error) {
-            console.error("Failed to parse current user from localStorage", error);
-        }
-    }
-    
-    setUsers(familyUsers);
-
   }, []);
 
   const awardPoints = (points: number) => {
+    if (!currentUser) return;
     const updatedUsers = users.map(u => 
       u.id === currentUser.id ? { ...u, points: u.points + points } : u
     );
     setUsers(updatedUsers);
+    localStorage.setItem('familyUsers', JSON.stringify(updatedUsers));
 
     const updatedCurrentUser = { ...currentUser, points: currentUser.points + points };
     setCurrentUser(updatedCurrentUser);
-
-    localStorage.setItem('familyUsers', JSON.stringify(updatedUsers));
     localStorage.setItem('currentUser', JSON.stringify(updatedCurrentUser));
   };
 
   const addExpense = (expense: Omit<Expense, 'id' | 'contributorId' | 'date'>) => {
-    const newExpense = { 
+    if (!currentUser) return;
+    const newExpense: Expense = { 
         ...expense, 
         id: `exp-${Date.now()}`,
         contributorId: currentUser.id,
         date: new Date().toISOString()
     };
-    setExpenses(prev => [newExpense, ...prev]);
+    const updatedExpenses = [newExpense, ...expenses];
+    setExpenses(updatedExpenses);
+    localStorage.setItem('familyExpenses', JSON.stringify(updatedExpenses));
     awardPoints(10);
   };
 
   const addGoal = (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors'>) => {
-    const newGoal = {
+    if (!currentUser) return;
+    const newGoal: Goal = {
         ...goal,
         id: `goal-${Date.now()}`,
         currentAmount: 0,
         contributors: []
     };
-    setGoals(prev => [...prev, newGoal]);
+    const updatedGoals = [...goals, newGoal];
+    setGoals(updatedGoals);
+    localStorage.setItem('familyGoals', JSON.stringify(updatedGoals));
     awardPoints(50);
   };
 
   const contributeToGoal = (goalId: string, amount: number) => {
-    setGoals(prev => prev.map(goal => {
+    if (!currentUser) return;
+    const updatedGoals = goals.map(goal => {
         if (goal.id === goalId) {
             const newAmount = Math.min(goal.targetAmount, goal.currentAmount + amount);
             const newContributors = goal.contributors.includes(currentUser.id) ? goal.contributors : [...goal.contributors, currentUser.id];
             return { ...goal, currentAmount: newAmount, contributors: newContributors };
         }
         return goal;
-    }));
+    });
+    setGoals(updatedGoals);
+    localStorage.setItem('familyGoals', JSON.stringify(updatedGoals));
     awardPoints(25);
   };
 
+  const value = { family, users, currentUser, expenses, goals, addExpense, addGoal, contributeToGoal, loading };
+
   return (
-    <FamilyContext.Provider value={{ family, users, currentUser, expenses, goals, addExpense, addGoal, contributeToGoal }}>
+    <FamilyContext.Provider value={value}>
       {children}
     </FamilyContext.Provider>
   );

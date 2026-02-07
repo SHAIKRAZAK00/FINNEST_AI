@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { UserRole, Family, User } from "@/lib/types";
-import { mockFamily, mockUsers } from "@/lib/data";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -47,9 +46,9 @@ export default function SignupPage() {
         const familyCode = (form.elements.namedItem("family-code") as HTMLInputElement)?.value;
         
         const familiesRaw = localStorage.getItem('families');
-        const allFamilies = familiesRaw ? JSON.parse(familiesRaw) : [mockFamily];
+        const allFamilies = familiesRaw ? JSON.parse(familiesRaw) : [];
         const usersRaw = localStorage.getItem('familyUsers');
-        let allUsers = usersRaw ? JSON.parse(usersRaw) : mockUsers;
+        let allUsers = usersRaw ? JSON.parse(usersRaw) : [];
 
         const roleForUserObject: UserRole = role === 'ParentCreate' || role === 'ParentJoin' ? 'Parent' : role as UserRole;
 
