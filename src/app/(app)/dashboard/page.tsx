@@ -18,7 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  BarChart,
+  BarChart as BarChartIcon,
   DollarSign,
   PiggyBank,
   TrendingUp,
@@ -30,7 +30,7 @@ import {
   ChartTooltipContent,
   ChartConfig,
 } from "@/components/ui/chart";
-import { Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -112,7 +112,7 @@ export default function DashboardPage() {
         <Card className="lg:col-span-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <BarChart className="h-5 w-5" /> Spending Breakdown
+              <BarChartIcon className="h-5 w-5" /> Spending Breakdown
             </CardTitle>
             <CardDescription>
               Your family's spending by category this month.
