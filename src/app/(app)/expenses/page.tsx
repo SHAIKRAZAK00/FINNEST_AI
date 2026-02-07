@@ -69,7 +69,8 @@ export default function ExpensesPage() {
     }
   };
 
-  const isActionAllowed = currentUser.role === 'Parent';
+  const canAddExpense = currentUser.role === 'Parent' || currentUser.role === 'Child';
+  const canEditOrDelete = currentUser.role === 'Parent';
 
   const sortedExpenses = useMemo(() => 
     [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
@@ -87,7 +88,7 @@ export default function ExpensesPage() {
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" className="gap-1" disabled={!isActionAllowed}>
+            <Button size="sm" className="gap-1" disabled={!canAddExpense}>
               <PlusCircle className="h-3.5 w-3.5" />
               <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
                 Add Expense
@@ -184,8 +185,8 @@ export default function ExpensesPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem disabled={!isActionAllowed}>Edit</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" disabled={!isActionAllowed}>Delete</DropdownMenuItem>
+                        <DropdownMenuItem disabled={!canEditOrDelete}>Edit</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" disabled={!canEditOrDelete}>Delete</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
