@@ -18,14 +18,33 @@ interface FamilyContextType {
 const FamilyContext = createContext<FamilyContextType | undefined>(undefined);
 
 export function FamilyProvider({ children }: { children: ReactNode }) {
-  const [family] = useState<Family>(mockFamily);
-  const [users, setUsers] = useState<User[]>(mockUsers);
+  const [family, setFamily] = useState<Family>(mockFamily);
+  const [users, setUsers] = useState<User[]>(() => {
+    if (typeof window === 'undefined') return mockUsers;
+    const storedUsers = localStorage.getItem('familyUsers');
+    return storedUsers ? JSON.parse(storedUsers) : mockUsers;
+  });
   const [currentUser, setCurrentUser] = useState<User>(mockCurrentUser);
   const [expenses, setExpenses] = useState<Expense[]>(mockExpenses);
   const [goals, setGoals] = useState<Goal[]>(mockGoals);
 
   useEffect(() => {
+    localStorage.setItem('familyUsers', JSON.stringify(users));
+  }, [users]);
+
+  useEffect(() => {
     const storedUser = localStorage.getItem('currentUser');
+    const storedFamily = localStorage.getItem('family');
+
+    if (storedFamily) {
+        try {
+            setFamily(JSON.parse(storedFamily));
+        } catch (e) {
+            console.error("Failed to parse family from localStorage", e);
+            setFamily(mockFamily);
+        }
+    }
+
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser) as User;
@@ -37,7 +56,7 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
         setCurrentUser(fullUser);
         
         // Add new user to the list of users if they don't exist
-        if (!users.find(u => u.id === fullUser.id) && !mockUsers.find(u => u.email === fullUser.email)) {
+        if (!users.find(u => u.email === fullUser.email)) {
           setUsers(prev => [...prev, fullUser]);
         }
 

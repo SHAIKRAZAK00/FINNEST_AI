@@ -26,7 +26,10 @@ export default function LoginPage() {
     const form = e.target as HTMLFormElement;
     const email = (form.elements.namedItem("email") as HTMLInputElement).value;
     
-    const user = mockUsers.find(u => u.email === email);
+    const familyUsersRaw = localStorage.getItem("familyUsers");
+    const allUsers = familyUsersRaw ? JSON.parse(familyUsersRaw) : mockUsers;
+
+    const user = allUsers.find((u: any) => u.email === email);
     
     if (user) {
         localStorage.setItem('currentUser', JSON.stringify(user));
@@ -40,7 +43,9 @@ export default function LoginPage() {
 
   const handleBiometricLogin = () => {
     // For demo purposes, log in as the default user
-    localStorage.setItem('currentUser', JSON.stringify(mockUsers[0]));
+    const familyUsersRaw = localStorage.getItem("familyUsers");
+    const allUsers = familyUsersRaw ? JSON.parse(familyUsersRaw) : mockUsers;
+    localStorage.setItem('currentUser', JSON.stringify(allUsers[0]));
     router.push("/dashboard");
   };
 

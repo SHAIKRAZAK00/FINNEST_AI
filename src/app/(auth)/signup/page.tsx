@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { UserRole } from "@/lib/types";
+import type { UserRole, Family } from "@/lib/types";
 import { mockFamily } from "@/lib/data";
 
 import { Button } from "@/components/ui/button";
@@ -41,7 +41,7 @@ export default function SignupPage() {
     const handleSignup = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError('');
-        const form = e.target;
+        const form = e.target as HTMLFormElement;
         const fullName = (form.elements.namedItem("full-name") as HTMLInputElement).value;
         const email = (form.elements.namedItem("email") as HTMLInputElement).value;
         const familyCode = (form.elements.namedItem("family-code") as HTMLInputElement)?.value;
@@ -56,13 +56,25 @@ export default function SignupPage() {
         };
 
         if (role === 'Parent') {
-            // In a real app, this code would be generated and stored securely.
-            const newFamilyCode = mockFamily.familyCode;
+            const familyNamePart = fullName.split(' ')[0];
+            const newFamilyCode = `${familyNamePart.substring(0, 3).toUpperCase()}-${String(Date.now()).slice(-4)}`;
+            
+            const newFamily: Family = {
+                id: `family-${Date.now()}`,
+                name: `The ${familyNamePart}s`,
+                familyName: `${familyNamePart} Family`,
+                familyCode: newFamilyCode,
+            };
+
+            localStorage.setItem('family', JSON.stringify(newFamily));
             localStorage.setItem('currentUser', JSON.stringify(newUser));
             setGeneratedCode(newFamilyCode);
             setStep('code');
         } else if (role === 'Child' || role === 'Viewer') {
-            if (familyCode === mockFamily.familyCode) {
+            const storedFamilyRaw = localStorage.getItem('family');
+            const familyToJoin = storedFamilyRaw ? JSON.parse(storedFamilyRaw) : mockFamily;
+
+            if (familyCode === familyToJoin.familyCode) {
                 localStorage.setItem('currentUser', JSON.stringify(newUser));
                 router.push('/dashboard');
             } else {
