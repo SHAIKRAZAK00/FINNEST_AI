@@ -12,6 +12,7 @@ interface FamilyContextType {
   addExpense: (expense: Omit<Expense, 'id' | 'contributorId' | 'date'>) => void;
   addGoal: (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors'>) => void;
   contributeToGoal: (goalId: string, amount: number) => void;
+  removeUser: (userId: string) => void;
   loading: boolean;
 }
 
@@ -111,7 +112,29 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
     awardPoints(25);
   };
 
-  const value = { family, users, currentUser, expenses, goals, addExpense, addGoal, contributeToGoal, loading };
+  const removeUser = (userId: string) => {
+    if (!currentUser || currentUser.role !== 'Parent' || currentUser.id === userId) {
+      console.warn("Attempted to remove user without permission or self-removal.");
+      return;
+    }
+
+    const updatedUsers = users.filter(user => user.id !== userId);
+    setUsers(updatedUsers);
+    localStorage.setItem('familyUsers', JSON.stringify(updatedUsers));
+
+    const updatedExpenses = expenses.filter(expense => expense.contributorId !== userId);
+    setExpenses(updatedExpenses);
+    localStorage.setItem('familyExpenses', JSON.stringify(updatedExpenses));
+
+    const updatedGoals = goals.map(goal => ({
+      ...goal,
+      contributors: goal.contributors.filter(cId => cId !== userId),
+    }));
+    setGoals(updatedGoals);
+    localStorage.setItem('familyGoals', JSON.stringify(updatedGoals));
+  };
+
+  const value = { family, users, currentUser, expenses, goals, addExpense, addGoal, contributeToGoal, removeUser, loading };
 
   return (
     <FamilyContext.Provider value={value}>

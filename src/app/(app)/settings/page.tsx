@@ -1,19 +1,33 @@
-
 "use client";
 
+import { useState } from "react";
 import { useFamily } from "@/context/family-context";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Copy } from "lucide-react";
+import { Copy, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import type { User } from "@/lib/types";
 
 export default function SettingsPage() {
-  const { family, currentUser } = useFamily();
+  const { family, currentUser, users, removeUser } = useFamily();
   const { toast } = useToast();
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [userToRemove, setUserToRemove] = useState<User | null>(null);
+
   const getInitials = (name: string) => name.split(" ").map((n) => n[0]).join("");
 
   const handleCopy = () => {
@@ -22,6 +36,35 @@ export default function SettingsPage() {
       title: "Copied!",
       description: "Family code copied to clipboard.",
     });
+  };
+
+  const openRemoveDialog = (user: User) => {
+    setUserToRemove(user);
+    setIsAlertOpen(true);
+  };
+
+  const handleRemoveUser = () => {
+    if (!userToRemove) return;
+    
+    const parents = users.filter(u => u.role === 'Parent');
+    if (parents.length === 1 && parents[0].id === userToRemove.id) {
+       toast({
+        variant: "destructive",
+        title: "Action Not Allowed",
+        description: "You cannot remove the only parent from the family.",
+      });
+      setIsAlertOpen(false);
+      setUserToRemove(null);
+      return;
+    }
+
+    removeUser(userToRemove.id);
+    toast({
+      title: "User Removed",
+      description: `${userToRemove.name} has been removed from the family.`,
+    });
+    setIsAlertOpen(false);
+    setUserToRemove(null);
   };
 
   return (
@@ -51,6 +94,40 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       )}
+
+      {currentUser.role === 'Parent' && (
+        <Card>
+            <CardHeader>
+                <CardTitle>Manage Members</CardTitle>
+                <CardDescription>Remove members from your family group.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-4">
+                    {users.map(user => (
+                        <div key={user.id} className="flex items-center justify-between">
+                           <div className="flex items-center gap-4">
+                                <Avatar className="h-10 w-10">
+                                    <AvatarImage src={user.avatarUrl} alt={user.name} />
+                                    <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <p className="font-medium">{user.name} {user.id === currentUser.id && '(You)'}</p>
+                                    <p className="text-sm text-muted-foreground">{user.role}</p>
+                                </div>
+                            </div>
+                            {user.id !== currentUser.id && (
+                              <Button variant="ghost" size="icon" onClick={() => openRemoveDialog(user)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                                <span className="sr-only">Remove {user.name}</span>
+                              </Button>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Profile Settings</CardTitle>
@@ -125,6 +202,22 @@ export default function SettingsPage() {
             </div>
         </CardContent>
       </Card>
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This will permanently remove <strong>{userToRemove?.name}</strong> from the family. All their associated data, like expenses and goal contributions, will also be deleted. This action cannot be undone.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setUserToRemove(null)}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleRemoveUser} className={buttonVariants({ variant: "destructive" })}>
+                    Remove
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
