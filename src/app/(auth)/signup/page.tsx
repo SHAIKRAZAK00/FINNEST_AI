@@ -56,7 +56,7 @@ export default function SignupPage() {
         };
 
         if (role === 'Parent') {
-            const familyNamePart = fullName.split(' ')[0];
+            const familyNamePart = fullName.split(' ').pop() || 'User';
             const newFamilyCode = `${familyNamePart.substring(0, 3).toUpperCase()}-${String(Date.now()).slice(-4)}`;
             
             const newFamily: Family = {
@@ -66,16 +66,27 @@ export default function SignupPage() {
                 familyCode: newFamilyCode,
             };
 
+            // This is a simplified multi-family simulation using localStorage
+            const familiesRaw = localStorage.getItem('families');
+            const families = familiesRaw ? JSON.parse(familiesRaw) : [];
+            families.push(newFamily);
+            localStorage.setItem('families', JSON.stringify(families));
+
             localStorage.setItem('family', JSON.stringify(newFamily));
             localStorage.setItem('currentUser', JSON.stringify(newUser));
             setGeneratedCode(newFamilyCode);
             setStep('code');
         } else if (role === 'Child' || role === 'Viewer') {
-            const storedFamilyRaw = localStorage.getItem('family');
-            const familyToJoin = storedFamilyRaw ? JSON.parse(storedFamilyRaw) : mockFamily;
+            // This is a simplified multi-family simulation using localStorage
+            const familiesRaw = localStorage.getItem('families');
+            // We check our list of created families first, then fall back to the base mock family
+            const allFamilies = familiesRaw ? JSON.parse(familiesRaw) : [mockFamily];
+            const familyToJoin = allFamilies.find((f: Family) => f.familyCode === familyCode);
 
-            if (familyCode === familyToJoin.familyCode) {
+            if (familyToJoin) {
                 localStorage.setItem('currentUser', JSON.stringify(newUser));
+                // Set the family context for the joining user
+                localStorage.setItem('family', JSON.stringify(familyToJoin));
                 router.push('/dashboard');
             } else {
                 setError('Invalid family code. Please check with your parent and try again.');
