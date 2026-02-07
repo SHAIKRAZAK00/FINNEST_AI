@@ -4,6 +4,7 @@ export type UserRole = "Parent" | "Child" | "Viewer";
 
 export type User = {
   id: string;
+  familyId: string;
   name: string;
   avatarUrl: string;
   email: string;

@@ -16,7 +16,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AppLogo } from "@/components/app-logo";
-import { mockUsers } from "@/lib/data";
+import { mockUsers, mockFamily } from "@/lib/data";
+import type { User, Family } from "@/lib/types";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -29,13 +30,25 @@ export default function LoginPage() {
     const familyUsersRaw = localStorage.getItem("familyUsers");
     const allUsers = familyUsersRaw ? JSON.parse(familyUsersRaw) : mockUsers;
 
-    const user = allUsers.find((u: any) => u.email === email);
+    const user = allUsers.find((u: User) => u.email === email);
     
     if (user) {
         localStorage.setItem('currentUser', JSON.stringify(user));
+        
+        const familiesRaw = localStorage.getItem("families");
+        const allFamilies = familiesRaw ? JSON.parse(familiesRaw) : [mockFamily];
+        const family = allFamilies.find((f: Family) => f.id === user.familyId);
+
+        if (family) {
+            localStorage.setItem('family', JSON.stringify(family));
+        } else {
+            localStorage.removeItem('family');
+        }
+
     } else {
         // For demo, if user not found, let's just log in as the default user
         localStorage.setItem('currentUser', JSON.stringify(mockUsers[0]));
+        localStorage.setItem('family', JSON.stringify(mockFamily));
     }
     
     router.push("/dashboard");
@@ -45,7 +58,14 @@ export default function LoginPage() {
     // For demo purposes, log in as the default user
     const familyUsersRaw = localStorage.getItem("familyUsers");
     const allUsers = familyUsersRaw ? JSON.parse(familyUsersRaw) : mockUsers;
-    localStorage.setItem('currentUser', JSON.stringify(allUsers[0]));
+    const defaultUser = allUsers[0];
+    localStorage.setItem('currentUser', JSON.stringify(defaultUser));
+    
+    const familiesRaw = localStorage.getItem("families");
+    const allFamilies = familiesRaw ? JSON.parse(familiesRaw) : [mockFamily];
+    const family = allFamilies.find((f: Family) => f.id === defaultUser.familyId) || mockFamily;
+    localStorage.setItem('family', JSON.stringify(family));
+
     router.push("/dashboard");
   };
 

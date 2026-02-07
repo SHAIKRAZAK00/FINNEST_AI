@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { UserRole, Family } from "@/lib/types";
-import { mockFamily } from "@/lib/data";
+import type { UserRole, Family, User } from "@/lib/types";
+import { mockFamily, mockUsers } from "@/lib/data";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -46,46 +46,60 @@ export default function SignupPage() {
         const email = (form.elements.namedItem("email") as HTMLInputElement).value;
         const familyCode = (form.elements.namedItem("family-code") as HTMLInputElement)?.value;
         
-        const newUser = {
-          id: `user-${Date.now()}`,
-          name: fullName,
-          email,
-          avatarUrl: `https://picsum.photos/seed/${fullName.split(' ')[0]}/200/200`,
-          points: 0,
-          role: role as UserRole,
-        };
+        const familiesRaw = localStorage.getItem('families');
+        const allFamilies = familiesRaw ? JSON.parse(familiesRaw) : [mockFamily];
+        const usersRaw = localStorage.getItem('familyUsers');
+        let allUsers = usersRaw ? JSON.parse(usersRaw) : mockUsers;
 
         if (role === 'Parent') {
             const familyNamePart = fullName.split(' ').pop() || 'User';
             const newFamilyCode = `${familyNamePart.substring(0, 3).toUpperCase()}-${String(Date.now()).slice(-4)}`;
+            const familyId = `family-${Date.now()}`;
             
             const newFamily: Family = {
-                id: `family-${Date.now()}`,
+                id: familyId,
                 name: `The ${familyNamePart}s`,
                 familyName: `${familyNamePart} Family`,
                 familyCode: newFamilyCode,
             };
 
-            // This is a simplified multi-family simulation using localStorage
-            const familiesRaw = localStorage.getItem('families');
-            const families = familiesRaw ? JSON.parse(familiesRaw) : [];
-            families.push(newFamily);
-            localStorage.setItem('families', JSON.stringify(families));
+            const newUser: User = {
+              id: `user-${Date.now()}`,
+              familyId: familyId,
+              name: fullName,
+              email,
+              avatarUrl: `https://picsum.photos/seed/${fullName.split(' ')[0]}/200/200`,
+              points: 0,
+              role: role as UserRole,
+            };
 
+            allFamilies.push(newFamily);
+            allUsers.push(newUser);
+
+            localStorage.setItem('families', JSON.stringify(allFamilies));
+            localStorage.setItem('familyUsers', JSON.stringify(allUsers));
             localStorage.setItem('family', JSON.stringify(newFamily));
             localStorage.setItem('currentUser', JSON.stringify(newUser));
+
             setGeneratedCode(newFamilyCode);
             setStep('code');
         } else if (role === 'Child' || role === 'Viewer') {
-            // This is a simplified multi-family simulation using localStorage
-            const familiesRaw = localStorage.getItem('families');
-            // We check our list of created families first, then fall back to the base mock family
-            const allFamilies = familiesRaw ? JSON.parse(familiesRaw) : [mockFamily];
             const familyToJoin = allFamilies.find((f: Family) => f.familyCode === familyCode);
 
             if (familyToJoin) {
+                const newUser: User = {
+                  id: `user-${Date.now()}`,
+                  familyId: familyToJoin.id,
+                  name: fullName,
+                  email,
+                  avatarUrl: `https://picsum.photos/seed/${fullName.split(' ')[0]}/200/200`,
+                  points: 0,
+                  role: role as UserRole,
+                };
+                
+                allUsers.push(newUser);
+                localStorage.setItem('familyUsers', JSON.stringify(allUsers));
                 localStorage.setItem('currentUser', JSON.stringify(newUser));
-                // Set the family context for the joining user
                 localStorage.setItem('family', JSON.stringify(familyToJoin));
                 router.push('/dashboard');
             } else {

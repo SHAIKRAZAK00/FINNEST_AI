@@ -9,10 +9,10 @@ export const mockFamily: Family = {
 }
 
 export const mockUsers: User[] = [
-  { id: 'user-1', name: 'Alex Johnson', avatarUrl: 'https://picsum.photos/seed/avatar1/200/200', email: 'alex@example.com', role: 'Parent', points: 1250 },
-  { id: 'user-2', name: 'Maya Johnson', avatarUrl: 'https://picsum.photos/seed/avatar2/200/200', email: 'maya@example.com', role: 'Parent', points: 1500 },
-  { id: 'user-3', name: 'Leo Johnson', avatarUrl: 'https://picsum.photos/seed/avatar3/200/200', email: 'leo@example.com', role: 'Child', points: 800 },
-  { id: 'user-4', name: 'Grandma Rose', avatarUrl: 'https://picsum.photos/seed/avatar4/200/200', email: 'rose@example.com', role: 'Viewer', points: 300 },
+  { id: 'user-1', familyId: 'family-1', name: 'Alex Johnson', avatarUrl: 'https://picsum.photos/seed/avatar1/200/200', email: 'alex@example.com', role: 'Parent', points: 1250 },
+  { id: 'user-2', familyId: 'family-1', name: 'Maya Johnson', avatarUrl: 'https://picsum.photos/seed/avatar2/200/200', email: 'maya@example.com', role: 'Parent', points: 1500 },
+  { id: 'user-3', familyId: 'family-1', name: 'Leo Johnson', avatarUrl: 'https://picsum.photos/seed/avatar3/200/200', email: 'leo@example.com', role: 'Child', points: 800 },
+  { id: 'user-4', familyId: 'family-1', name: 'Grandma Rose', avatarUrl: 'https://picsum.photos/seed/avatar4/200/200', email: 'rose@example.com', role: 'Viewer', points: 300 },
 ];
 
 export const mockCurrentUser = mockUsers[0];
