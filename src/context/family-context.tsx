@@ -19,70 +19,64 @@ const FamilyContext = createContext<FamilyContextType | undefined>(undefined);
 
 export function FamilyProvider({ children }: { children: ReactNode }) {
   const [family, setFamily] = useState<Family>(mockFamily);
-  const [users, setUsers] = useState<User[]>(() => {
-    if (typeof window === 'undefined') return mockUsers;
-    const storedUsers = localStorage.getItem('familyUsers');
-    return storedUsers ? JSON.parse(storedUsers) : mockUsers;
-  });
+  const [users, setUsers] = useState<User[]>(mockUsers);
   const [currentUser, setCurrentUser] = useState<User>(mockCurrentUser);
   const [expenses, setExpenses] = useState<Expense[]>(mockExpenses);
   const [goals, setGoals] = useState<Goal[]>(mockGoals);
 
   useEffect(() => {
-    localStorage.setItem('familyUsers', JSON.stringify(users));
-  }, [users]);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem('currentUser');
+    // This effect runs only on the client, after initial render, to avoid hydration mismatch.
     const storedFamily = localStorage.getItem('family');
-
     if (storedFamily) {
         try {
             setFamily(JSON.parse(storedFamily));
         } catch (e) {
             console.error("Failed to parse family from localStorage", e);
-            setFamily(mockFamily);
         }
     }
+    
+    const storedUsersRaw = localStorage.getItem('familyUsers');
+    let familyUsers: User[] = storedUsersRaw ? JSON.parse(storedUsersRaw) : mockUsers;
 
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser) as User;
-        
-        const fullUser: User = {
-          ...mockCurrentUser, 
-          ...parsedUser,
-        };
-        setCurrentUser(fullUser);
-        
-        // Add new user to the list of users if they don't exist
-        if (!users.find(u => u.email === fullUser.email)) {
-          setUsers(prev => [...prev, fullUser]);
+    const storedUserRaw = localStorage.getItem('currentUser');
+    if (storedUserRaw) {
+        try {
+            const parsedUser = JSON.parse(storedUserRaw) as User;
+            const fullUser = { ...mockCurrentUser, ...parsedUser };
+            setCurrentUser(fullUser);
+
+            const userExists = familyUsers.some((u: User) => u.id === fullUser.id || u.email === fullUser.email);
+            if (!userExists) {
+                familyUsers = [...familyUsers, fullUser];
+            }
+        } catch (error) {
+            console.error("Failed to parse current user from localStorage", error);
         }
-
-      } catch (error) {
-        console.error("Failed to parse current user from localStorage", error);
-        setCurrentUser(mockCurrentUser);
-      }
     }
+    
+    setUsers(familyUsers);
+    localStorage.setItem('familyUsers', JSON.stringify(familyUsers));
+
   }, []);
 
   const addExpense = (expense: Omit<Expense, 'id' | 'contributorId' | 'date'>) => {
-    setExpenses(prev => [{ 
+    const newExpense = { 
         ...expense, 
         id: `exp-${Date.now()}`,
         contributorId: currentUser.id,
         date: new Date().toISOString()
-    }, ...prev]);
+    };
+    setExpenses(prev => [newExpense, ...prev]);
   };
 
   const addGoal = (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors'>) => {
-    setGoals(prev => [...prev, {
+    const newGoal = {
         ...goal,
         id: `goal-${Date.now()}`,
         currentAmount: 0,
         contributors: []
-    }]);
+    };
+    setGoals(prev => [...prev, newGoal]);
   };
 
   const contributeToGoal = (goalId: string, amount: number) => {
