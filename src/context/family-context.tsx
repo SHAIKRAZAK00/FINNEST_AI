@@ -42,10 +42,11 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
     if (storedUserRaw) {
         try {
             const parsedUser = JSON.parse(storedUserRaw) as User;
-            const fullUser = { ...mockCurrentUser, ...parsedUser };
+            // Ensure the currentUser from storage is the one we use.
+            const fullUser = familyUsers.find(u => u.id === parsedUser.id) || parsedUser;
             setCurrentUser(fullUser);
 
-            const userExists = familyUsers.some((u: User) => u.id === fullUser.id || u.email === fullUser.email);
+            const userExists = familyUsers.some((u: User) => u.id === fullUser.id);
             if (!userExists) {
                 familyUsers = [...familyUsers, fullUser];
             }
@@ -55,9 +56,21 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
     }
     
     setUsers(familyUsers);
-    localStorage.setItem('familyUsers', JSON.stringify(familyUsers));
 
   }, []);
+
+  const awardPoints = (points: number) => {
+    const updatedUsers = users.map(u => 
+      u.id === currentUser.id ? { ...u, points: u.points + points } : u
+    );
+    setUsers(updatedUsers);
+
+    const updatedCurrentUser = { ...currentUser, points: currentUser.points + points };
+    setCurrentUser(updatedCurrentUser);
+
+    localStorage.setItem('familyUsers', JSON.stringify(updatedUsers));
+    localStorage.setItem('currentUser', JSON.stringify(updatedCurrentUser));
+  };
 
   const addExpense = (expense: Omit<Expense, 'id' | 'contributorId' | 'date'>) => {
     const newExpense = { 
@@ -67,6 +80,7 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
         date: new Date().toISOString()
     };
     setExpenses(prev => [newExpense, ...prev]);
+    awardPoints(10);
   };
 
   const addGoal = (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors'>) => {
@@ -77,6 +91,7 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
         contributors: []
     };
     setGoals(prev => [...prev, newGoal]);
+    awardPoints(50);
   };
 
   const contributeToGoal = (goalId: string, amount: number) => {
@@ -88,6 +103,7 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
         }
         return goal;
     }));
+    awardPoints(25);
   };
 
   return (
