@@ -1,0 +1,201 @@
+/**
+ * This ruleset enforces a secure, collaborative model for a family finance application.
+ *
+ * Core Philosophy:
+ * The security model is centered around the 'Family' unit. All data is scoped
+ * within a family, and access is granted only to authenticated users who are
+ * registered members of that specific family. This creates a private, shared
+ * data environment for each family group.
+ *
+ * Data Structure:
+ * All application data is hierarchically organized under the top-level `/families`
+ * collection. Each family document, `/families/{familyId}`, serves as the root
+ * for its own set of subcollections: `members`, `expenses`, `goals`, `insights`,
+ * and `gamification`. This structure ensures strong data isolation between families.
+ *
+ * Key Security Decisions:
+ * - Membership as the Key: A user's ability to read or write any data within a
+ *   `/families/{familyId}` data tree is determined by the existence of their
+ *   document in the `/families/{familyId}/members/{userId}` subcollection.
+ * - Role-Based Access: A simple role system ('Parent', 'Child', 'Viewer') is
+ *   implemented. 'Parents' have administrative rights (e.g., adding/removing
+ *   members), 'Parents' and 'Children' can contribute data (e.g., add expenses),
+ *   and 'Viewers' have read-only access to family data.
+ * - Disallowed Global Listing: To protect privacy, it is impossible for any user
+ *   to list all families in the database.
+ * - User-Specific Data: Data that belongs to a single user within the family
+ *   context, like `/gamification/{userId}`, can only be modified by that user,
+ *   but can be read by any other member of the family (e.g., for leaderboards).
+ *
+ * Denormalization for Authorization:
+ * Authorization checks rely on looking up a user's membership and role from the
+ * `/families/{familyId}/members/{request.auth.uid}` document. This is a deliberate
+ * and efficient use of a `get()` call to secure the entire data tree for a family
+ * without needing to copy membership details onto every single expense or goal.
+ *
+ * Structural Segregation:
+ * The model naturally segregates data by family using nested collections. There is
+ * no concept of public data in this ruleset; all information is private to the
+ * family it belongs to.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------------------------------------------------
+    // Helper Functions
+    // ------------------------------------------------------------------------
+
+    /**
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the authenticated user's UID matches the provided userId.
+     * This is the foundation for document ownership rules.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Checks if the requesting user is a member of the specified family.
+     * This is the core authorization check for all family-related data.
+     * It performs a single, efficient existence check on the user's membership doc.
+     */
+    function isFamilyMember(familyId) {
+      return isSignedIn() && exists(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid));
+    }
+
+    /**
+     * Retrieves the role of the requesting user within a specific family.
+     * Assumes the user is already confirmed to be a family member.
+     */
+    function getUserRole(familyId) {
+      return get(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid)).data.role;
+    }
+
+    /**
+     * Checks if the requesting user has the 'Parent' role in the family.
+     * Parents have administrative privileges like managing members.
+     */
+    function isFamilyParent(familyId) {
+      return isFamilyMember(familyId) && getUserRole(familyId) == 'Parent';
+    }
+
+    /**
+     * Checks if the user has a contributor role ('Parent' or 'Child').
+     * This role is required to create or modify shared data like expenses and goals.
+     */
+    function isFamilyContributor(familyId) {
+      return isFamilyMember(familyId) && (getUserRole(familyId) == 'Parent' || getUserRole(familyId) == 'Child');
+    }
+
+
+    // ------------------------------------------------------------------------
+    // Collection Rules
+    // ------------------------------------------------------------------------
+
+    /**
+     * @description Manages family group documents.
+     * @path /families/{familyId}
+     * @allow (get) An authenticated user who is a member of this family.
+     * @deny (list) Any user trying to list all families in the database.
+     * @allow (create) Any authenticated user creating a new family for themselves.
+     * @deny (update) A family member with the 'Child' role trying to change the family name.
+     * @principle Restricts read/write access to family members and administrative actions to 'Parents'.
+     */
+    match /families/{familyId} {
+      allow get: if isFamilyMember(familyId);
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isFamilyParent(familyId) && resource != null;
+      allow delete: if isFamilyParent(familyId) && resource != null;
+
+      /**
+       * @description Manages user membership and roles within a family.
+       * @path /families/{familyId}/members/{userId}
+       * @allow (get, list) Any member of the family can see who else is a member.
+       * @allow (create) A 'Parent' adding a new user to the family.
+       * @deny (create) A 'Child' trying to add a new member.
+       * @allow (delete) A user removing themselves, or a 'Parent' removing another member.
+       * @principle Enforces that only 'Parents' can manage family membership.
+       */
+      match /members/{userId} {
+        allow get: if isFamilyMember(familyId);
+        allow list: if isFamilyMember(familyId);
+        allow create: if isFamilyParent(familyId) && request.resource.data.id == userId;
+        allow update: if (isOwner(userId) && resource != null && request.resource.data.role == resource.data.role) || (isFamilyParent(familyId) && resource != null);
+        allow delete: if (isOwner(userId) && resource != null) || (isFamilyParent(familyId) && resource != null);
+      }
+
+      /**
+       * @description Manages shared family expenses.
+       * @path /families/{familyId}/expenses/{expenseId}
+       * @allow (get, list) Any member of the family can view all expenses.
+       * @allow (create) A 'Parent' or 'Child' adding a new expense.
+       * @deny (create) A 'Viewer' trying to add an expense.
+       * @deny (update) An authenticated user from another family trying to modify an expense.
+       * @principle Grants read access to all family members and write access to contributors.
+       */
+      match /expenses/{expenseId} {
+        allow get: if isFamilyMember(familyId);
+        allow list: if isFamilyMember(familyId);
+        allow create: if isFamilyContributor(familyId) && request.resource.data.familyId == familyId;
+        allow update: if isFamilyContributor(familyId) && resource != null;
+        allow delete: if isFamilyContributor(familyId) && resource != null;
+      }
+
+      /**
+       * @description Manages shared financial goals for the family.
+       * @path /families/{familyId}/goals/{goalId}
+       * @allow (get, list) Any member of the family can view all goals.
+       * @allow (create) A 'Parent' or 'Child' creating a new goal.
+       * @deny (create) A member of another family trying to create a goal here.
+       * @deny (delete) A user with a 'Viewer' role trying to delete a goal.
+       * @principle Grants read access to all family members and write access to contributors.
+       */
+      match /goals/{goalId} {
+        allow get: if isFamilyMember(familyId);
+        allow list: if isFamilyMember(familyId);
+        allow create: if isFamilyContributor(familyId) && request.resource.data.familyId == familyId;
+        allow update: if isFamilyContributor(familyId) && resource != null;
+        allow delete: if isFamilyContributor(familyId) && resource != null;
+      }
+
+      /**
+       * @description Manages AI-generated financial insights. These are read-only for clients.
+       * @path /families/{familyId}/insights/{insightId}
+       * @allow (get, list) Any member of the family can view insights.
+       * @deny (create, update, delete) Any user trying to modify insights.
+       * @principle Secures data meant to be generated by a backend process, not clients.
+       */
+      match /insights/{insightId} {
+        allow get: if isFamilyMember(familyId);
+        allow list: if isFamilyMember(familyId);
+        allow create: if false;
+        allow update: if false;
+        allow delete: if false;
+      }
+
+      /**
+       * @description Manages a user's personal gamification data within the family context.
+       * @path /families/{familyId}/gamification/{userId}
+       * @allow (get, list) Any family member can view another's gamification data (for leaderboards).
+       * @allow (create, update, delete) A user can only modify their own gamification data.
+       * @deny (update) A user trying to change another family member's points.
+       * @principle Enforces document ownership for writes while allowing shared reads within the family.
+       */
+      match /gamification/{userId} {
+        allow get: if isFamilyMember(familyId);
+        allow list: if isFamilyMember(familyId);
+        allow create: if isOwner(userId) && isFamilyMember(familyId) && request.resource.data.userId == userId;
+        allow update: if isOwner(userId) && resource != null;
+        allow delete: if isOwner(userId) && resource != null;
+      }
+    }
+  }
+}
