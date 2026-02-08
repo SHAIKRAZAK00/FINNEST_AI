@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { PlusCircle, Target } from "lucide-react";
-import { format, differenceInDays } from "date-fns";
+import { differenceInDays } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Dialog,
@@ -155,7 +155,7 @@ export default function GoalsPage() {
               </CardContent>
               <CardFooter className="flex-col items-start gap-4">
                  <div className="flex items-center -space-x-2">
-                    {goal.contributors.map(userId => {
+                    {goal.contributors && goal.contributors.map(userId => {
                         const user = getUserById(userId);
                         return user ? (
                             <Avatar key={userId} className="h-8 w-8 border-2 border-card">
@@ -164,11 +164,11 @@ export default function GoalsPage() {
                             </Avatar>
                         ) : null;
                     })}
-                    {goal.contributors.length > 0 && <span className="pl-4 text-xs text-muted-foreground">
+                    {goal.contributors && goal.contributors.length > 0 && <span className="pl-4 text-xs text-muted-foreground">
                         {goal.contributors.length} contributor{goal.contributors.length > 1 ? 's' : ''}
                     </span>}
                  </div>
-                <Button className="w-full" disabled={isCompleted} onClick={() => openContributeDialog(goal.id)}>
+                <Button className="w-full" disabled={isCompleted || !currentUser || (currentUser.role !== 'Parent' && currentUser.role !== 'Child') } onClick={() => openContributeDialog(goal.id)}>
                     Contribute
                 </Button>
               </CardFooter>

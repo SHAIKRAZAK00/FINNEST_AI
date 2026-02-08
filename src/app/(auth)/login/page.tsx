@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Fingerprint } from "lucide-react";
-
+import { Fingerprint, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,70 +15,57 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AppLogo } from "@/components/app-logo";
-import type { User, Family } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/firebase";
+import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+import { useState, useEffect } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = (e: React.FormEvent) => {
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        router.push("/dashboard");
+      }
+    });
+    return () => unsubscribe();
+  }, [auth, router]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setError(null);
     const form = e.target as HTMLFormElement;
     const email = (form.elements.namedItem("email") as HTMLInputElement).value;
+    const password = (form.elements.namedItem("password") as HTMLInputElement).value;
     
-    const familyUsersRaw = localStorage.getItem("familyUsers");
-    const allUsers = familyUsersRaw ? JSON.parse(familyUsersRaw) : [];
-
-    const user = allUsers.find((u: User) => u.email === email);
-    
-    if (user) {
-        localStorage.setItem('currentUser', JSON.stringify(user));
-        
-        const familiesRaw = localStorage.getItem("families");
-        const allFamilies = familiesRaw ? JSON.parse(familiesRaw) : [];
-        const family = allFamilies.find((f: Family) => f.id === user.familyId);
-
-        if (family) {
-            localStorage.setItem('family', JSON.stringify(family));
-        } else {
-            localStorage.removeItem('family');
-        }
-        router.push("/dashboard");
-    } else {
-        toast({
-            variant: "destructive",
-            title: "Login Failed",
-            description: "No user found with that email. Please sign up.",
-        });
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      // Auth state change will be caught by useEffect and redirect
+    } catch (err: any) {
+      setError(err.message);
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: "Invalid email or password. Please try again.",
+      });
+      setLoading(false);
     }
   };
 
   const handleBiometricLogin = () => {
-    const familyUsersRaw = localStorage.getItem("familyUsers");
-    if (!familyUsersRaw || JSON.parse(familyUsersRaw).length === 0) {
-        toast({
-            variant: "destructive",
-            title: "Biometric Login Failed",
-            description: "No users found on this device. Please sign in manually first.",
-        });
-        return;
-    }
-    const allUsers = JSON.parse(familyUsersRaw);
-    const defaultUser = allUsers[0]; // Log in as first user found.
-    localStorage.setItem('currentUser', JSON.stringify(defaultUser));
-    
-    const familiesRaw = localStorage.getItem("families");
-    const allFamilies = familiesRaw ? JSON.parse(familiesRaw) : [];
-    const family = allFamilies.find((f: Family) => f.id === defaultUser.familyId);
-    
-    if (family) {
-        localStorage.setItem('family', JSON.stringify(family));
-    } else {
-        localStorage.removeItem('family');
-    }
-
-    router.push("/dashboard");
+    toast({
+        variant: "default",
+        title: "Feature Coming Soon",
+        description: "Biometric login will be available in a future update.",
+    });
   };
 
   return (
@@ -93,6 +79,12 @@ export default function LoginPage() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleLogin} className="space-y-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertTitle>Login Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -101,19 +93,21 @@ export default function LoginPage() {
               type="email"
               placeholder="alex@example.com"
               required
+              disabled={loading}
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" required />
+            <Input id="password" type="password" required disabled={loading} />
           </div>
           <div className="flex items-center">
             <Link href="#" className="ml-auto inline-block text-sm underline">
               Forgot your password?
             </Link>
           </div>
-          <Button type="submit" className="w-full">
-            Sign In
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {loading ? "Signing In..." : "Sign In"}
           </Button>
         </form>
         <div className="relative my-4">
@@ -126,7 +120,7 @@ export default function LoginPage() {
             </span>
           </div>
         </div>
-        <Button variant="outline" className="w-full" onClick={handleBiometricLogin}>
+        <Button variant="outline" className="w-full" onClick={handleBiometricLogin} disabled={loading}>
           <Fingerprint className="mr-2 h-4 w-4" />
           Login with Biometrics
         </Button>

@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import type { UserRole, Family, User } from "@/lib/types";
+import { useState, useEffect } from "react";
+import type { UserRole } from "@/lib/types";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -24,90 +24,112 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AppLogo } from "@/components/app-logo";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Copy } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Copy, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
+import { useAuth, useFirestore } from "@/firebase";
+import { createUserWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+import { collection, query, where, getDocs, doc, writeBatch } from "firebase/firestore";
 
 export default function SignupPage() {
     const router = useRouter();
     const { toast } = useToast();
+    const auth = useAuth();
+    const firestore = useFirestore();
+
     const [role, setRole] = useState<string>("");
     const [step, setStep] = useState<'form' | 'code'>('form');
     const [generatedCode, setGeneratedCode] = useState('');
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
 
-    const handleSignup = (e: React.FormEvent<HTMLFormElement>) => {
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user && step !== 'code') {
+                router.push('/dashboard');
+            }
+        });
+        return () => unsubscribe();
+    }, [auth, router, step]);
+
+
+    const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError('');
+        setLoading(true);
+
         const form = e.target as HTMLFormElement;
         const fullName = (form.elements.namedItem("full-name") as HTMLInputElement).value;
         const email = (form.elements.namedItem("email") as HTMLInputElement).value;
+        const password = (form.elements.namedItem("password") as HTMLInputElement).value;
         const familyCode = (form.elements.namedItem("family-code") as HTMLInputElement)?.value;
         
-        const familiesRaw = localStorage.getItem('families');
-        const allFamilies = familiesRaw ? JSON.parse(familiesRaw) : [];
-        const usersRaw = localStorage.getItem('familyUsers');
-        let allUsers = usersRaw ? JSON.parse(usersRaw) : [];
-
         const roleForUserObject: UserRole = role === 'ParentCreate' || role === 'ParentJoin' ? 'Parent' : role as UserRole;
 
-        if (role === 'ParentCreate') {
-            const familyNamePart = fullName.split(' ').pop() || 'User';
-            const newFamilyCode = `${familyNamePart.substring(0, 3).toUpperCase()}-${String(Date.now()).slice(-4)}`;
-            const familyId = `family-${Date.now()}`;
-            
-            const newFamily: Family = {
-                id: familyId,
-                name: `The ${familyNamePart}s`,
-                familyName: `${familyNamePart} Family`,
-                familyCode: newFamilyCode,
-            };
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+            const batch = writeBatch(firestore);
 
-            const newUser: User = {
-              id: `user-${Date.now()}`,
-              familyId: familyId,
-              name: fullName,
-              email,
-              avatarUrl: `https://picsum.photos/seed/${fullName.split(' ')[0]}/200/200`,
-              points: 0,
-              role: 'Parent',
-              badges: [],
-            };
+            if (role === 'ParentCreate') {
+                const familyNamePart = fullName.split(' ').pop() || 'User';
+                const newFamilyCode = `${familyNamePart.substring(0, 3).toUpperCase()}-${String(Date.now()).slice(-4)}`;
+                const familyDocRef = doc(collection(firestore, "families"));
 
-            allFamilies.push(newFamily);
-            allUsers.push(newUser);
-
-            localStorage.setItem('families', JSON.stringify(allFamilies));
-            localStorage.setItem('familyUsers', JSON.stringify(allUsers));
-            localStorage.setItem('family', JSON.stringify(newFamily));
-            localStorage.setItem('currentUser', JSON.stringify(newUser));
-
-            setGeneratedCode(newFamilyCode);
-            setStep('code');
-        } else if (role === 'Child' || role === 'Viewer' || role === 'ParentJoin') {
-            const familyToJoin = allFamilies.find((f: Family) => f.familyCode === familyCode);
-
-            if (familyToJoin) {
-                const newUser: User = {
-                  id: `user-${Date.now()}`,
-                  familyId: familyToJoin.id,
-                  name: fullName,
-                  email,
-                  avatarUrl: `https://picsum.photos/seed/${fullName.split(' ')[0]}/200/200`,
-                  points: 0,
-                  role: roleForUserObject,
-                  badges: [],
+                const newFamily = {
+                    familyName: `The ${familyNamePart}s`,
+                    familyCode: newFamilyCode,
+                    createdBy: user.uid,
                 };
+                batch.set(familyDocRef, newFamily);
+
+                const userProfile = {
+                    familyId: familyDocRef.id,
+                    name: fullName,
+                    email: user.email,
+                    role: roleForUserObject,
+                    avatarUrl: `https://picsum.photos/seed/${fullName.split(' ')[0]}/200/200`
+                };
+                batch.set(doc(firestore, "families", familyDocRef.id, "members", user.uid), userProfile);
                 
-                allUsers.push(newUser);
-                localStorage.setItem('familyUsers', JSON.stringify(allUsers));
-                localStorage.setItem('currentUser', JSON.stringify(newUser));
-                localStorage.setItem('family', JSON.stringify(familyToJoin));
+                const gamificationData = { userId: user.uid, points: 50, level: 1, badges: [], savingStreaks: 0 };
+                batch.set(doc(firestore, "families", familyDocRef.id, "gamification", user.uid), gamificationData);
+
+                await batch.commit();
+                
+                setGeneratedCode(newFamilyCode);
+                setStep('code');
+            } else { // Join family
+                const familiesRef = collection(firestore, "families");
+                const q = query(familiesRef, where("familyCode", "==", familyCode));
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    throw new Error("Invalid family code. Please check and try again.");
+                }
+
+                const familyDoc = querySnapshot.docs[0];
+                const familyId = familyDoc.id;
+
+                const userProfile = {
+                    familyId: familyId,
+                    name: fullName,
+                    email: user.email,
+                    role: roleForUserObject,
+                    avatarUrl: `https://picsum.photos/seed/${fullName.split(' ')[0]}/200/200`
+                };
+                batch.set(doc(firestore, "families", familyId, "members", user.uid), userProfile);
+                
+                const gamificationData = { userId: user.uid, points: 0, level: 1, badges: [], savingStreaks: 0 };
+                batch.set(doc(firestore, "families", familyId, "gamification", user.uid), gamificationData);
+
+                await batch.commit();
                 router.push('/dashboard');
-            } else {
-                setError('Invalid family code. Please check with your parent and try again.');
             }
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
         }
     };
     
@@ -163,9 +185,15 @@ export default function SignupPage() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSignup} className="grid gap-4">
+            {error && (
+                <Alert variant="destructive">
+                    <AlertTitle>Signup Failed</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                </Alert>
+            )}
           <div className="grid gap-2">
             <Label htmlFor="full-name">Full Name</Label>
-            <Input id="full-name" name="full-name" placeholder="Alex Johnson" required />
+            <Input id="full-name" name="full-name" placeholder="Alex Johnson" required disabled={loading} />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
@@ -175,15 +203,16 @@ export default function SignupPage() {
               type="email"
               placeholder="alex@example.com"
               required
+              disabled={loading}
             />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" required/>
+            <Input id="password" type="password" required disabled={loading} />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="role">Your Role</Label>
-            <Select required onValueChange={(value: string) => setRole(value)}>
+            <Select required onValueChange={(value: string) => setRole(value)} disabled={loading}>
               <SelectTrigger id="role">
                 <SelectValue placeholder="Select your role in the family" />
               </SelectTrigger>
@@ -199,18 +228,13 @@ export default function SignupPage() {
           {(role === 'Child' || role === 'Viewer' || role === 'ParentJoin') && (
             <div className="grid gap-2">
                 <Label htmlFor="family-code">Family Code</Label>
-                <Input id="family-code" name="family-code" placeholder="Enter code from parent" required />
+                <Input id="family-code" name="family-code" placeholder="Enter code from parent" required disabled={loading} />
             </div>
           )}
-          
-          {error && (
-            <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
 
-          <Button type="submit" className="w-full" disabled={!role}>
-            Create an account
+          <Button type="submit" className="w-full" disabled={!role || loading}>
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {loading ? 'Creating Account...' : 'Create an account'}
           </Button>
         </form>
         <div className="mt-4 text-center text-sm">

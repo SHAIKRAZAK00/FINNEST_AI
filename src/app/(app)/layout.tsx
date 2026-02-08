@@ -33,7 +33,6 @@ import {
 import { AppLogo } from "@/components/app-logo";
 import {
   Bot,
-  CircleUser,
   LayoutDashboard,
   Loader2,
   LogOut,
@@ -45,7 +44,7 @@ import {
 import { FamilyProvider, useFamily } from "@/context/family-context";
 
 function AppSidebar() {
-  const { family, currentUser } = useFamily();
+  const { family, currentUser, logout } = useFamily();
   const { state } = useSidebar();
 
   const getInitials = (name: string) => {
@@ -61,6 +60,11 @@ function AppSidebar() {
         <SidebarHeader>
           <AppLogo />
         </SidebarHeader>
+        <SidebarContent>
+          <div className="p-4">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        </SidebarContent>
       </Sidebar>
     )
   }
@@ -164,11 +168,9 @@ function AppSidebar() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-                <Link href="/login">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                </Link>
+            <DropdownMenuItem onClick={logout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
