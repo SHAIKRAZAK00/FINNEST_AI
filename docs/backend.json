@@ -6,22 +6,22 @@
       "type": "object",
       "description": "Represents a user within the FinNest AI application.",
       "properties": {
-        "id": {
+        "name": {
           "type": "string",
-          "description": "Unique identifier for the user."
+          "description": "User's full name."
         },
         "email": {
           "type": "string",
           "description": "User's email address.",
           "format": "email"
         },
-        "phoneNumber": {
+        "avatarUrl": {
           "type": "string",
-          "description": "User's phone number."
+          "description": "URL for the user's profile picture."
         },
-        "familyName": {
+        "familyId": {
           "type": "string",
-          "description": "Reference to Family. (Relationship: Family 1:N User)"
+          "description": "Reference to Family document ID."
         },
         "role": {
           "type": "string",
@@ -29,10 +29,10 @@
         }
       },
       "required": [
-        "id",
+        "name",
         "email",
         "role",
-        "familyName"
+        "familyId"
       ]
     },
     "Family": {
@@ -352,3 +352,4 @@
     "reasoning": "The Firestore data structure is designed to facilitate a secure and collaborative family finance ecosystem. The design prioritizes authorization independence by denormalizing family membership information onto the child collections (Expenses, Goals, Insights). This approach eliminates the need for `get()` calls in security rules, enabling atomic operations and improving scalability and security. The use of family-scoped collections (e.g., `/families/{familyId}/expenses/{expenseId}`) ensures that data access is restricted to family members only, with role-based access control (Parent, Child, Viewer) enforced via Firebase Security Rules. Path-based ownership is utilized for User-owned data within the family context (Gamification). This structure enables efficient `list` operations (QAPs) by leveraging collection-based access control, ensuring that only authorized family members can access the data.  The `families` collection holds family metadata and acts as the root for all family-related data.  User roles are stored directly in the `/families/{familyId}/members/{userId}` document, making role assignments explicit. The structure also supports integrity of data by enforcing strong type checking through schema definitions and explicit state modeling."
   }
 }
+    

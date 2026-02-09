@@ -119,15 +119,15 @@ service cloud.firestore {
        * @description Manages user membership and roles within a family.
        * @path /families/{familyId}/members/{userId}
        * @allow (get, list) Any member of the family can see who else is a member.
-       * @allow (create) A 'Parent' adding a new user to the family.
-       * @deny (create) A 'Child' trying to add a new member.
+       * @allow (create) A new user creating their own member document during signup.
+       * @deny (create) A user trying to add another user.
        * @allow (delete) A user removing themselves, or a 'Parent' removing another member.
-       * @principle Enforces that only 'Parents' can manage family membership.
+       * @principle Enforces that only 'Parents' can manage family membership (except for self-signup).
        */
       match /members/{userId} {
         allow get: if isFamilyMember(familyId);
         allow list: if isFamilyMember(familyId);
-        allow create: if isFamilyParent(familyId) && request.resource.data.id == userId;
+        allow create: if isOwner(userId) && request.resource.data.familyId == familyId;
         allow update: if (isOwner(userId) && resource != null && request.resource.data.role == resource.data.role) || (isFamilyParent(familyId) && resource != null);
         allow delete: if (isOwner(userId) && resource != null) || (isFamilyParent(familyId) && resource != null);
       }
@@ -199,3 +199,4 @@ service cloud.firestore {
     }
   }
 }
+    
