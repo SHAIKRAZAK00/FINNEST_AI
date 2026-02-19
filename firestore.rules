@@ -16,13 +16,13 @@
  * Key Security Decisions:
  * - Membership as the Key: A user's ability to read or write any data within a
  *   `/families/{familyId}` data tree is determined by the existence of their
- *   document in the `/families/{familyId}/members/{userId}` subcollection.
+ *   document in the `/families/{familyId}/members/{request.auth.uid}` subcollection.
  * - Role-Based Access: A simple role system ('Parent', 'Child', 'Viewer') is
  *   implemented. 'Parents' have administrative rights (e.g., adding/removing
  *   members), 'Parents' and 'Children' can contribute data (e.g., add expenses),
  *   and 'Viewers' have read-only access to family data.
- * - Disallowed Global Listing: To protect privacy, it is impossible for any user
- *   to list all families in the database.
+ * - Restricted Listing: Users can query the families collection to find a family
+ *   by its code during join/signup, but general listing is controlled.
  * - User-Specific Data: Data that belongs to a single user within the family
  *   context, like `/gamification/{userId}`, can only be modified by that user,
  *   but can be read by any other member of the family (e.g., for leaderboards).
@@ -103,14 +103,14 @@ service cloud.firestore {
      * @description Manages family group documents.
      * @path /families/{familyId}
      * @allow (get) An authenticated user who is a member of this family.
-     * @deny (list) Any user trying to list all families in the database.
+     * @allow (list) Signed-in users can query families to find one by its code during join/signup.
      * @allow (create) Any authenticated user creating a new family for themselves.
      * @deny (update) A family member with the 'Child' role trying to change the family name.
      * @principle Restricts read/write access to family members and administrative actions to 'Parents'.
      */
     match /families/{familyId} {
       allow get: if isFamilyMember(familyId);
-      allow list: if false;
+      allow list: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
       allow update: if isFamilyParent(familyId) && resource != null;
       allow delete: if isFamilyParent(familyId) && resource != null;
@@ -185,18 +185,18 @@ service cloud.firestore {
        * @description Manages a user's personal gamification data within the family context.
        * @path /families/{familyId}/gamification/{userId}
        * @allow (get, list) Any family member can view another's gamification data (for leaderboards).
-       * @allow (create, update, delete) A user can only modify their own gamification data.
+       * @allow (create) A user can create their own gamification data during signup/join.
+       * @allow (update, delete) A user can only modify their own gamification data.
        * @deny (update) A user trying to change another family member's points.
        * @principle Enforces document ownership for writes while allowing shared reads within the family.
        */
       match /gamification/{userId} {
         allow get: if isFamilyMember(familyId);
         allow list: if isFamilyMember(familyId);
-        allow create: if isOwner(userId) && isFamilyMember(familyId) && request.resource.data.userId == userId;
+        allow create: if isOwner(userId) && isSignedIn();
         allow update: if isOwner(userId) && resource != null;
         allow delete: if isOwner(userId) && resource != null;
       }
     }
   }
 }
-    

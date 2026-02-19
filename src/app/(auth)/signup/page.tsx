@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -86,6 +85,7 @@ export default function SignupPage() {
                 batch.set(familyDocRef, newFamily);
 
                 const userProfile = {
+                    id: user.uid,
                     familyId: familyDocRef.id,
                     name: fullName,
                     email: user.email,
@@ -94,7 +94,14 @@ export default function SignupPage() {
                 };
                 batch.set(doc(firestore, "families", familyDocRef.id, "members", user.uid), userProfile);
                 
-                const gamificationData = { userId: user.uid, points: 50, level: 1, badges: [], savingStreaks: 0 };
+                const gamificationData = { 
+                  userId: user.uid, 
+                  familyId: familyDocRef.id,
+                  points: 50, 
+                  level: 1, 
+                  badges: [], 
+                  savingStreaks: 0 
+                };
                 batch.set(doc(firestore, "families", familyDocRef.id, "gamification", user.uid), gamificationData);
 
                 await batch.commit();
@@ -114,6 +121,7 @@ export default function SignupPage() {
                 const familyId = familyDoc.id;
 
                 const userProfile = {
+                    id: user.uid,
                     familyId: familyId,
                     name: fullName,
                     email: user.email,
@@ -122,7 +130,14 @@ export default function SignupPage() {
                 };
                 batch.set(doc(firestore, "families", familyId, "members", user.uid), userProfile);
                 
-                const gamificationData = { userId: user.uid, points: 0, level: 1, badges: [], savingStreaks: 0 };
+                const gamificationData = { 
+                  userId: user.uid, 
+                  familyId: familyId,
+                  points: 0, 
+                  level: 1, 
+                  badges: [], 
+                  savingStreaks: 0 
+                };
                 batch.set(doc(firestore, "families", familyId, "gamification", user.uid), gamificationData);
 
                 await batch.commit();
