@@ -4,6 +4,7 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase';
+import { FamilyProvider } from '@/context/family-context';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-body' });
 const spaceGrotesk = Space_Grotesk({
@@ -30,7 +31,9 @@ export default function RootLayout({
       </head>
       <body className={cn("font-body antialiased", inter.variable, spaceGrotesk.variable)}>
         <FirebaseClientProvider>
-          {children}
+          <FamilyProvider>
+            {children}
+          </FamilyProvider>
         </FirebaseClientProvider>
         <Toaster />
       </body>

@@ -42,7 +42,7 @@ import {
   Target,
   Trophy,
 } from "lucide-react";
-import { FamilyProvider, useFamily } from "@/context/family-context";
+import { useFamily } from "@/context/family-context";
 
 function AppSidebar() {
   const { family, currentUser, logout } = useFamily();
@@ -233,9 +233,5 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <FamilyProvider>
-      <AppLayoutContent>{children}</AppLayoutContent>
-    </FamilyProvider>
-  );
+  return <AppLayoutContent>{children}</AppLayoutContent>;
 }
