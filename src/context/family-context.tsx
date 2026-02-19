@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
@@ -35,27 +36,39 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   const [familyId, setFamilyId] = useState<string | null>(null);
+  const [isSearchingFamily, setIsSearchingFamily] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeConfettiGoal, setActiveConfettiGoal] = useState<string | null>(null);
 
   useEffect(() => {
     if (authUser && firestore) {
       const findFamily = async () => {
-        const familiesCol = collection(firestore, 'families');
-        const snapshot = await getDocs(familiesCol);
-        for (const familyDoc of snapshot.docs) {
-          const membersCol = collection(firestore, 'families', familyDoc.id, 'members');
-          const memberDoc = await getDocs(query(membersCol, where('__name__', '==', authUser.uid)));
-          if (!memberDoc.empty) {
-            setFamilyId(familyDoc.id);
-            return;
+        setIsSearchingFamily(true);
+        try {
+          const familiesCol = collection(firestore, 'families');
+          const snapshot = await getDocs(familiesCol);
+          let foundFamilyId = null;
+          
+          for (const familyDoc of snapshot.docs) {
+            const membersCol = collection(firestore, 'families', familyDoc.id, 'members');
+            const memberDoc = await getDocs(query(membersCol, where('__name__', '==', authUser.uid)));
+            if (!memberDoc.empty) {
+              foundFamilyId = familyDoc.id;
+              break;
+            }
           }
+          setFamilyId(foundFamilyId);
+        } catch (err) {
+          console.error("Error finding family:", err);
+        } finally {
+          setIsSearchingFamily(false);
         }
       };
       findFamily();
     } else {
       setFamilyId(null);
       setCurrentUser(null);
+      setIsSearchingFamily(false);
     }
   }, [authUser, firestore]);
   
@@ -78,40 +91,33 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     if (users && authUser) {
       const userProfile = users.find(u => u.id === authUser.uid);
       if (userProfile) {
-        setCurrentUser({ ...userProfile, ...gamificationData, email: authUser.email || userProfile.email });
+        setCurrentUser({ 
+          ...userProfile, 
+          points: gamificationData?.points || 0,
+          badges: userProfile.badges || [],
+          email: authUser.email || userProfile.email 
+        });
       }
     } else {
       setCurrentUser(null);
     }
   }, [users, authUser, gamificationData]);
 
-  const loading = isAuthLoading || isFamilyLoading || areUsersLoading || areExpensesLoading || areGoalsLoading;
+  const loading = isAuthLoading || isSearchingFamily || (!!authUser && !!familyId && (isFamilyLoading || areUsersLoading || areExpensesLoading || areGoalsLoading));
 
   const awardPointsAndCheckAchievements = async (userId: string, pointsToAward: number) => {
-    if (!familyId || !firestore) return;
+    if (!familyId || !firestore || !currentUser) return;
     
     const userGamificationRef = doc(firestore, "families", familyId, "gamification", userId);
     const userMembersRef = doc(firestore, "families", familyId, "members", userId);
 
     const batch = writeBatch(firestore);
     
-    let currentPoints = 0;
-    let currentBadges: string[] = [];
-
-    if(currentUser?.id === userId) {
-      currentPoints = currentUser.points || 0;
-      currentBadges = currentUser.badges || [];
-    } else {
-      const userToUpdate = users?.find(u => u.id === userId);
-      if(userToUpdate) {
-        currentPoints = userToUpdate.points || 0;
-        currentBadges = userToUpdate.badges || [];
-      }
-    }
+    const currentPoints = currentUser.points || 0;
+    const currentBadges = currentUser.badges || [];
     
-    const oldPoints = currentPoints;
-    const newPoints = oldPoints + pointsToAward;
-    const oldLevel = getLevelFromPoints(oldPoints);
+    const newPoints = currentPoints + pointsToAward;
+    const oldLevel = getLevelFromPoints(currentPoints);
     const newLevel = getLevelFromPoints(newPoints);
 
     if (newLevel > oldLevel) {
@@ -124,11 +130,8 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     batch.update(userGamificationRef, { points: newPoints, level: newLevel });
 
     const newBadges = [...currentBadges];
-    if (!newBadges.includes('badge-1') && goals?.some(g => g.contributors.includes(userId))) {
+    if (!newBadges.includes('badge-1') && (goals?.some(g => g.contributors.includes(userId)) || pointsToAward === 25)) {
       newBadges.push('badge-1');
-    }
-    if (!newBadges.includes('badge-2') && expenses && expenses.filter(e => e.contributorId === userId).length >= 4) {
-      newBadges.push('badge-2');
     }
     
     const newlyAwardedBadges = newBadges.filter(b => !currentBadges.includes(b));
@@ -149,10 +152,11 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     if (!currentUser || !familyId || !firestore) return;
     const expensesColRef = collection(firestore, 'families', familyId, 'expenses');
     const expenseDocRef = doc(expensesColRef);
+    const id = expenseDocRef.id;
     const newExpense = { 
         ...expense, 
-        id: expenseDocRef.id,
-        familyId: familyId,
+        id,
+        familyId,
         contributorId: currentUser.id,
         date: new Date().toISOString()
     };
@@ -164,10 +168,11 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     if (!currentUser || currentUser.role !== 'Parent' || !familyId || !firestore) return;
     const goalsColRef = collection(firestore, 'families', familyId, 'goals');
     const goalDocRef = doc(goalsColRef);
+    const id = goalDocRef.id;
     const newGoal = {
         ...goal,
-        id: goalDocRef.id,
-        familyId: familyId,
+        id,
+        familyId,
         currentAmount: 0,
         contributors: []
     };

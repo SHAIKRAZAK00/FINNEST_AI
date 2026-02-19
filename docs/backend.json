@@ -7,264 +7,97 @@
       "type": "object",
       "description": "Represents a user within the FinNest AI application.",
       "properties": {
-        "name": {
-          "type": "string",
-          "description": "User's full name."
-        },
-        "email": {
-          "type": "string",
-          "description": "User's email address.",
-          "format": "email"
-        },
-        "avatarUrl": {
-          "type": "string",
-          "description": "URL for the user's profile picture."
-        },
-        "familyId": {
-          "type": "string",
-          "description": "Reference to Family document ID."
-        },
-        "role": {
-          "type": "string",
-          "description": "User's role within the family (Parent, Child, Viewer)."
-        }
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "avatarUrl": { "type": "string" },
+        "familyId": { "type": "string" },
+        "role": { "type": "string", "enum": ["Parent", "Child", "Viewer"] },
+        "badges": { "type": "array", "items": { "type": "string" } }
       },
-      "required": [
-        "name",
-        "email",
-        "role",
-        "familyId"
-      ]
+      "required": ["id", "name", "email", "role", "familyId"]
     },
     "Family": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Family",
       "type": "object",
-      "description": "Represents a family group within the FinNest AI application.",
+      "description": "Represents a family group.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the family."
-        },
-        "familyName": {
-          "type": "string",
-          "description": "Name of the family."
-        },
-        "createdBy": {
-          "type": "string",
-          "description": "Reference to User who created the family."
-        },
-        "familyCode": {
-          "type": "string",
-          "description": "Unique code for joining the family."
-        }
+        "id": { "type": "string" },
+        "familyName": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "familyCode": { "type": "string" }
       },
-      "required": [
-        "id",
-        "familyName",
-        "createdBy",
-        "familyCode"
-      ]
+      "required": ["id", "familyName", "createdBy", "familyCode"]
     },
     "Expense": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Expense",
       "type": "object",
-      "description": "Represents an expense recorded within a family.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the expense."
-        },
-        "familyId": {
-          "type": "string",
-          "description": "Reference to Family."
-        },
-        "category": {
-          "type": "string",
-          "description": "Category of the expense."
-        },
-        "amount": {
-          "type": "number",
-          "description": "Amount of the expense."
-        },
-        "description": {
-          "type": "string",
-          "description": "Brief description of the expense."
-        },
-        "contributorId": {
-          "type": "string",
-          "description": "Reference to User who contributed to the expense."
-        },
-        "date": {
-          "type": "string",
-          "description": "Date of the expense.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "familyId": { "type": "string" },
+        "category": { "type": "string" },
+        "amount": { "type": "number" },
+        "description": { "type": "string" },
+        "contributorId": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "familyId",
-        "category",
-        "amount",
-        "description",
-        "contributorId",
-        "date"
-      ]
+      "required": ["id", "familyId", "category", "amount", "description", "contributorId", "date"]
     },
     "Goal": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Goal",
       "type": "object",
-      "description": "Represents a financial goal set by a family.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the goal."
-        },
-        "familyId": {
-          "type": "string",
-          "description": "Reference to Family."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the goal."
-        },
-        "description": {
-          "type": "string",
-          "description": "A short description of the goal."
-        },
-        "targetAmount": {
-          "type": "number",
-          "description": "Target amount for the goal."
-        },
-        "currentAmount": {
-          "type": "number",
-          "description": "Current amount saved towards the goal."
-        },
-        "contributors": {
-          "type": "array",
-          "description": "References to Users contributing to the goal.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "deadline": {
-          "type": "string",
-          "description": "Deadline for the goal.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "familyId": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "targetAmount": { "type": "number" },
+        "currentAmount": { "type": "number" },
+        "contributors": { "type": "array", "items": { "type": "string" } },
+        "deadline": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "familyId",
-        "name",
-        "description",
-        "targetAmount",
-        "currentAmount",
-        "contributors",
-        "deadline"
-      ]
-    },
-    "Insight": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Insight",
-      "type": "object",
-      "description": "Represents a financial insight generated by the AI assistant.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the insight."
-        },
-        "familyId": {
-          "type": "string",
-          "description": "Reference to Family."
-        },
-        "insightText": {
-          "type": "string",
-          "description": "The insight text generated by the AI."
-        },
-        "date": {
-          "type": "string",
-          "description": "Date when the insight was generated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "familyId",
-        "insightText",
-        "date"
-      ]
+      "required": ["id", "familyId", "name", "targetAmount", "currentAmount", "contributors", "deadline"]
     },
     "Gamification": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Gamification",
       "type": "object",
-      "description": "Represents a user's gamification data.",
       "properties": {
-        "userId": {
-          "type": "string",
-          "description": "Reference to User."
-        },
-        "points": {
-          "type": "number",
-          "description": "Number of points the user has earned."
-        },
-        "level": {
-          "type": "number",
-          "description": "Current level of the user."
-        },
-        "badges": {
-          "type": "array",
-          "description": "List of badges earned by the user.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "savingStreaks": {
-          "type": "number",
-          "description": "Saving Streaks of User"
-        }
+        "userId": { "type": "string" },
+        "familyId": { "type": "string" },
+        "points": { "type": "number" },
+        "level": { "type": "number" },
+        "savingStreaks": { "type": "number" }
       },
-      "required": [
-        "userId",
-        "points",
-        "level",
-        "badges",
-        "savingStreaks"
-      ]
+      "required": ["userId", "familyId", "points", "level"]
     }
   },
   "auth": {
-    "providers": [
-      "password"
-    ]
+    "providers": ["password"]
   },
   "firestore": {
     "families/{familyId}": {
       "schema": "#/entities/Family",
-      "description": "Stores family metadata."
+      "description": "Family metadata."
     },
     "families/{familyId}/members/{userId}": {
       "schema": "#/entities/User",
-      "description": "Stores user details within a family."
+      "description": "Member details."
     },
     "families/{familyId}/expenses/{expenseId}": {
       "schema": "#/entities/Expense",
-      "description": "Stores expense data for a family."
+      "description": "Expense data."
     },
     "families/{familyId}/goals/{goalId}": {
       "schema": "#/entities/Goal",
-      "description": "Stores financial goal data for a family."
-    },
-    "families/{familyId}/insights/{insightId}": {
-      "schema": "#/entities/Insight",
-      "description": "Stores AI-generated financial insights."
+      "description": "Financial goals."
     },
     "families/{familyId}/gamification/{userId}": {
       "schema": "#/entities/Gamification",
-      "description": "Stores gamification data for a user."
+      "description": "Gamification points."
     }
   }
 }
