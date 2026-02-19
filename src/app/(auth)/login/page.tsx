@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -17,8 +18,8 @@ import { Label } from "@/components/ui/label";
 import { AppLogo } from "@/components/app-logo";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/firebase";
-import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
-import { useState, useEffect } from "react";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 
@@ -28,16 +29,6 @@ export default function LoginPage() {
   const auth = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!auth) return;
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        router.push("/dashboard");
-      }
-    });
-    return () => unsubscribe();
-  }, [auth, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +40,8 @@ export default function LoginPage() {
     
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      // Redirection is handled by the layout/provider once state updates
+      router.push("/dashboard");
     } catch (err: any) {
       setError(err.message);
       toast({

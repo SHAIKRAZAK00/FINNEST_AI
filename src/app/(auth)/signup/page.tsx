@@ -1,8 +1,9 @@
+
 "use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import type { UserRole } from "@/lib/types";
 
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Copy, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useFirestore } from "@/firebase";
-import { createUserWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import { collection, query, where, getDocs, doc, writeBatch } from "firebase/firestore";
 
 export default function SignupPage() {
@@ -42,17 +43,6 @@ export default function SignupPage() {
     const [generatedCode, setGeneratedCode] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-
-    useEffect(() => {
-        if (!auth) return;
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user && step !== 'code') {
-                router.push('/dashboard');
-            }
-        });
-        return () => unsubscribe();
-    }, [auth, router, step]);
-
 
     const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();

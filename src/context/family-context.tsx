@@ -9,11 +9,13 @@ import { useAuth, useUser, useFirestore, useDoc, useCollection, useMemoFirebase 
 import { collection, doc, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { signOut } from 'firebase/auth';
+import type { User as FirebaseUser } from 'firebase/auth';
 
 interface FamilyContextType {
   family: Family | null;
   users: User[];
   currentUser: User | null;
+  authUser: FirebaseUser | null;
   expenses: Expense[];
   goals: Goal[];
   addExpense: (expense: Omit<Expense, 'id' | 'contributorId' | 'date' | 'familyId'>) => void;
@@ -42,10 +44,21 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const [activeConfettiGoal, setActiveConfettiGoal] = useState<string | null>(null);
 
   useEffect(() => {
-    if (authUser && firestore && !hasAttemptedLookup) {
+    // Reset lookup state if auth user changes or disappears
+    if (!isAuthLoading && !authUser) {
+      setFamilyId(null);
+      setCurrentUser(null);
+      setHasAttemptedLookup(false);
+      setIsSearchingFamily(false);
+      return;
+    }
+
+    if (authUser && firestore && !hasAttemptedLookup && !isSearchingFamily) {
       const findFamily = async () => {
         setIsSearchingFamily(true);
         try {
+          // This is a simplified lookup for MVP. 
+          // In a production app, you'd store familyId in user profile or custom claims.
           const familiesCol = collection(firestore, 'families');
           const snapshot = await getDocs(familiesCol);
           let foundFamilyId = null;
@@ -67,12 +80,8 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
         }
       };
       findFamily();
-    } else if (!isAuthLoading && !authUser) {
-      setFamilyId(null);
-      setCurrentUser(null);
-      setHasAttemptedLookup(true);
     }
-  }, [authUser, firestore, isAuthLoading, hasAttemptedLookup]);
+  }, [authUser, firestore, isAuthLoading, hasAttemptedLookup, isSearchingFamily]);
   
   const familyRef = useMemoFirebase(() => familyId ? doc(firestore, 'families', familyId) : null, [firestore, familyId]);
   const { data: family, isLoading: isFamilyLoading } = useDoc<Family>(familyRef);
@@ -99,15 +108,15 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
           badges: userProfile.badges || [],
           email: authUser.email || userProfile.email 
         });
+      } else {
+        setCurrentUser(null);
       }
     } else {
       setCurrentUser(null);
     }
   }, [users, authUser, gamificationData]);
 
-  // Loading state is true if auth is loading, or we are currently searching for a family,
-  // or we have an auth user but haven't even attempted the family lookup yet,
-  // or we have a family ID but the specific family/members/etc data is still fetching.
+  // Loading state must be TRUE if we are still figuring out WHO the user is or WHERE they belong.
   const loading = isAuthLoading || 
                   (!!authUser && !hasAttemptedLookup) || 
                   isSearchingFamily || 
@@ -138,7 +147,8 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     batch.update(userGamificationRef, { points: newPoints, level: newLevel });
 
     const newBadges = [...currentBadges];
-    if (!newBadges.includes('badge-1') && (goals?.some(g => g.contributors.includes(userId)) || pointsToAward === 25)) {
+    // Simple logic for first contribution badge
+    if (!newBadges.includes('badge-1')) {
       newBadges.push('badge-1');
     }
     
@@ -231,15 +241,13 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     if (auth) {
       signOut(auth);
     }
-    setFamilyId(null);
-    setCurrentUser(null);
-    setHasAttemptedLookup(false);
   };
 
   const value = { 
     family: family ? { ...family, id: familyId! } : null,
     users: users || [], 
     currentUser, 
+    authUser,
     expenses: expenses || [],
     goals: goals || [], 
     addExpense, 

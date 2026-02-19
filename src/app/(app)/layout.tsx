@@ -181,15 +181,20 @@ function AppSidebar() {
 }
 
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
-  const { loading, currentUser } = useFamily();
+  const { loading, currentUser, authUser } = useFamily();
   const router = useRouter();
 
   useEffect(() => {
-    // Only redirect if we are CERTAIN that loading is finished and no user profile exists.
-    if (!loading && !currentUser) {
-      router.push('/login');
+    if (!loading) {
+      if (!authUser) {
+        // Not logged in at all
+        router.push('/login');
+      } else if (!currentUser) {
+        // Logged in but no family profile found
+        router.push('/signup');
+      }
     }
-  }, [loading, currentUser, router]);
+  }, [loading, authUser, currentUser, router]);
 
   if (loading) {
     return (
@@ -199,8 +204,13 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If loading is finished and we don't have a user, the useEffect will handle the redirect.
-  if (!currentUser) {
+  // If we are still waiting for profile resolution after auth is confirmed
+  if (authUser && !currentUser) {
+    return null; 
+  }
+
+  // If not logged in, the useEffect will handle redirect
+  if (!authUser) {
     return null;
   }
 
