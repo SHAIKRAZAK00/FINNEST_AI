@@ -37,11 +37,12 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
 
   const [familyId, setFamilyId] = useState<string | null>(null);
   const [isSearchingFamily, setIsSearchingFamily] = useState(false);
+  const [hasAttemptedLookup, setHasAttemptedLookup] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeConfettiGoal, setActiveConfettiGoal] = useState<string | null>(null);
 
   useEffect(() => {
-    if (authUser && firestore) {
+    if (authUser && firestore && !hasAttemptedLookup) {
       const findFamily = async () => {
         setIsSearchingFamily(true);
         try {
@@ -62,15 +63,16 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
           console.error("Error finding family:", err);
         } finally {
           setIsSearchingFamily(false);
+          setHasAttemptedLookup(true);
         }
       };
       findFamily();
-    } else {
+    } else if (!isAuthLoading && !authUser) {
       setFamilyId(null);
       setCurrentUser(null);
-      setIsSearchingFamily(false);
+      setHasAttemptedLookup(true);
     }
-  }, [authUser, firestore]);
+  }, [authUser, firestore, isAuthLoading, hasAttemptedLookup]);
   
   const familyRef = useMemoFirebase(() => familyId ? doc(firestore, 'families', familyId) : null, [firestore, familyId]);
   const { data: family, isLoading: isFamilyLoading } = useDoc<Family>(familyRef);
@@ -103,7 +105,13 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     }
   }, [users, authUser, gamificationData]);
 
-  const loading = isAuthLoading || isSearchingFamily || (!!authUser && !!familyId && (isFamilyLoading || areUsersLoading || areExpensesLoading || areGoalsLoading));
+  // Loading state is true if auth is loading, or we are currently searching for a family,
+  // or we have an auth user but haven't even attempted the family lookup yet,
+  // or we have a family ID but the specific family/members/etc data is still fetching.
+  const loading = isAuthLoading || 
+                  (!!authUser && !hasAttemptedLookup) || 
+                  isSearchingFamily || 
+                  (!!familyId && (isFamilyLoading || areUsersLoading || areExpensesLoading || areGoalsLoading));
 
   const awardPointsAndCheckAchievements = async (userId: string, pointsToAward: number) => {
     if (!familyId || !firestore || !currentUser) return;
@@ -225,6 +233,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     }
     setFamilyId(null);
     setCurrentUser(null);
+    setHasAttemptedLookup(false);
   };
 
   const value = { 

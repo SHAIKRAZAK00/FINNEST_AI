@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -61,7 +62,7 @@ function AppSidebar() {
           <AppLogo />
         </SidebarHeader>
         <SidebarContent>
-          <div className="p-4">
+          <div className="p-4 flex justify-center">
             <Loader2 className="h-6 w-6 animate-spin" />
           </div>
         </SidebarContent>
@@ -73,7 +74,7 @@ function AppSidebar() {
     <Sidebar>
       <SidebarHeader>
         <AppLogo />
-        <p className="text-sm text-sidebar-foreground/80 group-data-[collapsible=icon]:hidden">
+        <p className="text-sm text-sidebar-foreground/80 group-data-[collapsible=icon]:hidden px-2">
             {family.familyName}
         </p>
       </SidebarHeader>
@@ -152,8 +153,8 @@ function AppSidebar() {
                 <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
                 <AvatarFallback>{getInitials(currentUser.name)}</AvatarFallback>
               </Avatar>
-              <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-                <span className="font-medium">{currentUser.name}</span>
+              <div className="flex flex-col group-data-[collapsible=icon]:hidden overflow-hidden">
+                <span className="font-medium truncate">{currentUser.name}</span>
                 <span className="text-xs text-sidebar-foreground/70">{currentUser.role}</span>
               </div>
             </button>
@@ -184,17 +185,23 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
+    // Only redirect if we are CERTAIN that loading is finished and no user profile exists.
     if (!loading && !currentUser) {
       router.push('/login');
     }
   }, [loading, currentUser, router]);
 
-  if (loading || !currentUser) {
+  if (loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  // If loading is finished and we don't have a user, the useEffect will handle the redirect.
+  if (!currentUser) {
+    return null;
   }
 
   return (
@@ -203,7 +210,8 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:h-16 sm:px-6">
           <SidebarTrigger className="md:hidden" />
-          {/* Header content like breadcrumbs can go here */}
+          <div className="flex-1" />
+          <AppLogo className="md:hidden" />
         </header>
         <main className="flex-1 p-4 sm:p-6">{children}</main>
       </SidebarInset>
