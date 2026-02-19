@@ -185,12 +185,13 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
+    // Only redirect once loading is definitively finished
     if (!loading) {
       if (!authUser) {
-        // Not logged in at all
+        // Not logged in at all, go to login
         router.push('/login');
       } else if (!currentUser) {
-        // Logged in but no family profile found
+        // Logged in but no family profile found, go to signup
         router.push('/signup');
       }
     }
@@ -204,7 +205,8 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If we are still waiting for profile resolution after auth is confirmed
+  // If we are logged in but don't have a profile yet, redirect effect will handle it.
+  // Rendering nothing here prevents a flash of empty dashboard.
   if (authUser && !currentUser) {
     return null; 
   }

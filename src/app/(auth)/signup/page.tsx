@@ -31,12 +31,14 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth, useFirestore } from "@/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { collection, query, where, getDocs, doc, writeBatch } from "firebase/firestore";
+import { useFamily } from "@/context/family-context";
 
 export default function SignupPage() {
     const router = useRouter();
     const { toast } = useToast();
     const auth = useAuth();
     const firestore = useFirestore();
+    const { refreshFamily } = useFamily();
 
     const [role, setRole] = useState<string>("");
     const [step, setStep] = useState<'form' | 'code'>('form');
@@ -53,7 +55,7 @@ export default function SignupPage() {
         const fullName = (form.elements.namedItem("full-name") as HTMLInputElement).value;
         const email = (form.elements.namedItem("email") as HTMLInputElement).value;
         const password = (form.elements.namedItem("password") as HTMLInputElement).value;
-        const familyCode = (form.elements.namedItem("family-code") as HTMLInputElement)?.value;
+        const familyCodeInput = (form.elements.namedItem("family-code") as HTMLInputElement)?.value;
         
         const roleForUserObject: UserRole = role === 'ParentCreate' || role === 'ParentJoin' ? 'Parent' : role as UserRole;
 
@@ -98,10 +100,12 @@ export default function SignupPage() {
                 await batch.commit();
                 
                 setGeneratedCode(newFamilyCode);
+                // Important: Seed the family ID so dashboard knows it's ready
+                await refreshFamily(familyDocRef.id);
                 setStep('code');
             } else { // Join family
                 const familiesRef = collection(firestore, "families");
-                const q = query(familiesRef, where("familyCode", "==", familyCode));
+                const q = query(familiesRef, where("familyCode", "==", familyCodeInput));
                 const querySnapshot = await getDocs(q);
 
                 if (querySnapshot.empty) {
@@ -132,6 +136,8 @@ export default function SignupPage() {
                 batch.set(doc(firestore, "families", familyId, "gamification", user.uid), gamificationData);
 
                 await batch.commit();
+                // Seed the family ID immediately
+                await refreshFamily(familyId);
                 router.push('/dashboard');
             }
         } catch (err: any) {

@@ -6,7 +6,7 @@ import type { User, Expense, Goal, Family } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getLevelFromPoints, mockBadges } from '@/lib/data';
 import { useAuth, useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import { collection, doc, query, where, getDocs, getDoc, writeBatch } from 'firebase/firestore';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { signOut } from 'firebase/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
@@ -27,6 +27,7 @@ interface FamilyContextType {
   activeConfettiGoal: string | null;
   clearConfetti: () => void;
   logout: () => void;
+  refreshFamily: (forcedId?: string) => Promise<void>;
 }
 
 const FamilyContext = createContext<FamilyContextType | undefined>(undefined);
@@ -43,8 +44,41 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeConfettiGoal, setActiveConfettiGoal] = useState<string | null>(null);
 
+  const findFamily = async (forcedId?: string) => {
+    if (forcedId) {
+      setFamilyId(forcedId);
+      setHasAttemptedLookup(true);
+      return;
+    }
+
+    if (!authUser || !firestore) return;
+
+    setIsSearchingFamily(true);
+    try {
+      // Find which family this user belongs to
+      const familiesCol = collection(firestore, 'families');
+      const snapshot = await getDocs(familiesCol);
+      let foundFamilyId = null;
+      
+      for (const familyDoc of snapshot.docs) {
+        // Direct doc check is more reliable than query for 'members' subcollection existence
+        const memberDocRef = doc(firestore, 'families', familyDoc.id, 'members', authUser.uid);
+        const memberSnapshot = await getDoc(memberDocRef);
+        if (memberSnapshot.exists()) {
+          foundFamilyId = familyDoc.id;
+          break;
+        }
+      }
+      setFamilyId(foundFamilyId);
+    } catch (err) {
+      console.error("Error finding family:", err);
+    } finally {
+      setIsSearchingFamily(false);
+      setHasAttemptedLookup(true);
+    }
+  };
+
   useEffect(() => {
-    // Reset lookup state if auth user changes or disappears
     if (!isAuthLoading && !authUser) {
       setFamilyId(null);
       setCurrentUser(null);
@@ -54,31 +88,6 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     }
 
     if (authUser && firestore && !hasAttemptedLookup && !isSearchingFamily) {
-      const findFamily = async () => {
-        setIsSearchingFamily(true);
-        try {
-          // This is a simplified lookup for MVP. 
-          // In a production app, you'd store familyId in user profile or custom claims.
-          const familiesCol = collection(firestore, 'families');
-          const snapshot = await getDocs(familiesCol);
-          let foundFamilyId = null;
-          
-          for (const familyDoc of snapshot.docs) {
-            const membersCol = collection(firestore, 'families', familyDoc.id, 'members');
-            const memberDoc = await getDocs(query(membersCol, where('__name__', '==', authUser.uid)));
-            if (!memberDoc.empty) {
-              foundFamilyId = familyDoc.id;
-              break;
-            }
-          }
-          setFamilyId(foundFamilyId);
-        } catch (err) {
-          console.error("Error finding family:", err);
-        } finally {
-          setIsSearchingFamily(false);
-          setHasAttemptedLookup(true);
-        }
-      };
       findFamily();
     }
   }, [authUser, firestore, isAuthLoading, hasAttemptedLookup, isSearchingFamily]);
@@ -116,7 +125,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     }
   }, [users, authUser, gamificationData]);
 
-  // Loading state must be TRUE if we are still figuring out WHO the user is or WHERE they belong.
+  // Combined loading state: true if auth is unknown, or we're looking up family, or fetching family data.
   const loading = isAuthLoading || 
                   (!!authUser && !hasAttemptedLookup) || 
                   isSearchingFamily || 
@@ -147,7 +156,6 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     batch.update(userGamificationRef, { points: newPoints, level: newLevel });
 
     const newBadges = [...currentBadges];
-    // Simple logic for first contribution badge
     if (!newBadges.includes('badge-1')) {
       newBadges.push('badge-1');
     }
@@ -259,6 +267,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     activeConfettiGoal, 
     clearConfetti,
     logout,
+    refreshFamily: findFamily,
   };
 
   return <FamilyContext.Provider value={value}>{children}</FamilyContext.Provider>;
