@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
@@ -40,8 +41,6 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (authUser) {
-      // This is a workaround to find the familyId for a user.
-      // In a production app, this would be a direct lookup, e.g. from a /users/{uid} document.
       const findFamily = async () => {
         const familiesCol = collection(firestore, 'families');
         const snapshot = await getDocs(familiesCol);
@@ -100,8 +99,6 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     let currentPoints = 0;
     let currentBadges: string[] = [];
 
-    // This is tricky without a transaction, but for this app it's okay.
-    // A better way would be a Cloud Function.
     if(currentUser?.id === userId) {
       currentPoints = currentUser.points;
       currentBadges = currentUser.badges;
@@ -127,13 +124,11 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
 
     batch.update(userGamificationRef, { points: newPoints, level: newLevel });
 
-    // Check for new badges
-    // This is a simplified check. Real-world would need more context.
     const newBadges = [...currentBadges];
     if (!newBadges.includes('badge-1') && goals?.some(g => g.contributors.includes(userId))) {
       newBadges.push('badge-1');
     }
-    if (!newBadges.includes('badge-2') && expenses && expenses.filter(e => e.contributorId === userId).length >= 4) { // 4 because the new one is not yet in the state
+    if (!newBadges.includes('badge-2') && expenses && expenses.filter(e => e.contributorId === userId).length >= 4) {
       newBadges.push('badge-2');
     }
     
@@ -153,25 +148,31 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
 
   const addExpense = (expense: Omit<Expense, 'id' | 'contributorId' | 'date'>) => {
     if (!currentUser || !familyId) return;
+    const expensesColRef = collection(firestore, 'families', familyId, 'expenses');
+    const expenseDocRef = doc(expensesColRef);
     const newExpense = { 
         ...expense, 
+        id: expenseDocRef.id,
+        familyId: familyId,
         contributorId: currentUser.id,
         date: new Date().toISOString()
     };
-    const expensesColRef = collection(firestore, 'families', familyId, 'expenses');
-    addDocumentNonBlocking(expensesColRef, newExpense);
+    setDocumentNonBlocking(expenseDocRef, newExpense, {});
     awardPointsAndCheckAchievements(currentUser.id, 10);
   };
 
   const addGoal = (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors'>) => {
     if (!currentUser || currentUser.role !== 'Parent' || !familyId) return;
+    const goalsColRef = collection(firestore, 'families', familyId, 'goals');
+    const goalDocRef = doc(goalsColRef);
     const newGoal = {
         ...goal,
+        id: goalDocRef.id,
+        familyId: familyId,
         currentAmount: 0,
         contributors: []
     };
-    const goalsColRef = collection(firestore, 'families', familyId, 'goals');
-    addDocumentNonBlocking(goalsColRef, newGoal);
+    setDocumentNonBlocking(goalDocRef, newGoal, {});
     awardPointsAndCheckAchievements(currentUser.id, 50);
   };
 
@@ -200,17 +201,10 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
 
   const removeUser = async (userId: string) => {
     if (!currentUser || currentUser.role !== 'Parent' || currentUser.id === userId || !familyId) return;
-    
-    // This is a complex operation and should ideally be a Cloud Function for atomicity.
-    // For client-side, we do our best.
     const userMemberRef = doc(firestore, 'families', familyId, 'members', userId);
     const userGamificationRef = doc(firestore, 'families', familyId, 'gamification', userId);
-    
-    // Note: This doesn't delete the user from Firebase Auth, only from the family.
     deleteDocumentNonBlocking(userMemberRef);
     deleteDocumentNonBlocking(userGamificationRef);
-
-    toast({ title: "User Removed", description: "The user has been removed from the family." });
   };
 
   const updateUserAvatar = (avatarUrl: string) => {

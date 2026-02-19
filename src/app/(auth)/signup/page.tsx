@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -77,6 +78,7 @@ export default function SignupPage() {
                 const familyDocRef = doc(collection(firestore, "families"));
 
                 const newFamily = {
+                    id: familyDocRef.id,
                     familyName: `The ${familyNamePart}s`,
                     familyCode: newFamilyCode,
                     createdBy: user.uid,
