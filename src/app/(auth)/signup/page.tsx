@@ -44,6 +44,7 @@ export default function SignupPage() {
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
+        if (!auth) return;
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user && step !== 'code') {
                 router.push('/dashboard');
@@ -225,7 +226,7 @@ export default function SignupPage() {
           </div>
           <div className="grid gap-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" required disabled={loading} />
+            <Input id="password" name="password" type="password" required disabled={loading} />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="role">Your Role</Label>

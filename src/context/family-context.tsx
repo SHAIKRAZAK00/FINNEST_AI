@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
@@ -6,8 +5,8 @@ import type { User, Expense, Goal, Family } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getLevelFromPoints, mockBadges } from '@/lib/data';
 import { useAuth, useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, query, where, getDocs, writeBatch, serverTimestamp } from 'firebase/firestore';
-import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, doc, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { signOut } from 'firebase/auth';
 
 interface FamilyContextType {
@@ -16,8 +15,8 @@ interface FamilyContextType {
   currentUser: User | null;
   expenses: Expense[];
   goals: Goal[];
-  addExpense: (expense: Omit<Expense, 'id' | 'contributorId' | 'date'>) => void;
-  addGoal: (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors'>) => void;
+  addExpense: (expense: Omit<Expense, 'id' | 'contributorId' | 'date' | 'familyId'>) => void;
+  addGoal: (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors' | 'familyId'>) => void;
   contributeToGoal: (goalId: string, amount: number) => { goalCompleted: boolean };
   removeUser: (userId: string) => void;
   updateUserAvatar: (avatarUrl: string) => void;
@@ -40,7 +39,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const [activeConfettiGoal, setActiveConfettiGoal] = useState<string | null>(null);
 
   useEffect(() => {
-    if (authUser) {
+    if (authUser && firestore) {
       const findFamily = async () => {
         const familiesCol = collection(firestore, 'families');
         const snapshot = await getDocs(familiesCol);
@@ -89,7 +88,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const loading = isAuthLoading || isFamilyLoading || areUsersLoading || areExpensesLoading || areGoalsLoading;
 
   const awardPointsAndCheckAchievements = async (userId: string, pointsToAward: number) => {
-    if (!familyId) return;
+    if (!familyId || !firestore) return;
     
     const userGamificationRef = doc(firestore, "families", familyId, "gamification", userId);
     const userMembersRef = doc(firestore, "families", familyId, "members", userId);
@@ -100,13 +99,13 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     let currentBadges: string[] = [];
 
     if(currentUser?.id === userId) {
-      currentPoints = currentUser.points;
-      currentBadges = currentUser.badges;
+      currentPoints = currentUser.points || 0;
+      currentBadges = currentUser.badges || [];
     } else {
       const userToUpdate = users?.find(u => u.id === userId);
       if(userToUpdate) {
-        currentPoints = userToUpdate.points;
-        currentBadges = userToUpdate.badges;
+        currentPoints = userToUpdate.points || 0;
+        currentBadges = userToUpdate.badges || [];
       }
     }
     
@@ -146,8 +145,8 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     await batch.commit();
   };
 
-  const addExpense = (expense: Omit<Expense, 'id' | 'contributorId' | 'date'>) => {
-    if (!currentUser || !familyId) return;
+  const addExpense = (expense: Omit<Expense, 'id' | 'contributorId' | 'date' | 'familyId'>) => {
+    if (!currentUser || !familyId || !firestore) return;
     const expensesColRef = collection(firestore, 'families', familyId, 'expenses');
     const expenseDocRef = doc(expensesColRef);
     const newExpense = { 
@@ -161,8 +160,8 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     awardPointsAndCheckAchievements(currentUser.id, 10);
   };
 
-  const addGoal = (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors'>) => {
-    if (!currentUser || currentUser.role !== 'Parent' || !familyId) return;
+  const addGoal = (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors' | 'familyId'>) => {
+    if (!currentUser || currentUser.role !== 'Parent' || !familyId || !firestore) return;
     const goalsColRef = collection(firestore, 'families', familyId, 'goals');
     const goalDocRef = doc(goalsColRef);
     const newGoal = {
@@ -177,7 +176,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   };
 
   const contributeToGoal = (goalId: string, amount: number) => {
-    if (!currentUser || !familyId || !goals) return { goalCompleted: false };
+    if (!currentUser || !familyId || !goals || !firestore) return { goalCompleted: false };
     const goal = goals.find(g => g.id === goalId);
     if (!goal) return { goalCompleted: false };
     
@@ -200,7 +199,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   };
 
   const removeUser = async (userId: string) => {
-    if (!currentUser || currentUser.role !== 'Parent' || currentUser.id === userId || !familyId) return;
+    if (!currentUser || currentUser.role !== 'Parent' || currentUser.id === userId || !familyId || !firestore) return;
     const userMemberRef = doc(firestore, 'families', familyId, 'members', userId);
     const userGamificationRef = doc(firestore, 'families', familyId, 'gamification', userId);
     deleteDocumentNonBlocking(userMemberRef);
@@ -208,7 +207,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   };
 
   const updateUserAvatar = (avatarUrl: string) => {
-    if (!currentUser || !familyId) return;
+    if (!currentUser || !familyId || !firestore) return;
     const userRef = doc(firestore, 'families', familyId, 'members', currentUser.id);
     updateDocumentNonBlocking(userRef, { avatarUrl });
   };
@@ -216,7 +215,9 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const clearConfetti = () => setActiveConfettiGoal(null);
 
   const logout = () => {
-    signOut(auth);
+    if (auth) {
+      signOut(auth);
+    }
     setFamilyId(null);
     setCurrentUser(null);
   };

@@ -30,6 +30,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         router.push("/dashboard");
@@ -48,7 +49,6 @@ export default function LoginPage() {
     
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // Auth state change will be caught by useEffect and redirect
     } catch (err: any) {
       setError(err.message);
       toast({
@@ -98,7 +98,7 @@ export default function LoginPage() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" required disabled={loading} />
+            <Input id="password" name="password" type="password" required disabled={loading} />
           </div>
           <div className="flex items-center">
             <Link href="#" className="ml-auto inline-block text-sm underline">
