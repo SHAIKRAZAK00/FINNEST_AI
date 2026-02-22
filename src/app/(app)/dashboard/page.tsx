@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useFamily } from "@/context/family-context";
@@ -24,7 +25,6 @@ import {
   TrendingUp,
   Users,
   Zap,
-  CheckCircle2,
 } from "lucide-react";
 import {
   ChartContainer,
@@ -35,6 +35,7 @@ import {
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useMemo } from "react";
 
 const chartConfig = {
   amount: {
@@ -46,22 +47,50 @@ const chartConfig = {
 export default function DashboardPage() {
   const { expenses, goals, users } = useFamily();
 
-  const totalSpending = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+  const totalSpending = useMemo(() => expenses.reduce((sum, exp) => sum + exp.amount, 0), [expenses]);
   const totalGoals = goals.length;
   const members = users.length;
-  const recentExpenses = expenses.slice(0, 5);
+  const recentExpenses = useMemo(() => [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5), [expenses]);
   
   const getInitials = (name: string) => name.split(" ").map((n) => n[0]).join("");
   const getUserById = (id: string) => users.find(u => u.id === id);
 
-  const spendingByCategory = expenses.reduce((acc, expense) => {
-    acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
-    return acc;
-  }, {} as Record<string, number>);
+  // Calculate top spender dynamically
+  const topSpenderData = useMemo(() => {
+    const spendingByUser: Record<string, number> = {};
+    expenses.forEach(exp => {
+      spendingByUser[exp.contributorId] = (spendingByUser[exp.contributorId] || 0) + exp.amount;
+    });
 
-  const chartData = Object.entries(spendingByCategory)
-    .map(([category, amount]) => ({ category, amount }))
-    .sort((a, b) => b.amount - a.amount);
+    let topUserId = "";
+    let maxAmount = 0;
+
+    Object.entries(spendingByUser).forEach(([uid, amt]) => {
+      if (amt > maxAmount) {
+        maxAmount = amt;
+        topUserId = uid;
+      }
+    });
+
+    const user = users.find(u => u.id === topUserId);
+    return {
+      name: user?.name || "N/A",
+      amount: maxAmount
+    };
+  }, [expenses, users]);
+
+  const spendingByCategory = useMemo(() => {
+    return expenses.reduce((acc, expense) => {
+      acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
+      return acc;
+    }, {} as Record<string, number>);
+  }, [expenses]);
+
+  const chartData = useMemo(() => {
+    return Object.entries(spendingByCategory)
+      .map(([category, amount]) => ({ category, amount }))
+      .sort((a, b) => b.amount - a.amount);
+  }, [spendingByCategory]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -75,7 +104,7 @@ export default function DashboardPage() {
             <div className="text-2xl font-bold">
               ₹{totalSpending.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
-            <p className="text-xs text-muted-foreground">This month</p>
+            <p className="text-xs text-muted-foreground">Family total</p>
           </CardContent>
         </Card>
         <Card>
@@ -85,7 +114,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalGoals}</div>
-            <p className="text-xs text-muted-foreground">Towards a brighter future</p>
+            <p className="text-xs text-muted-foreground">Shared milestones</p>
           </CardContent>
         </Card>
         <Card>
@@ -95,7 +124,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{members}</div>
-            <p className="text-xs text-muted-foreground">Working together</p>
+            <p className="text-xs text-muted-foreground">Connected users</p>
           </CardContent>
         </Card>
         <Card>
@@ -104,8 +133,8 @@ export default function DashboardPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Maya</div>
-            <p className="text-xs text-muted-foreground">+20% from last month</p>
+            <div className="text-2xl font-bold">{topSpenderData.name}</div>
+            <p className="text-xs text-muted-foreground">₹{topSpenderData.amount.toLocaleString("en-IN")} spent</p>
           </CardContent>
         </Card>
       </div>
@@ -147,7 +176,7 @@ export default function DashboardPage() {
               <BarChartIcon className="h-5 w-5" /> Spending Breakdown
             </CardTitle>
             <CardDescription>
-              Your family's spending by category this month.
+              Your family's spending by category.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -169,13 +198,13 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle>Recent Transactions</CardTitle>
             <CardDescription>
-              The latest 5 transactions from your family.
+              The latest transactions from your family.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableBody>
-                {recentExpenses.map((expense) => {
+                {recentExpenses.length > 0 ? recentExpenses.map((expense) => {
                     const contributor = getUserById(expense.contributorId);
                     return (
                         <TableRow key={expense.id}>
@@ -194,7 +223,13 @@ export default function DashboardPage() {
                             </TableCell>
                         </TableRow>
                     );
-                })}
+                }) : (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center text-muted-foreground py-10">
+                      No transactions yet.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -209,17 +244,21 @@ export default function DashboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6">
-          {goals.filter(g => g.currentAmount < g.targetAmount).slice(0, 3).map((goal) => (
-            <div key={goal.id}>
-                <div className="mb-2 flex items-center justify-between">
-                    <Link href="/goals" className="font-semibold hover:underline">{goal.name}</Link>
-                    <span className="text-sm font-medium text-muted-foreground">
-                        ₹{goal.currentAmount.toLocaleString("en-IN")} / ₹{goal.targetAmount.toLocaleString("en-IN")}
-                    </span>
-                </div>
-                <Progress value={(goal.currentAmount / goal.targetAmount) * 100} />
-            </div>
-          ))}
+          {goals.filter(g => g.currentAmount < g.targetAmount).length > 0 ? (
+            goals.filter(g => g.currentAmount < g.targetAmount).slice(0, 3).map((goal) => (
+              <div key={goal.id}>
+                  <div className="mb-2 flex items-center justify-between">
+                      <Link href="/goals" className="font-semibold hover:underline">{goal.name}</Link>
+                      <span className="text-sm font-medium text-muted-foreground">
+                          ₹{goal.currentAmount.toLocaleString("en-IN")} / ₹{goal.targetAmount.toLocaleString("en-IN")}
+                      </span>
+                  </div>
+                  <Progress value={(goal.currentAmount / goal.targetAmount) * 100} />
+              </div>
+            ))
+          ) : (
+            <p className="text-center text-muted-foreground py-4">No active goals. Set one to start saving!</p>
+          )}
         </CardContent>
       </Card>
     </div>
