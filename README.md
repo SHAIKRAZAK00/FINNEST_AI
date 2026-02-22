@@ -5,14 +5,19 @@ FinNest AI is a secure family finance ecosystem designed for shared expenses, go
 ## 🚀 Getting Started
 
 ### 1. Download the Source Code
-Since you are working in an IDX environment, you can download your code using the terminal:
+Since you are working in an IDX environment, you can download your code directly using the file explorer:
 
-1. **Open the Terminal** in the bottom panel of this window.
-2. **Create a zip archive** of your project (excluding heavy folders) by running:
-   ```bash
-   zip -r finnest-ai.zip . -x "node_modules/*" ".next/*" ".git/*"
-   ```
-3. **Download the file**: In the file explorer on the left, find `finnest-ai.zip`, right-click it, and select **Download**.
+1. **Find the file explorer** on the far left side of this window.
+2. **Right-click** on any file or the project folder.
+3. **Select "Download"** if available.
+
+**Alternatively, use the Terminal (Recommended):**
+1. Open the Terminal at the bottom.
+2. **Copy and paste this exact command** (without any backticks):
+   `zip -r project.zip . -x "node_modules/*" ".next/*" ".git/*"`
+3. Press **Enter**.
+4. Once the command finishes, look at the file explorer on the left. You will see a new file named `project.zip`.
+5. **Right-click `project.zip`** and select **Download**.
 
 ### 2. Local Setup
 1. **Extract** the downloaded `.zip` file on your computer.

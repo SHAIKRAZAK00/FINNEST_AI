@@ -186,14 +186,23 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
+    // Only handle redirects once we've finished the initial check
     if (!loading) {
       if (!authUser) {
-        // Not logged in at all
-        router.push('/login');
+        // Not logged in at all - send to login
+        if (pathname !== '/login' && pathname !== '/signup') {
+          router.push('/login');
+        }
       } else if (!currentUser) {
-        // Logged in but no profile - only redirect to signup if they aren't already on an auth page
-        if (!pathname.startsWith('/signup') && !pathname.startsWith('/login')) {
+        // Logged in but NO family profile found after searching
+        // Only redirect to signup if they aren't already there
+        if (pathname !== '/signup' && pathname !== '/login') {
           router.push('/signup');
+        }
+      } else {
+        // Logged in AND has profile - if they are on auth pages, send to dashboard
+        if (pathname === '/login' || pathname === '/signup' || pathname === '/') {
+          router.push('/dashboard');
         }
       }
     }
@@ -202,13 +211,16 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground animate-pulse">Syncing family data...</p>
+        </div>
       </div>
     );
   }
 
-  // Handle case where profile is still being created/found
-  if (authUser && !currentUser && !pathname.startsWith('/signup')) {
+  // Prevent flicker for authenticated users without profiles
+  if (authUser && !currentUser && pathname !== '/signup') {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -219,8 +231,8 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If not logged in, wait for redirect
-  if (!authUser && !pathname.startsWith('/login')) {
+  // Final catch-all for unauthorized access
+  if (!authUser && pathname !== '/login' && pathname !== '/signup') {
     return null;
   }
 
