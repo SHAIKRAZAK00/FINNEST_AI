@@ -2,50 +2,46 @@
 
 FinNest AI is a secure family finance ecosystem designed for shared expenses, goals, and AI-powered financial guidance.
 
-## Features
+## 🚀 Getting Started
 
-- **Shared Family Dashboard:** Real-time visibility into family spending and goal progress.
-- **Expense Tracking:** Log and categorize expenses with AI-powered receipt scanning.
-- **Family Goals:** Set and achieve collective financial milestones together.
-- **AI CFO Assistant:** Get personalized financial insights based on your family's spending habits.
-- **Gamification:** Earn points, level up, and win badges for healthy financial behaviors.
-- **Real-time Sync:** All data is synchronized instantly across all family members' devices using Firebase.
+### 1. Download the Source Code
+To get the project files on your computer:
+1. Look at the **top right corner** of this Firebase Studio window.
+2. Click the **Download** button (it looks like a cloud icon with a downward arrow).
+3. This will download a `.zip` file containing all the source code.
 
-## How to Download & Run Locally
-
-1. **Download:** Click the **Download** button in the top right of the Firebase Studio editor to get the project `.zip` file.
-2. **Extract:** Unzip the folder on your computer.
-3. **Install Dependencies:**
+### 2. Local Setup
+1. **Extract** the downloaded `.zip` file to a folder on your computer.
+2. **Open a terminal** in that folder.
+3. **Install dependencies**:
    ```bash
    npm install
    ```
-4. **Environment Variables:** Create a `.env.local` file in the root directory and add your Firebase configuration (you can find these in `src/firebase/config.ts`).
-5. **Run the App:**
+4. **Environment Variables**: Create a `.env.local` file in the root directory and add your Firebase configuration (copy the values from `src/firebase/config.ts`).
+5. **Run the App**:
    ```bash
    npm run dev
    ```
    Open [http://localhost:9002](http://localhost:9002) in your browser.
 
-## Tech Stack
+## 🛠 Tech Stack
+- **Framework**: Next.js 15 (App Router)
+- **Styling**: Tailwind CSS + Shadcn UI
+- **Database & Auth**: Firebase (Firestore & Authentication)
+- **AI Integration**: Google Gemini via Genkit
+- **Icons**: Lucide React
 
-- **Framework:** Next.js 15 (App Router)
-- **Styling:** Tailwind CSS + Shadcn UI
-- **Database & Auth:** Firebase (Firestore & Authentication)
-- **AI Integration:** Google Gemini via Genkit
-- **Icons:** Lucide React
-
-## How to Push to GitHub
-
-1. **Create a Repository:** Go to [GitHub](https://github.com/new) and create a new repository.
-2. **Initialize Git:**
+## 📦 How to Push to GitHub
+1. Create a new repository on [GitHub](https://github.com/new).
+2. Initialize and push your code:
    ```bash
    git init
    git add .
    git commit -m "Initial commit: FinNest AI"
-   ```
-3. **Connect & Push:**
-   ```bash
    git branch -M main
    git remote add origin <YOUR_GITHUB_REPO_URL>
    git push -u origin main
    ```
+
+---
+*Built with ❤️ using Firebase and Next.js*
