@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import type { User, Expense, Goal, Family } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getLevelFromPoints, mockBadges } from '@/lib/data';
@@ -44,7 +44,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeConfettiGoal, setActiveConfettiGoal] = useState<string | null>(null);
 
-  const findFamily = async (forcedId?: string) => {
+  const findFamily = useCallback(async (forcedId?: string) => {
     if (forcedId) {
       setFamilyId(forcedId);
       setHasAttemptedLookup(true);
@@ -55,18 +55,36 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
 
     setIsSearchingFamily(true);
     try {
-      // Find which family this user belongs to
+      // First, check local storage as a hint to speed up loading
+      const cachedId = localStorage.getItem(`familyId_${authUser.uid}`);
+      if (cachedId) {
+        const memberDocRef = doc(firestore, 'families', cachedId, 'members', authUser.uid);
+        const memberSnapshot = await getDoc(memberDocRef);
+        if (memberSnapshot.exists()) {
+          setFamilyId(cachedId);
+          setIsSearchingFamily(false);
+          setHasAttemptedLookup(true);
+          return;
+        }
+      }
+
+      // If no cache or cache invalid, we scan
       const familiesCol = collection(firestore, 'families');
       const snapshot = await getDocs(familiesCol);
       let foundFamilyId = null;
       
       for (const familyDoc of snapshot.docs) {
-        // Direct doc check is more reliable than query for 'members' subcollection existence
-        const memberDocRef = doc(firestore, 'families', familyDoc.id, 'members', authUser.uid);
-        const memberSnapshot = await getDoc(memberDocRef);
-        if (memberSnapshot.exists()) {
-          foundFamilyId = familyDoc.id;
-          break;
+        try {
+          const memberDocRef = doc(firestore, 'families', familyDoc.id, 'members', authUser.uid);
+          const memberSnapshot = await getDoc(memberDocRef);
+          if (memberSnapshot.exists()) {
+            foundFamilyId = familyDoc.id;
+            localStorage.setItem(`familyId_${authUser.uid}`, foundFamilyId);
+            break;
+          }
+        } catch (e) {
+          // Ignore permission errors for families the user doesn't belong to
+          continue;
         }
       }
       setFamilyId(foundFamilyId);
@@ -76,7 +94,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
       setIsSearchingFamily(false);
       setHasAttemptedLookup(true);
     }
-  };
+  }, [authUser, firestore]);
 
   useEffect(() => {
     if (!isAuthLoading && !authUser) {
@@ -90,7 +108,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     if (authUser && firestore && !hasAttemptedLookup && !isSearchingFamily) {
       findFamily();
     }
-  }, [authUser, firestore, isAuthLoading, hasAttemptedLookup, isSearchingFamily]);
+  }, [authUser, firestore, isAuthLoading, hasAttemptedLookup, isSearchingFamily, findFamily]);
   
   const familyRef = useMemoFirebase(() => familyId ? doc(firestore, 'families', familyId) : null, [firestore, familyId]);
   const { data: family, isLoading: isFamilyLoading } = useDoc<Family>(familyRef);
@@ -248,6 +266,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     if (auth) {
       signOut(auth);
+      localStorage.removeItem(`familyId_${authUser?.uid}`);
     }
   };
 

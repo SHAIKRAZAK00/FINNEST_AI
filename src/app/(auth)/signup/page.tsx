@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { UserRole } from "@/lib/types";
 
 import { Button } from "@/components/ui/button";
@@ -38,18 +38,25 @@ export default function SignupPage() {
     const { toast } = useToast();
     const auth = useAuth();
     const firestore = useFirestore();
-    const { refreshFamily } = useFamily();
+    const { refreshFamily, authUser, currentUser, loading: isFamilyLoading } = useFamily();
 
     const [role, setRole] = useState<string>("");
     const [step, setStep] = useState<'form' | 'code'>('form');
     const [generatedCode, setGeneratedCode] = useState('');
     const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [isSigningUp, setIsSigningUp] = useState(false);
+
+    // Auto-redirect if already logged in and profile exists
+    useEffect(() => {
+      if (!isFamilyLoading && authUser && currentUser) {
+        router.push("/dashboard");
+      }
+    }, [isFamilyLoading, authUser, currentUser, router]);
 
     const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError('');
-        setLoading(true);
+        setIsSigningUp(true);
 
         const form = e.target as HTMLFormElement;
         const fullName = (form.elements.namedItem("full-name") as HTMLInputElement).value;
@@ -83,16 +90,18 @@ export default function SignupPage() {
                     name: fullName,
                     email: user.email,
                     role: roleForUserObject,
-                    avatarUrl: `https://picsum.photos/seed/${fullName.split(' ')[0]}/200/200`
+                    avatarUrl: `https://picsum.photos/seed/${fullName.split(' ')[0]}/200/200`,
+                    points: 50,
+                    badges: []
                 };
                 batch.set(doc(firestore, "families", familyDocRef.id, "members", user.uid), userProfile);
                 
                 const gamificationData = { 
+                  id: user.uid, // Required by schema if using entities
                   userId: user.uid, 
                   familyId: familyDocRef.id,
                   points: 50, 
                   level: 1, 
-                  badges: [], 
                   savingStreaks: 0 
                 };
                 batch.set(doc(firestore, "families", familyDocRef.id, "gamification", user.uid), gamificationData);
@@ -100,7 +109,7 @@ export default function SignupPage() {
                 await batch.commit();
                 
                 setGeneratedCode(newFamilyCode);
-                // Important: Seed the family ID so dashboard knows it's ready
+                // Seed the family ID immediately to stop the redirect loop
                 await refreshFamily(familyDocRef.id);
                 setStep('code');
             } else { // Join family
@@ -121,16 +130,18 @@ export default function SignupPage() {
                     name: fullName,
                     email: user.email,
                     role: roleForUserObject,
-                    avatarUrl: `https://picsum.photos/seed/${fullName.split(' ')[0]}/200/200`
+                    avatarUrl: `https://picsum.photos/seed/${fullName.split(' ')[0]}/200/200`,
+                    points: 0,
+                    badges: []
                 };
                 batch.set(doc(firestore, "families", familyId, "members", user.uid), userProfile);
                 
                 const gamificationData = { 
+                  id: user.uid,
                   userId: user.uid, 
                   familyId: familyId,
                   points: 0, 
                   level: 1, 
-                  badges: [], 
                   savingStreaks: 0 
                 };
                 batch.set(doc(firestore, "families", familyId, "gamification", user.uid), gamificationData);
@@ -143,7 +154,7 @@ export default function SignupPage() {
         } catch (err: any) {
             setError(err.message);
         } finally {
-            setLoading(false);
+            setIsSigningUp(false);
         }
     };
     
@@ -207,7 +218,7 @@ export default function SignupPage() {
             )}
           <div className="grid gap-2">
             <Label htmlFor="full-name">Full Name</Label>
-            <Input id="full-name" name="full-name" placeholder="Alex Johnson" required disabled={loading} />
+            <Input id="full-name" name="full-name" placeholder="Alex Johnson" required disabled={isSigningUp} />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
@@ -217,16 +228,16 @@ export default function SignupPage() {
               type="email"
               placeholder="alex@example.com"
               required
-              disabled={loading}
+              disabled={isSigningUp}
             />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" name="password" type="password" required disabled={loading} />
+            <Input id="password" name="password" type="password" required disabled={isSigningUp} />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="role">Your Role</Label>
-            <Select required onValueChange={(value: string) => setRole(value)} disabled={loading}>
+            <Select required onValueChange={(value: string) => setRole(value)} disabled={isSigningUp}>
               <SelectTrigger id="role">
                 <SelectValue placeholder="Select your role in the family" />
               </SelectTrigger>
@@ -242,13 +253,13 @@ export default function SignupPage() {
           {(role === 'Child' || role === 'Viewer' || role === 'ParentJoin') && (
             <div className="grid gap-2">
                 <Label htmlFor="family-code">Family Code</Label>
-                <Input id="family-code" name="family-code" placeholder="Enter code from parent" required disabled={loading} />
+                <Input id="family-code" name="family-code" placeholder="Enter code from parent" required disabled={isSigningUp} />
             </div>
           )}
 
-          <Button type="submit" className="w-full" disabled={!role || loading}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {loading ? 'Creating Account...' : 'Create an account'}
+          <Button type="submit" className="w-full" disabled={!role || isSigningUp}>
+            {isSigningUp && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isSigningUp ? 'Creating Account...' : 'Create an account'}
           </Button>
         </form>
         <div className="mt-4 text-center text-sm">

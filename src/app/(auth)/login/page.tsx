@@ -19,20 +19,29 @@ import { AppLogo } from "@/components/app-logo";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useFamily } from "@/context/family-context";
 
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
-  const [loading, setLoading] = useState(false);
+  const { authUser, currentUser, loading } = useFamily();
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-redirect if already logged in and profile exists
+  useEffect(() => {
+    if (!loading && authUser && currentUser) {
+      router.push("/dashboard");
+    }
+  }, [loading, authUser, currentUser, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setIsLoggingIn(true);
     setError(null);
     const form = e.target as HTMLFormElement;
     const email = (form.elements.namedItem("email") as HTMLInputElement).value;
@@ -40,7 +49,7 @@ export default function LoginPage() {
     
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // Redirection is handled by the layout/provider once state updates
+      // Redirection is handled by the useEffect or FamilyProvider once state updates
       router.push("/dashboard");
     } catch (err: any) {
       setError(err.message);
@@ -49,7 +58,7 @@ export default function LoginPage() {
         title: "Login Failed",
         description: "Invalid email or password. Please try again.",
       });
-      setLoading(false);
+      setIsLoggingIn(false);
     }
   };
 
@@ -86,21 +95,21 @@ export default function LoginPage() {
               type="email"
               placeholder="alex@example.com"
               required
-              disabled={loading}
+              disabled={isLoggingIn}
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" name="password" type="password" required disabled={loading} />
+            <Input id="password" name="password" type="password" required disabled={isLoggingIn} />
           </div>
           <div className="flex items-center">
             <Link href="#" className="ml-auto inline-block text-sm underline">
               Forgot your password?
             </Link>
           </div>
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {loading ? "Signing In..." : "Sign In"}
+          <Button type="submit" className="w-full" disabled={isLoggingIn}>
+            {isLoggingIn && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isLoggingIn ? "Signing In..." : "Sign In"}
           </Button>
         </form>
         <div className="relative my-4">
@@ -113,7 +122,7 @@ export default function LoginPage() {
             </span>
           </div>
         </div>
-        <Button variant="outline" className="w-full" onClick={handleBiometricLogin} disabled={loading}>
+        <Button variant="outline" className="w-full" onClick={handleBiometricLogin} disabled={isLoggingIn}>
           <Fingerprint className="mr-2 h-4 w-4" />
           Login with Biometrics
         </Button>

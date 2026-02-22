@@ -16,7 +16,9 @@ service cloud.firestore {
       allow update: if isFamilyParent(familyId);
 
       match /members/{userId} {
-        allow read: if isFamilyMember(familyId);
+        // Allow reading own profile even if not yet confirmed as a "member" of this specific family doc
+        // This is critical for the "find my family" loop during login.
+        allow read: if isFamilyMember(familyId) || isOwner(userId);
         allow create: if isOwner(userId);
         allow update: if isOwner(userId) || isFamilyParent(familyId);
         allow delete: if isOwner(userId) || isFamilyParent(familyId);
