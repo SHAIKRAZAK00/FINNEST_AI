@@ -56,7 +56,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     setIsSearchingFamily(true);
     try {
       // First, check local storage as a hint to speed up loading
-      const cachedId = localStorage.getItem(`familyId_${authUser.uid}`);
+      const cachedId = typeof window !== 'undefined' ? localStorage.getItem(`familyId_${authUser.uid}`) : null;
       if (cachedId) {
         const memberDocRef = doc(firestore, 'families', cachedId, 'members', authUser.uid);
         const memberSnapshot = await getDoc(memberDocRef);
@@ -143,7 +143,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     }
   }, [users, authUser, gamificationData]);
 
-  // Combined loading state: true if auth is unknown, or we're looking up family, or fetching family data.
+  // Combined loading state: stay true until we are sure about auth and family status
   const loading = isAuthLoading || 
                   (!!authUser && !hasAttemptedLookup) || 
                   isSearchingFamily || 
@@ -265,8 +265,12 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     if (auth) {
-      signOut(auth);
-      localStorage.removeItem(`familyId_${authUser?.uid}`);
+      signOut(auth).then(() => {
+        localStorage.removeItem(`familyId_${authUser?.uid}`);
+        setFamilyId(null);
+        setCurrentUser(null);
+        setHasAttemptedLookup(false);
+      });
     }
   };
 

@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   Avatar,
   AvatarFallback,
@@ -183,19 +183,21 @@ function AppSidebar() {
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const { loading, currentUser, authUser } = useFamily();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    // Only redirect once loading is definitively finished
     if (!loading) {
       if (!authUser) {
-        // Not logged in at all, go to login
+        // Not logged in at all
         router.push('/login');
       } else if (!currentUser) {
-        // Logged in but no family profile found, go to signup
-        router.push('/signup');
+        // Logged in but no profile - only redirect to signup if they aren't already on an auth page
+        if (!pathname.startsWith('/signup') && !pathname.startsWith('/login')) {
+          router.push('/signup');
+        }
       }
     }
-  }, [loading, authUser, currentUser, router]);
+  }, [loading, authUser, currentUser, router, pathname]);
 
   if (loading) {
     return (
@@ -205,14 +207,20 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If we are logged in but don't have a profile yet, redirect effect will handle it.
-  // Rendering nothing here prevents a flash of empty dashboard.
-  if (authUser && !currentUser) {
-    return null; 
+  // Handle case where profile is still being created/found
+  if (authUser && !currentUser && !pathname.startsWith('/signup')) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Setting up your family hub...</p>
+        </div>
+      </div>
+    );
   }
 
-  // If not logged in, the useEffect will handle redirect
-  if (!authUser) {
+  // If not logged in, wait for redirect
+  if (!authUser && !pathname.startsWith('/login')) {
     return null;
   }
 
