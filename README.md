@@ -5,19 +5,15 @@ FinNest AI is a secure family finance ecosystem designed for shared expenses, go
 ## 🚀 Getting Started
 
 ### 1. Download the Source Code
-Since you are working in an IDX environment, you can download your code directly using the file explorer:
+If you are in IDX, you can download your code directly:
+1. **Find the file explorer** on the far left side.
+2. **Right-click** on the project folder (usually named `studio`).
+3. **Select "Download"** or **"Zip and Download"**.
 
-1. **Find the file explorer** on the far left side of this window.
-2. **Right-click** on any file or the project folder.
-3. **Select "Download"** if available.
-
-**Alternatively, use the Terminal (Recommended):**
+**Alternatively, use the Terminal:**
 1. Open the Terminal at the bottom.
-2. **Copy and paste this exact command** (without any backticks):
-   `zip -r project.zip . -x "node_modules/*" ".next/*" ".git/*"`
-3. Press **Enter**.
-4. Once the command finishes, look at the file explorer on the left. You will see a new file named `project.zip`.
-5. **Right-click `project.zip`** and select **Download**.
+2. Copy and paste this command: `zip -r project.zip . -x "node_modules/*" ".next/*" ".git/*"`
+3. Look at the file explorer on the left, find `project.zip`, **Right-click** it, and select **Download**.
 
 ### 2. Local Setup
 1. **Extract** the downloaded `.zip` file on your computer.
@@ -26,7 +22,7 @@ Since you are working in an IDX environment, you can download your code directly
    ```bash
    npm install
    ```
-4. **Environment Variables**: Create a `.env.local` file in the root directory and add your Firebase configuration (copy the values from `src/firebase/config.ts`).
+4. **Environment Variables**: The Firebase config is already in `src/firebase/config.ts`. For local development, you might want to create a `.env.local` if you add more secrets later.
 5. **Run the App**:
    ```bash
    npm run dev
@@ -41,8 +37,8 @@ Since you are working in an IDX environment, you can download your code directly
 - **Icons**: Lucide React
 
 ## 📦 How to Push to GitHub
-1. Create a new repository on [GitHub](https://github.com/new).
-2. Initialize and push your code:
+1. Create a new repository on [GitHub](https://github.com/new). Do **not** initialize it with a README or License.
+2. On your computer, open a terminal in your project folder and run:
    ```bash
    git init
    git add .
