@@ -15,14 +15,17 @@ export default function RootPage() {
   const router = useRouter();
 
   useEffect(() => {
+    // We only act once the initial auth and profile lookup are resolved
     if (!loading) {
       if (authUser) {
         if (currentUser) {
           router.replace('/dashboard');
         } else {
+          // No profile found for this authenticated user, send to setup
           router.replace('/signup');
         }
       } else {
+        // Not logged in at all
         router.replace('/login');
       }
     }

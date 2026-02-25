@@ -65,14 +65,16 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
         const memberSnapshot = await getDoc(memberDocRef);
         if (memberSnapshot.exists()) {
           setFamilyId(cachedId);
-          setIsSearchingFamily(false);
           setHasAttemptedLookup(true);
+          setIsSearchingFamily(false);
           return;
         }
       }
+      
       const familiesCol = collection(firestore, 'families');
       const snapshot = await getDocs(familiesCol);
       let foundFamilyId = null;
+      
       for (const familyDoc of snapshot.docs) {
         try {
           const memberDocRef = doc(firestore, 'families', familyDoc.id, 'members', authUser.uid);
@@ -132,7 +134,11 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
           ...userProfile, 
           email: authUser.email || userProfile.email 
         });
+      } else {
+          setCurrentUser(null);
       }
+    } else {
+        setCurrentUser(null);
     }
   }, [users, authUser]);
 
@@ -271,6 +277,10 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
 
   const logout = () => signOut(auth).then(() => { setFamilyId(null); setHasAttemptedLookup(false); });
 
+  // Complex loading state to ensure we don't prematurely stop "loading" before profile lookup is conclusive
+  const isProfileDetermined = hasAttemptedLookup || !!familyId;
+  const isGlobalLoading = isAuthLoading || (authUser && !isProfileDetermined) || isSearchingFamily || isFamilyLoading || areUsersLoading;
+
   const value = { 
     family: familyData ? { ...familyData, id: familyId! } : null,
     users: users || [], currentUser, authUser,
@@ -279,7 +289,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     addExpense, addGoal, contributeToGoal, setMonthlyBudget,
     updatePersonality, updateLearning, setAllowance,
     removeUser: (uid: string) => {},
-    loading: isAuthLoading || isSearchingFamily || isFamilyLoading || areUsersLoading, 
+    loading: isGlobalLoading, 
     updateUserAvatar: (url: string) => {},
     activeConfettiGoal, clearConfetti: () => setActiveConfettiGoal(null),
     logout, refreshFamily: findFamily,

@@ -160,19 +160,17 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!loading) {
       if (!authUser) {
-        // If not logged in, force to login screen
         router.replace('/login');
       } else if (!currentUser) {
-        // Logged in but no profile found, force to signup to create/join family
-        // We only redirect if we aren't ALREADY on the signup page to avoid loops
-        if (pathname !== '/signup') {
+        // Only redirect to signup if we are definitely authenticated but have no profile
+        // and we aren't already there.
+        if (pathname !== '/signup' && !pathname.startsWith('/login')) {
           router.replace('/signup');
         }
       }
     }
   }, [loading, authUser, currentUser, router, pathname]);
 
-  // Handle initialization loading state
   if (loading) return (
     <div className="flex h-screen w-full items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
@@ -182,7 +180,6 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     </div>
   );
 
-  // If we are authenticated and have a profile, or we are on the signup/login pages, render children
   return (
     <SidebarProvider>
       <AppSidebar />
