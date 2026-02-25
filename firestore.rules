@@ -38,6 +38,21 @@ service cloud.firestore {
         allow create: if isOwner(userId);
         allow update: if isOwner(userId);
       }
+
+      match /trustMetrics/{userId} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if isOwner(userId) || isFamilyParent(familyId);
+      }
+
+      match /allowances/{userId} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if isFamilyParent(familyId);
+      }
+
+      match /reports/{reportId} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if isFamilyParent(familyId);
+      }
     }
   }
 }
