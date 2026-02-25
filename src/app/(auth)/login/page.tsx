@@ -1,15 +1,13 @@
-
 "use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Fingerprint, Loader2 } from "lucide-react";
+import { Fingerprint, Loader2, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -23,7 +21,6 @@ import { useState, useEffect } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useFamily } from "@/context/family-context";
 
-
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -32,7 +29,6 @@ export default function LoginPage() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Auto-redirect if already logged in and profile exists
   useEffect(() => {
     if (!loading && authUser && currentUser) {
       router.push("/dashboard");
@@ -49,7 +45,6 @@ export default function LoginPage() {
     
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // Redirection is handled by the useEffect or FamilyProvider once state updates
       router.push("/dashboard");
     } catch (err: any) {
       setError(err.message);
@@ -62,79 +57,90 @@ export default function LoginPage() {
     }
   };
 
-  const handleBiometricLogin = () => {
-    toast({
-        variant: "default",
-        title: "Feature Coming Soon",
-        description: "Biometric login will be available in a future update.",
-    });
-  };
-
   return (
-    <Card className="w-full max-w-sm">
-      <CardHeader className="items-center text-center">
-        <AppLogo />
-        <CardTitle className="text-2xl font-headline">Welcome Back</CardTitle>
-        <CardDescription>
-          Enter your credentials to access your family's finances.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleLogin} className="space-y-4">
-          {error && (
-            <Alert variant="destructive">
-              <AlertTitle>Login Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="alex@example.com"
-              required
-              disabled={isLoggingIn}
-            />
+    <div className="flex flex-col items-center justify-center w-full max-w-md gap-12 px-4">
+      <AppLogo />
+      
+      <div className="flex flex-col gap-2 items-center text-center opacity-60">
+        <p className="text-sm font-medium tracking-[0.2em] uppercase">Smart Family Finance Ecosystem</p>
+      </div>
+
+      <Card className="w-full bg-white/5 border-white/10 backdrop-blur-xl shadow-2xl rounded-[1.5rem]">
+        <CardHeader>
+          <CardTitle className="text-xl text-center">Sign In</CardTitle>
+          <CardDescription className="text-center text-white/50">
+            Access your secure family dashboard
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-6">
+            {error && (
+              <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive">
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="alex@example.com"
+                className="bg-white/5 border-white/10 focus:border-primary/50 transition-colors"
+                required
+                disabled={isLoggingIn}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input 
+                id="password" 
+                name="password" 
+                type="password" 
+                className="bg-white/5 border-white/10 focus:border-primary/50 transition-colors"
+                required 
+                disabled={isLoggingIn} 
+              />
+            </div>
+            <Button type="submit" className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-primary to-[#a855f7] hover:shadow-[0_0_20px_rgba(139,92,246,0.3)] transition-all" disabled={isLoggingIn}>
+              {isLoggingIn && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+              {isLoggingIn ? "Authenticating..." : "Sign In"}
+            </Button>
+          </form>
+
+          <div className="relative my-8">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-white/10" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-[#0f0c29] px-2 text-white/30">Or</span>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" name="password" type="password" required disabled={isLoggingIn} />
-          </div>
-          <div className="flex items-center">
-            <Link href="#" className="ml-auto inline-block text-sm underline">
-              Forgot your password?
-            </Link>
-          </div>
-          <Button type="submit" className="w-full" disabled={isLoggingIn}>
-            {isLoggingIn && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isLoggingIn ? "Signing In..." : "Sign In"}
+
+          <Button variant="outline" className="w-full h-12 border-white/10 hover:bg-white/5" disabled={isLoggingIn}>
+            <Fingerprint className="mr-2 h-5 w-5 text-primary" />
+            Biometric Access
           </Button>
-        </form>
-        <div className="relative my-4">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">
-              Or
-            </span>
-          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex flex-col gap-4 items-center">
+        <div className="flex items-center gap-2 text-xs font-semibold tracking-widest text-primary/80 uppercase">
+          <Shield className="size-4" />
+          Bank-Grade Security
         </div>
-        <Button variant="outline" className="w-full" onClick={handleBiometricLogin} disabled={isLoggingIn}>
-          <Fingerprint className="mr-2 h-4 w-4" />
-          Login with Biometrics
-        </Button>
-      </CardContent>
-      <CardFooter className="justify-center">
-        <div className="text-sm">
-          Don&apos;t have an account?{" "}
-          <Link href="/signup" className="underline">
-            Sign up
+        <div className="text-sm text-white/40">
+          New here?{" "}
+          <Link href="/signup" className="text-primary hover:underline font-semibold">
+            Create account
           </Link>
         </div>
-      </CardFooter>
-    </Card>
+      </div>
+      
+      <p className="text-[10px] text-white/20 uppercase tracking-[0.2em] mt-8">
+        © 2024 FinNest AI Technologies. All rights reserved.
+      </p>
+    </div>
   );
 }
