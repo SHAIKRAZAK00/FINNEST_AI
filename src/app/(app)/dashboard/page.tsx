@@ -4,13 +4,14 @@
 import { useFamily } from "@/context/family-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { IndianRupee, PiggyBank, Users, Wallet, Zap, ShieldCheck, Star } from "lucide-react";
+import { IndianRupee, PiggyBank, Users, Wallet, Zap, ShieldCheck, Star, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function DashboardPage() {
   const { expenses, goals, users, family, currentUser, trustMetric, setMonthlyBudget } = useFamily();
@@ -35,28 +36,52 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-6">
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {/* Trust Transparency Meter */}
-        <Card className="bg-gradient-to-br from-primary/20 to-transparent border-primary/30">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4" /> Family Trust Meter
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between mb-2">
-                <div className="text-2xl font-bold">{trustMetric?.overallTrustScore || 0}%</div>
-                <Badge variant="secondary" className="bg-primary/20 text-primary text-[10px]">VERIFIED</Badge>
-            </div>
-            <Progress value={trustMetric?.overallTrustScore || 0} className="h-2" />
-            <p className="text-[10px] text-muted-foreground mt-2 uppercase tracking-tighter">
-                Discipline: {trustMetric?.disciplineScore || 0}% | Contribution: {trustMetric?.contributionScore || 0}%
-            </p>
-          </CardContent>
-        </Card>
+        <TooltipProvider>
+          <Card className="bg-gradient-to-br from-primary/20 to-transparent border-primary/30 relative overflow-hidden">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-bold uppercase tracking-wider flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4" /> Family Trust Meter
+                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button className="text-muted-foreground hover:text-primary transition-colors">
+                      <Info className="h-3 w-3" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs p-3">
+                    <p className="font-bold mb-1">How it works:</p>
+                    <p className="text-[10px] leading-relaxed">
+                      60% based on <span className="text-primary font-bold">Discipline</span> (staying under budget) and 40% on <span className="text-primary font-bold">Participation</span> (contributing to goals).
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between mb-2">
+                  <div className="text-2xl font-bold">{trustMetric?.overallTrustScore || 0}%</div>
+                  <Badge variant="secondary" className="bg-primary/20 text-primary text-[10px]">REAL-TIME</Badge>
+              </div>
+              <Progress value={trustMetric?.overallTrustScore || 0} className="h-2" />
+              <div className="grid grid-cols-2 gap-2 mt-3">
+                <div className="flex flex-col">
+                  <span className="text-[8px] text-muted-foreground uppercase font-bold">Discipline</span>
+                  <span className="text-xs font-bold text-primary">{trustMetric?.disciplineScore || 0}%</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[8px] text-muted-foreground uppercase font-bold">Goal Collab</span>
+                  <span className="text-xs font-bold text-primary">{trustMetric?.contributionScore || 0}%</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TooltipProvider>
 
         {/* Monthly Budget Card */}
         <Card className="bg-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Budget Logic</CardTitle>
+            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Budget Protocol</CardTitle>
             <Wallet className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
@@ -72,7 +97,7 @@ export default function DashboardPage() {
                     {budgetUsage.toFixed(0)}% Used
                   </span>
                   {currentUser?.role === 'Parent' && (
-                    <Button variant="ghost" className="h-4 p-0 text-[8px] hover:text-primary" onClick={() => setIsBudgetDialogOpen(true)}>EDIT BUDGET</Button>
+                    <Button variant="ghost" className="h-4 p-0 text-[8px] hover:text-primary" onClick={() => setIsBudgetDialogOpen(true)}>ADD TO BUDGET</Button>
                   )}
                 </div>
               </div>
@@ -80,7 +105,7 @@ export default function DashboardPage() {
               <div className="flex flex-col gap-2">
                 <p className="text-xs text-muted-foreground italic">No budget set.</p>
                 {currentUser?.role === 'Parent' && (
-                  <Button variant="outline" size="sm" className="h-7 text-[10px] uppercase" onClick={() => setIsBudgetDialogOpen(true)}>Set Budget</Button>
+                  <Button variant="outline" size="sm" className="h-7 text-[10px] uppercase" onClick={() => setIsBudgetDialogOpen(true)}>Initialize Budget</Button>
                 )}
               </div>
             )}
@@ -113,17 +138,17 @@ export default function DashboardPage() {
       <Dialog open={isBudgetDialogOpen} onOpenChange={setIsBudgetDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Update Monthly Budget</DialogTitle>
-            <DialogDescription>Set a global spending limit for the family ecosystem.</DialogDescription>
+            <DialogTitle>Add to Family Budget</DialogTitle>
+            <DialogDescription>Increase the global spending limit for the family ecosystem.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="budget">Amount (₹)</Label>
+              <Label htmlFor="budget">Amount to Add (₹)</Label>
               <Input id="budget" type="number" value={budgetInput} onChange={(e) => setBudgetInput(e.target.value)} placeholder="e.g. 5000" />
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleUpdateBudget} className="w-full">Confirm Protocol</Button>
+            <Button onClick={handleUpdateBudget} className="w-full">Confirm Top-Up</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
