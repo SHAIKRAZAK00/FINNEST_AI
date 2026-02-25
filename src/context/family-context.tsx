@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from 'react';
@@ -123,22 +124,23 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const allowanceRef = useMemoFirebase(() => (familyId && authUser) ? doc(firestore, 'families', familyId, 'allowances', authUser.uid) : null, [firestore, familyId, authUser]);
   const { data: allowance } = useDoc<Allowance>(allowanceRef);
 
-  const gamificationRef = useMemoFirebase(() => (familyId && authUser) ? doc(firestore, 'families', familyId, 'gamification', authUser.uid) : null, [firestore, familyId, authUser]);
-  const { data: gamificationData } = useDoc(gamificationRef);
-
   useEffect(() => {
     if (users && authUser) {
       const userProfile = users.find(u => u.id === authUser.uid);
       if (userProfile) {
         setCurrentUser({ 
           ...userProfile, 
-          points: gamificationData?.points || 0,
-          badges: userProfile.badges || [],
           email: authUser.email || userProfile.email 
         });
       }
     }
-  }, [users, authUser, gamificationData]);
+  }, [users, authUser]);
+
+  const awardPoints = useCallback(async (userId: string, pts: number) => {
+    if (!familyId || !firestore) return;
+    const memberRef = doc(firestore, 'families', familyId, 'members', userId);
+    updateDocumentNonBlocking(memberRef, { points: increment(pts) });
+  }, [familyId, firestore]);
 
   const updateTrustMetrics = useCallback(async () => {
     if (!familyId || !firestore || !authUser || !expenses || !familyData) return;
@@ -166,12 +168,6 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(timer);
   }, [familyId, authUser, updateTrustMetrics]);
 
-  const awardPoints = async (userId: string, pts: number) => {
-    if (!familyId || !firestore) return;
-    const gamRef = doc(firestore, 'families', familyId, 'gamification', userId);
-    updateDocumentNonBlocking(gamRef, { points: increment(pts) });
-  };
-
   const addExpense = async (expense: Omit<Expense, 'id' | 'contributorId' | 'date' | 'familyId'>) => {
     if (!currentUser || !familyId || !firestore) return;
     if (expense.amount <= 0) {
@@ -194,7 +190,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
       toast({ title: "Expense Added" });
     } catch (e) { 
       console.error(e);
-      toast({ variant: "destructive", title: "Write Conflict", description: "Could not add expense. Please try again." });
+      toast({ variant: "destructive", title: "Sync Error", description: "Could not add expense. Please try again." });
     }
   };
 

@@ -5,8 +5,8 @@ import { useFamily } from "@/context/family-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Trophy, Lock, Star, Target, ShieldCheck, Zap, Medal } from "lucide-react";
-import { mockBadges, getLevelFromPoints, getNextLevelThreshold, getLevelProgress } from "@/lib/data";
+import { Lock, Star, Target, ShieldCheck, Zap, Medal } from "lucide-react";
+import { mockBadges, getLevelFromPoints, getNextLevelThreshold, getLevelProgress, getLevelTitle } from "@/lib/data";
 
 const ADVANCED_REWARDS = [
   { id: 'adv-1', name: 'Budget Guardian Pro', icon: ShieldCheck, condition: 'Stay under budget for 3 months.', progress: 66 },
@@ -20,6 +20,7 @@ export default function RewardsPage() {
   const level = getLevelFromPoints(points);
   const nextThreshold = getNextLevelThreshold(points);
   const progress = getLevelProgress(points);
+  const title = getLevelTitle(level);
 
   return (
     <div className="flex flex-col gap-8">
@@ -33,17 +34,17 @@ export default function RewardsPage() {
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
         <Card className="bg-primary/5 border-primary/20">
             <CardHeader>
-                <CardTitle className="text-lg">Rank: Level {level}</CardTitle>
+                <CardTitle className="text-lg">Rank: {title}</CardTitle>
                 <CardDescription>Experience points earned across the ecosystem.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-bold text-muted-foreground uppercase">{points} / {nextThreshold} XP</span>
-                    <Badge className="bg-primary/20 text-primary">TIER: {level >= 3 ? 'ELITE' : 'RISING STAR'}</Badge>
+                    <Badge className="bg-primary/20 text-primary">LEVEL {level}</Badge>
                 </div>
                 <Progress value={progress} className="h-3" />
                 <p className="text-[10px] text-muted-foreground mt-2 uppercase text-center">
-                    {nextThreshold - points} XP remaining until Level {level + 1}
+                    {points >= 10000 ? "MAX LEVEL ACHIEVED" : `${nextThreshold - points} XP remaining until next level`}
                 </p>
             </CardContent>
         </Card>
