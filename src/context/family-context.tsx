@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from 'react';
@@ -157,12 +156,13 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     const overall = (discipline * 0.6) + (contributionScore * 0.4);
     
     const trustDoc = doc(firestore, 'families', familyId, 'trustMetrics', authUser.uid);
-    updateDocumentNonBlocking(trustDoc, {
+    // Use setDocumentNonBlocking with merge to handle the initial creation case
+    setDocumentNonBlocking(trustDoc, {
       overallTrustScore: Math.round(overall),
       disciplineScore: Math.round(discipline),
       contributionScore: Math.round(contributionScore),
       updatedAt: new Date().toISOString()
-    });
+    }, { merge: true });
   }, [familyId, firestore, authUser, expenses, familyData, goals]);
 
   useEffect(() => {

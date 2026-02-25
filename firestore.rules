@@ -34,18 +34,18 @@ service cloud.firestore {
       }
 
       match /gamification/{userId} {
-        allow read: if isFamilyMember(familyId);
+        allow read: if isFamilyMember(familyId) || isOwner(userId);
         allow create: if isOwner(userId);
         allow update: if isOwner(userId);
       }
 
       match /trustMetrics/{userId} {
-        allow read: if isFamilyMember(familyId);
+        allow read: if isOwner(userId) || isFamilyMember(familyId);
         allow write: if isOwner(userId) || isFamilyParent(familyId);
       }
 
       match /allowances/{userId} {
-        allow read: if isFamilyMember(familyId);
+        allow read: if isOwner(userId) || isFamilyMember(familyId);
         allow write: if isFamilyParent(familyId);
       }
 
