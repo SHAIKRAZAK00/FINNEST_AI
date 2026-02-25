@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useFamily } from "@/context/family-context";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, Trash2, Loader2 } from "lucide-react";
+import { Copy, Trash2, Loader2, Moon, Sun } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,7 +28,13 @@ export default function SettingsPage() {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [userToRemove, setUserToRemove] = useState<User | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDark, setIsDark] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Sync UI with actual document state
+    setIsDark(document.documentElement.classList.contains('dark'));
+  }, []);
 
   const getInitials = (name: string) => name.split(" ").map((n) => n[0]).join("");
 
@@ -99,6 +105,18 @@ export default function SettingsPage() {
 
   const handlePhotoChangeClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const toggleTheme = () => {
+    const root = document.documentElement;
+    const isNowDark = root.classList.toggle('dark');
+    setIsDark(isNowDark);
+    localStorage.setItem('theme', isNowDark ? 'dark' : 'light');
+    
+    toast({
+      title: `${isNowDark ? 'Dark' : 'Light'} Mode Active`,
+      description: "Your theme preference has been saved.",
+    });
   };
   
   if (!currentUser || !family) {
@@ -172,7 +190,7 @@ export default function SettingsPage() {
           <CardDescription>Update your personal information.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="grid gap-6">
+          <form className="grid gap-6" onSubmit={(e) => e.preventDefault()}>
             <input
               type="file"
               ref={fileInputRef}
@@ -196,7 +214,7 @@ export default function SettingsPage() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" defaultValue={currentUser.email} />
+              <Input id="email" type="email" defaultValue={currentUser.email} readOnly />
             </div>
             <Button>Save Changes</Button>
           </form>
@@ -225,11 +243,14 @@ export default function SettingsPage() {
             </div>
             <div className="flex items-center justify-between">
                 <div>
-                    <Label htmlFor="dark-mode">Dark Mode</Label>
-                    <p className="text-sm text-muted-foreground">Toggle between light and dark themes.</p>
+                    <Label htmlFor="dark-mode" className="flex items-center gap-2">
+                        {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                        Theme Mode
+                    </Label>
+                    <p className="text-sm text-muted-foreground">Switch between Light and Dark themes.</p>
                 </div>
-                <Button variant="outline" onClick={() => document.documentElement.classList.toggle('dark')}>
-                    Toggle Theme
+                <Button variant="outline" onClick={toggleTheme} className="w-32">
+                    {isDark ? "Light Mode" : "Dark Mode"}
                 </Button>
             </div>
         </CardContent>
