@@ -4,7 +4,7 @@ import { analyzeExpensesAndGenerateInsights, AnalyzeExpensesAndGenerateInsightsI
 import { extractExpenseFromReceipt, ExtractExpenseInput } from '@/ai/flows/extract-expense-from-receipt';
 import { Expense } from '@/lib/types';
 
-export async function getFinancialInsights(expenses: Expense[], familyId: string) {
+export async function getFinancialInsights(expenses: Expense[], familyId: string, budgetInfo?: { monthlyBudget: number; currentMonthSpent: number }) {
   try {
     const input: AnalyzeExpensesAndGenerateInsightsInput = {
       expenses: expenses.map(e => ({ 
@@ -14,6 +14,8 @@ export async function getFinancialInsights(expenses: Expense[], familyId: string
         date: e.date,
        })),
       familyId: familyId,
+      monthlyBudget: budgetInfo?.monthlyBudget,
+      currentMonthSpent: budgetInfo?.currentMonthSpent,
     };
     const result = await analyzeExpensesAndGenerateInsights(input);
     return { success: true, insights: result.insights };

@@ -22,6 +22,9 @@ import {
   TrendingUp,
   Users,
   Zap,
+  Wallet,
+  CalendarDays,
+  Settings2,
 } from "lucide-react";
 import {
   ChartContainer,
@@ -31,8 +34,12 @@ import {
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 const chartConfig = {
   amount: {
@@ -42,7 +49,9 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export default function DashboardPage() {
-  const { expenses, goals, users } = useFamily();
+  const { expenses, goals, users, family, currentUser, setMonthlyBudget } = useFamily();
+  const [isBudgetDialogOpen, setIsBudgetDialogOpen] = useState(false);
+  const [budgetInput, setBudgetInput] = useState(family?.monthlyBudget?.toString() || "");
 
   const totalSpending = useMemo(() => expenses.reduce((sum, exp) => sum + exp.amount, 0), [expenses]);
   const totalGoals = goals.length;
@@ -51,6 +60,17 @@ export default function DashboardPage() {
   
   const getInitials = (name: string) => name.split(" ").map((n) => n[0]).join("");
   const getUserById = (id: string) => users.find(u => u.id === id);
+
+  const budgetUsage = useMemo(() => {
+    if (!family?.monthlyBudget) return 0;
+    return (family.currentMonthSpent || 0) / family.monthlyBudget * 100;
+  }, [family]);
+
+  const budgetColorClass = useMemo(() => {
+    if (budgetUsage > 85) return "text-destructive";
+    if (budgetUsage > 60) return "text-orange-500";
+    return "text-green-500";
+  }, [budgetUsage]);
 
   const topSpenderData = useMemo(() => {
     const spendingByUser: Record<string, number> = {};
@@ -88,6 +108,14 @@ export default function DashboardPage() {
       .sort((a, b) => b.amount - a.amount);
   }, [spendingByCategory]);
 
+  const handleUpdateBudget = () => {
+    const amount = parseFloat(budgetInput);
+    if (!isNaN(amount) && amount >= 0) {
+      setMonthlyBudget(amount);
+      setIsBudgetDialogOpen(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 max-w-full overflow-hidden">
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
@@ -103,6 +131,50 @@ export default function DashboardPage() {
             <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">Global aggregation</p>
           </CardContent>
         </Card>
+        
+        {/* Monthly Budget Card */}
+        <Card className="bg-card relative overflow-hidden group">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Monthly Budget</CardTitle>
+            <Wallet className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            {family?.monthlyBudget ? (
+              <div className="space-y-2">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-bold">₹{(family.monthlyBudget - (family.currentMonthSpent || 0)).toLocaleString()}</span>
+                  <span className="text-[10px] text-muted-foreground uppercase">Left</span>
+                </div>
+                <Progress value={budgetUsage} className="h-1" />
+                <div className="flex justify-between items-center text-[10px] uppercase tracking-tighter">
+                  <span className={budgetUsage > 85 ? "text-destructive font-bold" : "text-muted-foreground"}>
+                    {budgetUsage.toFixed(0)}% Used
+                  </span>
+                  <span>Limit: ₹{family.monthlyBudget.toLocaleString()}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <p className="text-xs text-muted-foreground italic">No budget set for this month.</p>
+                {currentUser?.role === 'Parent' && (
+                  <Button variant="outline" size="sm" className="h-7 text-[10px] uppercase" onClick={() => setIsBudgetDialogOpen(true)}>
+                    Initialize Budget
+                  </Button>
+                )}
+              </div>
+            )}
+            
+            {currentUser?.role === 'Parent' && family?.monthlyBudget && (
+              <button 
+                onClick={() => setIsBudgetDialogOpen(true)}
+                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-muted rounded"
+              >
+                <Settings2 className="h-3 w-3 text-muted-foreground" />
+              </button>
+            )}
+          </CardContent>
+        </Card>
+
         <Card className="bg-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Active Goals</CardTitle>
@@ -113,6 +185,7 @@ export default function DashboardPage() {
             <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">Shared milestones</p>
           </CardContent>
         </Card>
+
         <Card className="bg-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Members</CardTitle>
@@ -123,17 +196,34 @@ export default function DashboardPage() {
             <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">Connected nodes</p>
           </CardContent>
         </Card>
-        <Card className="bg-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Top Spender</CardTitle>
-            <TrendingUp className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg sm:text-xl font-bold truncate">{topSpenderData.name}</div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">₹{topSpenderData.amount.toLocaleString("en-IN")} spent</p>
-          </CardContent>
-        </Card>
       </div>
+
+      {/* Budget Setup Dialog */}
+      <Dialog open={isBudgetDialogOpen} onOpenChange={setIsBudgetDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Set Monthly Family Budget</DialogTitle>
+            <DialogDescription>
+              Establish a spending limit for the entire family. Only Parents can modify this value.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="budget">Monthly Limit (₹)</Label>
+              <Input 
+                id="budget" 
+                type="number" 
+                value={budgetInput} 
+                onChange={(e) => setBudgetInput(e.target.value)}
+                placeholder="e.g. 50000"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleUpdateBudget}>Update Protocol</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-7">
         <Card className="lg:col-span-4 bg-card shadow-sm">
@@ -284,10 +374,10 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50 border border-border">
                 <div className="mr-2">
-                    <p className="font-bold text-xs sm:text-sm">Milestone Boost</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Contribute to a shared goal.</p>
+                    <p className="font-bold text-xs sm:text-sm">Budget Discipline</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Stay under budget all month.</p>
                 </div>
-                <Badge className="bg-primary/20 text-primary border-none whitespace-nowrap">+25 XP</Badge>
+                <Badge className="bg-primary/20 text-primary border-none whitespace-nowrap">+100 XP</Badge>
             </div>
         </CardContent>
       </Card>

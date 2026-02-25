@@ -43,7 +43,11 @@ export type Badge = {
 
 export type Family = {
   id: string;
-  name: string;
   familyName: string;
   familyCode: string;
+  createdBy: string;
+  monthlyBudget?: number;
+  currentMonthSpent?: number;
+  budgetMonth?: string; // YYYY-MM
+  lastBudgetReset?: string; // ISO string
 };

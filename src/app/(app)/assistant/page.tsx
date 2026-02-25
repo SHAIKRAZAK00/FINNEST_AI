@@ -20,11 +20,17 @@ export default function AssistantPage() {
   const [error, setError] = useState<string | null>(null);
 
   const handleGenerateInsights = async () => {
+    if (!family) return;
     setIsLoading(true);
     setError(null);
     setInsights([]);
 
-    const result = await getFinancialInsights(expenses, family.id);
+    const budgetInfo = family.monthlyBudget ? {
+      monthlyBudget: family.monthlyBudget,
+      currentMonthSpent: family.currentMonthSpent || 0
+    } : undefined;
+
+    const result = await getFinancialInsights(expenses, family.id, budgetInfo);
     
     if (result.success) {
       setInsights(result.insights);
@@ -43,13 +49,13 @@ export default function AssistantPage() {
         <h1 className="text-3xl font-bold font-headline">Your AI CFO Assistant</h1>
         <p className="max-w-xl text-muted-foreground">
           Let our AI analyze your family's spending to find savings opportunities and
-          provide personalized financial guidance.
+          provide personalized financial guidance based on your budget.
         </p>
       </div>
 
       <Button onClick={handleGenerateInsights} disabled={isLoading} size="lg">
         <Sparkles className="mr-2 h-5 w-5" />
-        {isLoading ? "Analyzing..." : "Analyze My Spending"}
+        {isLoading ? "Analyzing Protocol..." : "Generate AI Audit"}
       </Button>
 
       <div className="w-full max-w-2xl mt-6 text-left">
@@ -86,11 +92,11 @@ export default function AssistantPage() {
 
         {!isLoading && insights.length > 0 && (
             <div className="space-y-4">
-                <h2 className="text-xl font-semibold font-headline text-center">Financial Insights</h2>
+                <h2 className="text-xl font-semibold font-headline text-center">Audit Findings</h2>
                 {insights.map((item, index) => (
                 <Alert key={index}>
                     <Lightbulb className="h-4 w-4" />
-                    <AlertTitle>Insight #{index + 1}</AlertTitle>
+                    <AlertTitle>Finding #{index + 1}</AlertTitle>
                     <AlertDescription>{item.insight}</AlertDescription>
                 </Alert>
                 ))}
@@ -100,7 +106,7 @@ export default function AssistantPage() {
         {!isLoading && insights.length === 0 && !error && (
             <Card className="text-center">
                 <CardContent className="p-10">
-                    <p className="text-muted-foreground">Click the button to generate your personalized financial report.</p>
+                    <p className="text-muted-foreground">Initiate audit to see your personalized report.</p>
                 </CardContent>
             </Card>
         )}

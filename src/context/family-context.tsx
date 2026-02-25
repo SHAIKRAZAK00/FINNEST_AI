@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
@@ -6,10 +5,11 @@ import type { User, Expense, Goal, Family } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getLevelFromPoints, mockBadges } from '@/lib/data';
 import { useAuth, useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, query, where, getDocs, getDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, query, where, getDocs, getDoc, writeBatch, runTransaction } from 'firebase/firestore';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { signOut } from 'firebase/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
+import { format } from 'date-fns';
 
 interface FamilyContextType {
   family: Family | null;
@@ -21,6 +21,7 @@ interface FamilyContextType {
   addExpense: (expense: Omit<Expense, 'id' | 'contributorId' | 'date' | 'familyId'>) => void;
   addGoal: (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors' | 'familyId'>) => void;
   contributeToGoal: (goalId: string, amount: number) => { goalCompleted: boolean };
+  setMonthlyBudget: (amount: number) => void;
   removeUser: (userId: string) => void;
   updateUserAvatar: (avatarUrl: string) => void;
   loading: boolean;
@@ -55,7 +56,6 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
 
     setIsSearchingFamily(true);
     try {
-      // First, check local storage as a hint to speed up loading
       const cachedId = typeof window !== 'undefined' ? localStorage.getItem(`familyId_${authUser.uid}`) : null;
       if (cachedId) {
         const memberDocRef = doc(firestore, 'families', cachedId, 'members', authUser.uid);
@@ -68,7 +68,6 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // If no cache or cache invalid, we scan
       const familiesCol = collection(firestore, 'families');
       const snapshot = await getDocs(familiesCol);
       let foundFamilyId = null;
@@ -83,7 +82,6 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
             break;
           }
         } catch (e) {
-          // Ignore permission errors for families the user doesn't belong to
           continue;
         }
       }
@@ -111,7 +109,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   }, [authUser, firestore, isAuthLoading, hasAttemptedLookup, isSearchingFamily, findFamily]);
   
   const familyRef = useMemoFirebase(() => familyId ? doc(firestore, 'families', familyId) : null, [firestore, familyId]);
-  const { data: family, isLoading: isFamilyLoading } = useDoc<Family>(familyRef);
+  const { data: familyData, isLoading: isFamilyLoading } = useDoc<Family>(familyRef);
 
   const membersRef = useMemoFirebase(() => familyId ? collection(firestore, 'families', familyId, 'members') : null, [firestore, familyId]);
   const { data: users, isLoading: areUsersLoading } = useCollection<User>(membersRef);
@@ -143,7 +141,26 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     }
   }, [users, authUser, gamificationData]);
 
-  // Combined loading state: stay true until we are sure about auth and family status
+  const checkBudgetReset = useCallback(async () => {
+    if (!familyId || !firestore || !familyData) return;
+    
+    const currentMonth = format(new Date(), 'yyyy-MM');
+    if (familyData.budgetMonth !== currentMonth) {
+      const familyDocRef = doc(firestore, 'families', familyId);
+      updateDocumentNonBlocking(familyDocRef, {
+        currentMonthSpent: 0,
+        budgetMonth: currentMonth,
+        lastBudgetReset: new Date().toISOString()
+      });
+    }
+  }, [familyId, firestore, familyData]);
+
+  useEffect(() => {
+    if (familyData) {
+      checkBudgetReset();
+    }
+  }, [familyData, checkBudgetReset]);
+
   const loading = isAuthLoading || 
                   (!!authUser && !hasAttemptedLookup) || 
                   isSearchingFamily || 
@@ -192,10 +209,13 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     await batch.commit();
   };
 
-  const addExpense = (expense: Omit<Expense, 'id' | 'contributorId' | 'date' | 'familyId'>) => {
+  const addExpense = async (expense: Omit<Expense, 'id' | 'contributorId' | 'date' | 'familyId'>) => {
     if (!currentUser || !familyId || !firestore) return;
+    
+    const familyDocRef = doc(firestore, 'families', familyId);
     const expensesColRef = collection(firestore, 'families', familyId, 'expenses');
     const expenseDocRef = doc(expensesColRef);
+    
     const id = expenseDocRef.id;
     const newExpense = { 
         ...expense, 
@@ -204,8 +224,36 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
         contributorId: currentUser.id,
         date: new Date().toISOString()
     };
-    setDocumentNonBlocking(expenseDocRef, newExpense, {});
-    awardPointsAndCheckAchievements(currentUser.id, 10);
+
+    try {
+      await runTransaction(firestore, async (transaction) => {
+        const familySnapshot = await transaction.get(familyDocRef);
+        if (!familySnapshot.exists()) throw "Family document does not exist";
+        
+        const data = familySnapshot.data() as Family;
+        const newSpent = (data.currentMonthSpent || 0) + expense.amount;
+        
+        transaction.set(expenseDocRef, newExpense);
+        transaction.update(familyDocRef, { currentMonthSpent: newSpent });
+      });
+      
+      awardPointsAndCheckAchievements(currentUser.id, 10);
+      toast({ title: "Expense Added", description: "Ledger updated successfully." });
+    } catch (e) {
+      console.error("Transaction failed: ", e);
+      toast({ variant: "destructive", title: "Update Failed", description: "Could not sync expense with budget." });
+    }
+  };
+
+  const setMonthlyBudget = (amount: number) => {
+    if (!currentUser || currentUser.role !== 'Parent' || !familyId || !firestore) return;
+    const familyDocRef = doc(firestore, 'families', familyId);
+    updateDocumentNonBlocking(familyDocRef, { 
+      monthlyBudget: amount,
+      budgetMonth: format(new Date(), 'yyyy-MM'),
+      currentMonthSpent: familyData?.currentMonthSpent || 0
+    });
+    toast({ title: "Budget Updated", description: `Monthly limit set to ₹${amount.toLocaleString()}` });
   };
 
   const addGoal = (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors' | 'familyId'>) => {
@@ -275,7 +323,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   };
 
   const value = { 
-    family: family ? { ...family, id: familyId! } : null,
+    family: familyData ? { ...familyData, id: familyId! } : null,
     users: users || [], 
     currentUser, 
     authUser,
@@ -284,6 +332,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     addExpense, 
     addGoal, 
     contributeToGoal, 
+    setMonthlyBudget,
     removeUser, 
     loading, 
     updateUserAvatar, 
