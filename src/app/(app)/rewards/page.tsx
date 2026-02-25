@@ -5,8 +5,8 @@ import { useFamily } from "@/context/family-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Trophy, Lock, Star, Target, ShieldCheck, Zap } from "lucide-react";
-import { mockBadges } from "@/lib/data";
+import { Trophy, Lock, Star, Target, ShieldCheck, Zap, Medal } from "lucide-react";
+import { mockBadges, getLevelFromPoints, getNextLevelThreshold, getLevelProgress } from "@/lib/data";
 
 const ADVANCED_REWARDS = [
   { id: 'adv-1', name: 'Budget Guardian Pro', icon: ShieldCheck, condition: 'Stay under budget for 3 months.', progress: 66 },
@@ -16,12 +16,16 @@ const ADVANCED_REWARDS = [
 
 export default function RewardsPage() {
   const { currentUser } = useFamily();
+  const points = currentUser?.points || 0;
+  const level = getLevelFromPoints(points);
+  const nextThreshold = getNextLevelThreshold(points);
+  const progress = getLevelProgress(points);
 
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold font-headline flex items-center gap-3">
-            <Trophy className="h-8 w-8 text-primary" /> Rewards Gallery
+            <Medal className="h-8 w-8 text-primary" /> Rewards Gallery
         </h1>
         <p className="text-muted-foreground">Track your achievements and unlock exclusive digital badges.</p>
       </div>
@@ -29,15 +33,18 @@ export default function RewardsPage() {
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
         <Card className="bg-primary/5 border-primary/20">
             <CardHeader>
-                <CardTitle className="text-lg">Rank: Level {Math.floor((currentUser?.points || 0) / 100) + 1}</CardTitle>
+                <CardTitle className="text-lg">Rank: Level {level}</CardTitle>
                 <CardDescription>Experience points earned across the ecosystem.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-muted-foreground uppercase">{currentUser?.points || 0} / 1000 XP</span>
-                    <Badge className="bg-primary/20 text-primary">TIER: ELITE</Badge>
+                    <span className="text-xs font-bold text-muted-foreground uppercase">{points} / {nextThreshold} XP</span>
+                    <Badge className="bg-primary/20 text-primary">TIER: {level >= 3 ? 'ELITE' : 'RISING STAR'}</Badge>
                 </div>
-                <Progress value={((currentUser?.points || 0) % 1000) / 10} className="h-3" />
+                <Progress value={progress} className="h-3" />
+                <p className="text-[10px] text-muted-foreground mt-2 uppercase text-center">
+                    {nextThreshold - points} XP remaining until Level {level + 1}
+                </p>
             </CardContent>
         </Card>
 
@@ -51,7 +58,7 @@ export default function RewardsPage() {
                 </div>
                 <div>
                     <p className="font-bold">Protocol Established</p>
-                    <p className="text-sm text-muted-foreground">Successfully logged 10 family transactions.</p>
+                    <p className="text-sm text-muted-foreground">Successfully logged transactions and built transparency.</p>
                 </div>
             </CardContent>
         </Card>
