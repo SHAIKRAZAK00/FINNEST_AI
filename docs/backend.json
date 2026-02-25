@@ -13,7 +13,18 @@
         "avatarUrl": { "type": "string" },
         "familyId": { "type": "string" },
         "role": { "type": "string", "enum": ["Parent", "Child", "Viewer"] },
-        "badges": { "type": "array", "items": { "type": "string" } }
+        "points": { "type": "number" },
+        "badges": { "type": "array", "items": { "type": "string" } },
+        "financialPersonality": { "type": "string" },
+        "personalityLastUpdated": { "type": "string" },
+        "learning": {
+          "type": "object",
+          "properties": {
+            "completedQuizzes": { "type": "array", "items": { "type": "string" } },
+            "missionProgress": { "type": "object" },
+            "unlockedRewards": { "type": "array", "items": { "type": "string" } }
+          }
+        }
       },
       "required": ["id", "name", "email", "role", "familyId"]
     },
@@ -26,53 +37,38 @@
         "id": { "type": "string" },
         "familyName": { "type": "string" },
         "createdBy": { "type": "string" },
-        "familyCode": { "type": "string" }
+        "familyCode": { "type": "string" },
+        "monthlyBudget": { "type": "number" },
+        "currentMonthSpent": { "type": "number" },
+        "budgetMonth": { "type": "string" }
       },
       "required": ["id", "familyName", "createdBy", "familyCode"]
     },
-    "Expense": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Expense",
+    "TrustMetric": {
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "familyId": { "type": "string" },
-        "category": { "type": "string" },
-        "amount": { "type": "number" },
-        "description": { "type": "string" },
-        "contributorId": { "type": "string" },
-        "date": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "familyId", "category", "amount", "description", "contributorId", "date"]
+        "overallTrustScore": { "type": "number" },
+        "contributionScore": { "type": "number" },
+        "disciplineScore": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      }
     },
-    "Goal": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Goal",
+    "Allowance": {
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "familyId": { "type": "string" },
-        "name": { "type": "string" },
-        "description": { "type": "string" },
-        "targetAmount": { "type": "number" },
-        "currentAmount": { "type": "number" },
-        "contributors": { "type": "array", "items": { "type": "string" } },
-        "deadline": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "familyId", "name", "targetAmount", "currentAmount", "contributors", "deadline"]
+        "total": { "type": "number" },
+        "saved": { "type": "number" },
+        "childId": { "type": "string" }
+      }
     },
-    "Gamification": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Gamification",
+    "Report": {
       "type": "object",
       "properties": {
-        "userId": { "type": "string" },
-        "familyId": { "type": "string" },
-        "points": { "type": "number" },
-        "level": { "type": "number" },
-        "savingStreaks": { "type": "number" }
-      },
-      "required": ["userId", "familyId", "points", "level"]
+        "monthId": { "type": "string" },
+        "summary": { "type": "string" },
+        "topContributor": { "type": "string" },
+        "data": { "type": "object" }
+      }
     }
   },
   "auth": {
@@ -87,17 +83,17 @@
       "schema": "#/entities/User",
       "description": "Member details."
     },
-    "families/{familyId}/expenses/{expenseId}": {
-      "schema": "#/entities/Expense",
-      "description": "Expense data."
+    "families/{familyId}/trustMetrics/{userId}": {
+      "schema": "#/entities/TrustMetric",
+      "description": "Financial trust transparency scores."
     },
-    "families/{familyId}/goals/{goalId}": {
-      "schema": "#/entities/Goal",
-      "description": "Financial goals."
+    "families/{familyId}/allowances/{userId}": {
+      "schema": "#/entities/Allowance",
+      "description": "Virtual allowance for children."
     },
-    "families/{familyId}/gamification/{userId}": {
-      "schema": "#/entities/Gamification",
-      "description": "Gamification points."
+    "families/{familyId}/reports/{reportId}": {
+      "schema": "#/entities/Report",
+      "description": "Monthly financial reports."
     }
   }
 }

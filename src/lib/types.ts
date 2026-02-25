@@ -1,3 +1,4 @@
+
 import type { LucideIcon } from "lucide-react";
 
 export type UserRole = "Parent" | "Child" | "Viewer";
@@ -11,6 +12,13 @@ export type User = {
   role: UserRole;
   points: number;
   badges: string[];
+  financialPersonality?: string;
+  personalityLastUpdated?: string;
+  learning?: {
+    completedQuizzes: string[];
+    missionProgress: Record<string, any>;
+    unlockedRewards: string[];
+  };
 };
 
 export type ExpenseCategory = "Groceries" | "Utilities" | "Transport" | "Entertainment" | "Healthcare" | "Education" | "Other";
@@ -20,7 +28,7 @@ export type Expense = {
   category: ExpenseCategory;
   amount: number;
   contributorId: string;
-  date: string; // ISO string
+  date: string;
   description: string;
 };
 
@@ -30,8 +38,8 @@ export type Goal = {
   description: string;
   targetAmount: number;
   currentAmount: number;
-  contributors: string[]; // user ids
-  deadline: string; // ISO string
+  contributors: string[];
+  deadline: string;
 };
 
 export type Badge = {
@@ -48,6 +56,28 @@ export type Family = {
   createdBy: string;
   monthlyBudget?: number;
   currentMonthSpent?: number;
-  budgetMonth?: string; // YYYY-MM
-  lastBudgetReset?: string; // ISO string
+  budgetMonth?: string;
+};
+
+export type TrustMetric = {
+  id: string;
+  overallTrustScore: number;
+  contributionScore: number;
+  disciplineScore: number;
+  updatedAt: string;
+};
+
+export type Allowance = {
+  id: string;
+  total: number;
+  saved: number;
+  childId: string;
+};
+
+export type FinancialReport = {
+  id: string;
+  monthId: string;
+  summary: string;
+  topContributor: string;
+  data: any;
 };
