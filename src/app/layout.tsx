@@ -1,4 +1,3 @@
-
 import type { Metadata, Viewport } from 'next';
 import { Inter, Space_Grotesk } from 'next/font/google';
 import './globals.css';
@@ -16,6 +15,12 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: 'FinNest AI - Smart Family Finance',
   description: 'A secure family finance ecosystem for shared expenses, goals, and AI-powered financial guidance.',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'FinNest AI',
+  },
 };
 
 export const viewport: Viewport = {

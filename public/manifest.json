@@ -1,0 +1,22 @@
+{
+  "name": "FinNest AI - Family Finance",
+  "short_name": "FinNest AI",
+  "description": "Smart Family Finance Ecosystem",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0c29",
+  "theme_color": "#0f0c29",
+  "icons": [
+    {
+      "src": "https://picsum.photos/seed/finnest/192/192",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://picsum.photos/seed/finnest/512/512",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
