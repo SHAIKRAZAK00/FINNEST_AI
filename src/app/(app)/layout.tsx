@@ -1,10 +1,10 @@
+
 "use client";
 
 import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,7 +24,6 @@ import {
   SidebarFooter,
   SidebarInset,
   SidebarTrigger,
-  useSidebar,
 } from "@/components/ui/sidebar";
 import { AppLogo } from "@/components/app-logo";
 import {
@@ -38,10 +37,8 @@ import {
   Trophy,
   BrainCircuit,
   BookOpen,
-  Trophy as RewardIcon,
-  ShieldCheck,
+  Medal,
   FileText,
-  Medal
 } from "lucide-react";
 import { useFamily } from "@/context/family-context";
 
@@ -163,15 +160,19 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!loading) {
       if (!authUser) {
-        if (pathname !== '/login' && pathname !== '/signup') router.push('/login');
+        // If not logged in, force to login screen
+        router.replace('/login');
       } else if (!currentUser) {
-        if (pathname !== '/signup' && pathname !== '/login') router.push('/signup');
-      } else {
-        if (pathname === '/login' || pathname === '/signup' || pathname === '/') router.push('/dashboard');
+        // Logged in but no profile found, force to signup to create/join family
+        // We only redirect if we aren't ALREADY on the signup page to avoid loops
+        if (pathname !== '/signup') {
+          router.replace('/signup');
+        }
       }
     }
   }, [loading, authUser, currentUser, router, pathname]);
 
+  // Handle initialization loading state
   if (loading) return (
     <div className="flex h-screen w-full items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
@@ -181,6 +182,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     </div>
   );
 
+  // If we are authenticated and have a profile, or we are on the signup/login pages, render children
   return (
     <SidebarProvider>
       <AppSidebar />
