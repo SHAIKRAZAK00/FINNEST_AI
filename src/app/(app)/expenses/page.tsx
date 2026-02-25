@@ -130,11 +130,11 @@ export default function ExpensesPage() {
   );
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+    <Card className="max-w-full overflow-hidden">
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <CardTitle>Expenses</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-xl sm:text-2xl">Expenses</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
             Manage and track all family expenses.
           </CardDescription>
         </div>
@@ -145,14 +145,12 @@ export default function ExpensesPage() {
           }
         }}>
           <DialogTrigger asChild>
-            <Button size="sm" className="gap-1" disabled={!canAddExpense}>
+            <Button size="sm" className="gap-1 w-full sm:w-auto" disabled={!canAddExpense}>
               <PlusCircle className="h-3.5 w-3.5" />
-              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                Add Expense
-              </span>
+              <span>Add Expense</span>
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Add New Expense</DialogTitle>
               <DialogDescription>
@@ -172,6 +170,7 @@ export default function ExpensesPage() {
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isScanning}
+                className="w-full"
               >
                 <Camera className="mr-2 h-4 w-4" />
                 Scan Receipt with AI
@@ -189,23 +188,23 @@ export default function ExpensesPage() {
               </div>
 
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="description" className="text-right">
+                <Label htmlFor="description" className="text-right text-xs sm:text-sm">
                   Description
                 </Label>
-                <Input id="description" value={newExpense.description} onChange={(e) => setNewExpense({...newExpense, description: e.target.value})} className="col-span-3" placeholder="Weekly groceries"/>
+                <Input id="description" value={newExpense.description} onChange={(e) => setNewExpense({...newExpense, description: e.target.value})} className="col-span-3 h-8 sm:h-10" placeholder="Weekly groceries"/>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="amount" className="text-right">
+                <Label htmlFor="amount" className="text-right text-xs sm:text-sm">
                   Amount
                 </Label>
-                <Input id="amount" type="number" value={newExpense.amount} onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})} className="col-span-3" placeholder="₹4000"/>
+                <Input id="amount" type="number" value={newExpense.amount} onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})} className="col-span-3 h-8 sm:h-10" placeholder="₹4000"/>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="category" className="text-right">
+                <Label htmlFor="category" className="text-right text-xs sm:text-sm">
                   Category
                 </Label>
                 <Select value={newExpense.category} onValueChange={(value: ExpenseCategory) => setNewExpense({...newExpense, category: value})}>
-                  <SelectTrigger className="col-span-3">
+                  <SelectTrigger className="col-span-3 h-8 sm:h-10">
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -227,69 +226,76 @@ export default function ExpensesPage() {
             </div>
 
             <DialogFooter>
-              <Button type="submit" onClick={handleAddExpense} disabled={isScanning}>
+              <Button type="submit" onClick={handleAddExpense} disabled={isScanning} className="w-full sm:w-auto">
                 {isScanning ? "Please wait..." : "Add Expense"}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Contributor</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-              <TableHead>
-                <span className="sr-only">Actions</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedExpenses.map((expense) => {
-              const contributor = getUserById(expense.contributorId);
-              return (
-                <TableRow key={expense.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                        <Avatar className="h-8 w-8">
-                            <AvatarImage src={contributor?.avatarUrl} />
-                            <AvatarFallback>{contributor ? getInitials(contributor.name) : 'N/A'}</AvatarFallback>
-                        </Avatar>
-                        <span className="font-medium hidden sm:inline">{contributor?.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-medium">{expense.description}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{expense.category}</Badge>
-                  </TableCell>
-                  <TableCell>{format(new Date(expense.date), "MMM d, yyyy")}</TableCell>
-                  <TableCell className="text-right">
-                    ₹{expense.amount.toFixed(2)}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem disabled={!canEditOrDelete}>Edit</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" disabled={!canEditOrDelete}>Delete</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+      <CardContent className="p-0 sm:p-6 overflow-x-auto">
+        <div className="min-w-[600px] sm:min-w-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[150px] sm:w-auto">Contributor</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead className="hidden sm:table-cell">Category</TableHead>
+                <TableHead className="hidden md:table-cell">Date</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="w-[50px]">
+                  <span className="sr-only">Actions</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedExpenses.map((expense) => {
+                const contributor = getUserById(expense.contributorId);
+                return (
+                  <TableRow key={expense.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                          <Avatar className="h-6 w-6 sm:h-8 sm:w-8">
+                              <AvatarImage src={contributor?.avatarUrl} />
+                              <AvatarFallback>{contributor ? getInitials(contributor.name) : 'N/A'}</AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium text-xs sm:text-sm truncate max-w-[80px] sm:max-w-none">{contributor?.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium text-xs sm:text-sm">
+                      <div className="flex flex-col gap-1">
+                        <span>{expense.description}</span>
+                        <Badge variant="outline" className="sm:hidden w-fit text-[8px] px-1 py-0">{expense.category}</Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <Badge variant="outline" className="text-[10px]">{expense.category}</Badge>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell text-xs">{format(new Date(expense.date), "MMM d, yyyy")}</TableCell>
+                    <TableCell className="text-right text-xs sm:text-sm font-mono">
+                      ₹{expense.amount.toFixed(0)}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button aria-haspopup="true" size="icon" variant="ghost" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem disabled={!canEditOrDelete}>Edit</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" disabled={!canEditOrDelete}>Delete</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   );
