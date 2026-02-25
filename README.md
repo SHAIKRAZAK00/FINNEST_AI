@@ -1,7 +1,7 @@
 
 # FinNest AI - Smart Family Finance
 
-FinNest AI is a secure family finance ecosystem designed for shared expenses, goals, and AI-powered financial guidance.
+FinNest AI is a secure, high-performance **Next.js Web Application** designed for shared family expenses, goals, and AI-powered financial guidance. It is built to be fully responsive and mobile-optimized.
 
 ## 🚀 Getting Started
 
@@ -19,33 +19,19 @@ If you are in IDX/Firebase Studio, follow these steps:
 4. **Run the App**: `npm run dev`
    Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## 📊 Global User Management (How to see all users)
-To see every user registered in your app:
-1. Go to the [Firebase Console](https://console.firebase.google.com/).
-2. Select your project: **studio-5505416171-85472**.
-3. **Authentication Tab**: This is the master list. It shows the **total count of users**, their email addresses, unique UIDs, and when they last signed in.
-4. **Firestore Database Tab**: 
-   - Navigate to `/families/{familyId}/members`.
-   - This shows you user profiles *grouped by family*, including their points, badges, and roles.
-
 ## 🛠 Tech Stack
-- **Framework**: Next.js 15 (App Router)
-- **Styling**: Tailwind CSS + Shadcn UI
+- **Framework**: Next.js 15 (App Router / React 19)
+- **Styling**: Tailwind CSS + Shadcn UI (Mobile-First Responsive Design)
 - **Database & Auth**: Firebase (Firestore & Authentication)
 - **AI Integration**: Google Gemini via Genkit
 - **Icons**: Lucide React
 
-## 📦 How to Push to GitHub
-1. Create a new repository on [GitHub](https://github.com/new).
-2. On your computer, run:
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit: FinNest AI"
-   git branch -M main
-   git remote add origin <YOUR_GITHUB_REPO_URL>
-   git push -u origin main
-   ```
+## 📊 Global User Management
+To see every user registered in your app:
+1. Go to the [Firebase Console](https://console.firebase.google.com/).
+2. Select your project: **studio-5505416171-85472**.
+3. **Authentication Tab**: This is the master list showing total user count and emails.
+4. **Firestore Database Tab**: Navigate to `/families/{familyId}/members` to see profiles grouped by family.
 
 ---
 *Built with ❤️ using Firebase and Next.js*
