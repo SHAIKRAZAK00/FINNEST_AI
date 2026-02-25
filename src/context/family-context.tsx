@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
@@ -5,7 +6,7 @@ import type { User, Expense, Goal, Family } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getLevelFromPoints, mockBadges } from '@/lib/data';
 import { useAuth, useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, query, where, getDocs, getDoc, writeBatch, runTransaction } from 'firebase/firestore';
+import { collection, doc, query, where, getDocs, getDoc, writeBatch, runTransaction, increment } from 'firebase/firestore';
 import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { signOut } from 'firebase/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
@@ -145,13 +146,20 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     if (!familyId || !firestore || !familyData) return;
     
     const currentMonth = format(new Date(), 'yyyy-MM');
-    if (familyData.budgetMonth !== currentMonth) {
+    if (familyData.budgetMonth && familyData.budgetMonth !== currentMonth) {
       const familyDocRef = doc(firestore, 'families', familyId);
       updateDocumentNonBlocking(familyDocRef, {
         currentMonthSpent: 0,
         budgetMonth: currentMonth,
         lastBudgetReset: new Date().toISOString()
       });
+    } else if (!familyData.budgetMonth) {
+        // Initialize budget month if it's missing
+        const familyDocRef = doc(firestore, 'families', familyId);
+        updateDocumentNonBlocking(familyDocRef, {
+            budgetMonth: currentMonth,
+            currentMonthSpent: familyData.currentMonthSpent || 0
+        });
     }
   }, [familyId, firestore, familyData]);
 
@@ -248,12 +256,19 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const setMonthlyBudget = (amount: number) => {
     if (!currentUser || currentUser.role !== 'Parent' || !familyId || !firestore) return;
     const familyDocRef = doc(firestore, 'families', familyId);
+    
+    // We use increment here to add the new amount to the existing budget
     updateDocumentNonBlocking(familyDocRef, { 
-      monthlyBudget: amount,
+      monthlyBudget: increment(amount),
       budgetMonth: format(new Date(), 'yyyy-MM'),
       currentMonthSpent: familyData?.currentMonthSpent || 0
     });
-    toast({ title: "Budget Updated", description: `Monthly limit set to ₹${amount.toLocaleString()}` });
+    
+    const newTotal = (familyData?.monthlyBudget || 0) + amount;
+    toast({ 
+        title: "Budget Updated", 
+        description: `Added ₹${amount.toLocaleString()} to budget. New total: ₹${newTotal.toLocaleString()}` 
+    });
   };
 
   const addGoal = (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors' | 'familyId'>) => {

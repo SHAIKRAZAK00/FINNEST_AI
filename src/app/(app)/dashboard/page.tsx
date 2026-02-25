@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useFamily } from "@/context/family-context";
@@ -25,6 +26,7 @@ import {
   Wallet,
   CalendarDays,
   Settings2,
+  Plus,
 } from "lucide-react";
 import {
   ChartContainer,
@@ -51,7 +53,7 @@ const chartConfig = {
 export default function DashboardPage() {
   const { expenses, goals, users, family, currentUser, setMonthlyBudget } = useFamily();
   const [isBudgetDialogOpen, setIsBudgetDialogOpen] = useState(false);
-  const [budgetInput, setBudgetInput] = useState(family?.monthlyBudget?.toString() || "");
+  const [budgetInput, setBudgetInput] = useState("");
 
   const totalSpending = useMemo(() => expenses.reduce((sum, exp) => sum + exp.amount, 0), [expenses]);
   const totalGoals = goals.length;
@@ -72,29 +74,6 @@ export default function DashboardPage() {
     return "text-green-500";
   }, [budgetUsage]);
 
-  const topSpenderData = useMemo(() => {
-    const spendingByUser: Record<string, number> = {};
-    expenses.forEach(exp => {
-      spendingByUser[exp.contributorId] = (spendingByUser[exp.contributorId] || 0) + exp.amount;
-    });
-
-    let topUserId = "";
-    let maxAmount = 0;
-
-    Object.entries(spendingByUser).forEach(([uid, amt]) => {
-      if (amt > maxAmount) {
-        maxAmount = amt;
-        topUserId = uid;
-      }
-    });
-
-    const user = users.find(u => u.id === topUserId);
-    return {
-      name: user?.name || "N/A",
-      amount: maxAmount
-    };
-  }, [expenses, users]);
-
   const spendingByCategory = useMemo(() => {
     return expenses.reduce((acc, expense) => {
       acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
@@ -110,8 +89,9 @@ export default function DashboardPage() {
 
   const handleUpdateBudget = () => {
     const amount = parseFloat(budgetInput);
-    if (!isNaN(amount) && amount >= 0) {
+    if (!isNaN(amount) && amount > 0) {
       setMonthlyBudget(amount);
+      setBudgetInput("");
       setIsBudgetDialogOpen(false);
     }
   };
@@ -141,9 +121,21 @@ export default function DashboardPage() {
           <CardContent>
             {family?.monthlyBudget ? (
               <div className="space-y-2">
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-bold">₹{(family.monthlyBudget - (family.currentMonthSpent || 0)).toLocaleString()}</span>
-                  <span className="text-[10px] text-muted-foreground uppercase">Left</span>
+                <div className="flex items-baseline justify-between">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-bold">₹{(family.monthlyBudget - (family.currentMonthSpent || 0)).toLocaleString()}</span>
+                    <span className="text-[10px] text-muted-foreground uppercase">Left</span>
+                  </div>
+                  {currentUser?.role === 'Parent' && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6 rounded-full bg-primary/10 hover:bg-primary/20"
+                      onClick={() => setIsBudgetDialogOpen(true)}
+                    >
+                      <Plus className="h-3 w-3 text-primary" />
+                    </Button>
+                  )}
                 </div>
                 <Progress value={budgetUsage} className="h-1" />
                 <div className="flex justify-between items-center text-[10px] uppercase tracking-tighter">
@@ -162,15 +154,6 @@ export default function DashboardPage() {
                   </Button>
                 )}
               </div>
-            )}
-            
-            {currentUser?.role === 'Parent' && family?.monthlyBudget && (
-              <button 
-                onClick={() => setIsBudgetDialogOpen(true)}
-                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-muted rounded"
-              >
-                <Settings2 className="h-3 w-3 text-muted-foreground" />
-              </button>
             )}
           </CardContent>
         </Card>
@@ -202,25 +185,34 @@ export default function DashboardPage() {
       <Dialog open={isBudgetDialogOpen} onOpenChange={setIsBudgetDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Set Monthly Family Budget</DialogTitle>
+            <DialogTitle>{family?.monthlyBudget ? "Add to Family Budget" : "Set Monthly Family Budget"}</DialogTitle>
             <DialogDescription>
-              Establish a spending limit for the entire family. Only Parents can modify this value.
+              {family?.monthlyBudget 
+                ? "Enter an amount to increase your current spending limit. This will be added to the previous budget." 
+                : "Establish a starting spending limit for the entire family."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="budget">Monthly Limit (₹)</Label>
+              <Label htmlFor="budget">{family?.monthlyBudget ? "Amount to Add (₹)" : "Initial Limit (₹)"}</Label>
               <Input 
                 id="budget" 
                 type="number" 
                 value={budgetInput} 
                 onChange={(e) => setBudgetInput(e.target.value)}
-                placeholder="e.g. 50000"
+                placeholder="e.g. 5000"
               />
+              {family?.monthlyBudget && (
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                      Current Total: ₹{family.monthlyBudget.toLocaleString()}
+                  </p>
+              )}
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleUpdateBudget}>Update Protocol</Button>
+            <Button onClick={handleUpdateBudget} className="w-full sm:w-auto">
+                {family?.monthlyBudget ? "Add to Limit" : "Set Limit"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
