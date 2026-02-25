@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -41,7 +40,8 @@ import {
   BookOpen,
   Trophy as RewardIcon,
   ShieldCheck,
-  FileText
+  FileText,
+  Medal
 } from "lucide-react";
 import { useFamily } from "@/context/family-context";
 
@@ -91,6 +91,11 @@ function AppSidebar() {
               <Link href="/goals"><Target /><span>Goals</span></Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname === '/leaderboard'} tooltip="Leaderboard">
+              <Link href="/leaderboard"><Trophy /><span>Leaderboard</span></Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           
           <div className="h-px bg-white/5 my-2 mx-2" />
           
@@ -106,7 +111,7 @@ function AppSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/rewards'} tooltip="Rewards">
-              <Link href="/rewards"><RewardIcon /><span>Rewards</span></Link>
+              <Link href="/rewards"><Medal /><span>Rewards</span></Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
