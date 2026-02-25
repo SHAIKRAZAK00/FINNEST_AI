@@ -1,4 +1,3 @@
-
 "use server";
 
 import { analyzeExpensesAndGenerateInsights, AnalyzeExpensesAndGenerateInsightsInput } from '@/ai/flows/analyze-expenses-and-generate-insights';
@@ -7,7 +6,19 @@ import { analyzeFinancialPersonality, PersonalityAnalysisInput } from '@/ai/flow
 import { generateMonthlyReport, ReportInput } from '@/ai/flows/generate-monthly-report-flow';
 import { Expense } from '@/lib/types';
 
+/**
+ * Validates basic input for AI flows to prevent malicious or malformed data processing.
+ */
+function validateBudgetInfo(info: any) {
+    if (!info) return true;
+    return typeof info.monthlyBudget === 'number' && info.monthlyBudget >= 0;
+}
+
 export async function getFinancialInsights(expenses: Expense[], familyId: string, budgetInfo?: { monthlyBudget: number; currentMonthSpent: number }) {
+  if (!validateBudgetInfo(budgetInfo)) {
+      return { success: false, error: 'Invalid budget data provided.' };
+  }
+  
   try {
     const input: AnalyzeExpensesAndGenerateInsightsInput = {
       expenses: expenses.map(e => ({ 
@@ -29,6 +40,10 @@ export async function getFinancialInsights(expenses: Expense[], familyId: string
 }
 
 export async function getExpenseFromReceipt(receiptImage: string) {
+  if (!receiptImage.startsWith('data:image/')) {
+      return { success: false, error: 'Invalid image format.' };
+  }
+  
   try {
     const input: ExtractExpenseInput = { receiptImage };
     const result = await extractExpenseFromReceipt(input);
@@ -40,6 +55,10 @@ export async function getExpenseFromReceipt(receiptImage: string) {
 }
 
 export async function runPersonalityAnalysis(input: PersonalityAnalysisInput) {
+  if (!input.name || input.summary.totalSpent < 0) {
+      return { success: false, error: 'Incomplete data for analysis.' };
+  }
+  
   try {
     const result = await analyzeFinancialPersonality(input);
     return { success: true, analysis: result };
@@ -50,6 +69,10 @@ export async function runPersonalityAnalysis(input: PersonalityAnalysisInput) {
 }
 
 export async function getMonthlyReport(input: ReportInput) {
+  if (!input.familyName || input.totalExpenses < 0) {
+      return { success: false, error: 'Invalid report parameters.' };
+  }
+  
   try {
     const result = await generateMonthlyReport(input);
     return { success: true, report: result };

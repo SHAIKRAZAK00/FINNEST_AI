@@ -1,12 +1,11 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from 'react';
-import type { User, Expense, Goal, Family, TrustMetric, Allowance, FinancialReport } from '@/lib/types';
+import type { User, Expense, Goal, Family, TrustMetric, Allowance } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { getLevelFromPoints, mockBadges } from '@/lib/data';
 import { useAuth, useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, query, where, getDocs, getDoc, writeBatch, runTransaction, increment, serverTimestamp } from 'firebase/firestore';
-import { deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, doc, getDocs, getDoc, increment, runTransaction } from 'firebase/firestore';
+import { setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { signOut } from 'firebase/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { format } from 'date-fns';
@@ -22,7 +21,7 @@ interface FamilyContextType {
   allowance: Allowance | null;
   addExpense: (expense: Omit<Expense, 'id' | 'contributorId' | 'date' | 'familyId'>) => void;
   addGoal: (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors' | 'familyId'>) => void;
-  contributeToGoal: (goalId: string, amount: number) => { goalCompleted: boolean };
+  contributeToGoal: (goalId: string, amount: number) => Promise<{ goalCompleted: boolean; success: boolean }>;
   setMonthlyBudget: (amount: number) => void;
   removeUser: (userId: string) => void;
   updateUserAvatar: (avatarUrl: string) => void;
@@ -144,19 +143,14 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const updateTrustMetrics = useCallback(async () => {
     if (!familyId || !firestore || !authUser || !expenses || !familyData) return;
     
-    // Discipline Score: % under budget
     const budget = familyData.monthlyBudget || 0;
     const spent = familyData.currentMonthSpent || 0;
     const discipline = budget > 0 ? Math.max(0, 100 - (spent / budget * 100)) : 100;
-    
-    // Contribution Score: participation in goals
     const participation = goals?.filter(g => g.contributors.includes(authUser.uid)).length || 0;
     const contributionScore = Math.min(100, participation * 20);
-    
     const overall = (discipline * 0.6) + (contributionScore * 0.4);
     
     const trustDoc = doc(firestore, 'families', familyId, 'trustMetrics', authUser.uid);
-    // Use setDocumentNonBlocking with merge to handle the initial creation case
     setDocumentNonBlocking(trustDoc, {
       overallTrustScore: Math.round(overall),
       disciplineScore: Math.round(discipline),
@@ -180,6 +174,10 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
 
   const addExpense = async (expense: Omit<Expense, 'id' | 'contributorId' | 'date' | 'familyId'>) => {
     if (!currentUser || !familyId || !firestore) return;
+    if (expense.amount <= 0) {
+      toast({ variant: "destructive", title: "Invalid Amount", description: "Expense must be greater than 0." });
+      return;
+    }
     const familyDocRef = doc(firestore, 'families', familyId);
     const expensesColRef = collection(firestore, 'families', familyId, 'expenses');
     const expenseDocRef = doc(expensesColRef);
@@ -194,13 +192,17 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
       });
       awardPoints(currentUser.id, 10);
       toast({ title: "Expense Added" });
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error(e);
+      toast({ variant: "destructive", title: "Write Conflict", description: "Could not add expense. Please try again." });
+    }
   };
 
   const setMonthlyBudget = (amount: number) => {
     if (!currentUser || currentUser.role !== 'Parent' || !familyId || !firestore) return;
     const familyDocRef = doc(firestore, 'families', familyId);
     updateDocumentNonBlocking(familyDocRef, { monthlyBudget: increment(amount), budgetMonth: format(new Date(), 'yyyy-MM') });
+    toast({ title: "Budget Updated", description: `₹${amount} added to family limit.` });
   };
 
   const addGoal = (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors' | 'familyId'>) => {
@@ -210,16 +212,44 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     awardPoints(currentUser.id, 50);
   };
 
-  const contributeToGoal = (goalId: string, amount: number) => {
-    if (!currentUser || !familyId || !goals || !firestore) return { goalCompleted: false };
-    const goal = goals.find(g => g.id === goalId);
-    if (!goal) return { goalCompleted: false };
-    const newAmount = Math.min(goal.targetAmount, goal.currentAmount + amount);
+  const contributeToGoal = async (goalId: string, amount: number) => {
+    if (!currentUser || !familyId || !firestore) return { goalCompleted: false, success: false };
+    if (amount <= 0) return { goalCompleted: false, success: false };
+
     const goalRef = doc(firestore, 'families', familyId, 'goals', goalId);
-    updateDocumentNonBlocking(goalRef, { currentAmount: newAmount, contributors: goal.contributors.includes(currentUser.id) ? goal.contributors : [...goal.contributors, currentUser.id] });
-    awardPoints(currentUser.id, 25);
-    if (newAmount >= goal.targetAmount) setActiveConfettiGoal(goalId);
-    return { goalCompleted: newAmount >= goal.targetAmount };
+    try {
+      const result = await runTransaction(firestore, async (tx) => {
+        const goalSnap = await tx.get(goalRef);
+        if (!goalSnap.exists()) throw new Error("Goal not found");
+        
+        const goalData = goalSnap.data() as Goal;
+        const newAmount = Math.min(goalData.targetAmount, goalData.currentAmount + amount);
+        const isCompleted = newAmount >= goalData.targetAmount;
+        const newContributors = goalData.contributors.includes(currentUser.id) 
+          ? goalData.contributors 
+          : [...goalData.contributors, currentUser.id];
+
+        tx.update(goalRef, { 
+          currentAmount: newAmount, 
+          contributors: newContributors 
+        });
+
+        return { isCompleted };
+      });
+
+      awardPoints(currentUser.id, 25);
+      if (result.isCompleted) {
+        setActiveConfettiGoal(goalId);
+        toast({ title: "Goal Achieved!", description: "Family milestone complete!" });
+      } else {
+        toast({ title: "Contribution Logged", description: "Great step towards the goal!" });
+      }
+      return { goalCompleted: result.isCompleted, success: true };
+    } catch (e) {
+      console.error(e);
+      toast({ variant: "destructive", title: "Sync Error", description: "Failed to log contribution." });
+      return { goalCompleted: false, success: false };
+    }
   };
 
   const updatePersonality = (personality: string) => {
@@ -240,6 +270,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     if (currentUser?.role !== 'Parent' || !familyId || !firestore) return;
     const allowRef = doc(firestore, 'families', familyId, 'allowances', childId);
     setDocumentNonBlocking(allowRef, { total: amount, saved: 0, childId }, { merge: true });
+    toast({ title: "Allowance Set", description: `Child will receive ₹${amount} monthly.` });
   };
 
   const logout = () => signOut(auth).then(() => { setFamilyId(null); setHasAttemptedLookup(false); });
@@ -251,9 +282,9 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     trustMetric, allowance,
     addExpense, addGoal, contributeToGoal, setMonthlyBudget,
     updatePersonality, updateLearning, setAllowance,
-    removeUser: (uid: string) => {}, // Stub
+    removeUser: (uid: string) => {},
     loading: isAuthLoading || isSearchingFamily || isFamilyLoading || areUsersLoading, 
-    updateUserAvatar: (url: string) => {}, // Stub
+    updateUserAvatar: (url: string) => {},
     activeConfettiGoal, clearConfetti: () => setActiveConfettiGoal(null),
     logout, refreshFamily: findFamily,
   };

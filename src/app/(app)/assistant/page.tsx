@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bot, Lightbulb, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getFinancialInsights } from "@/app/actions";
 import { useFamily } from "@/context/family-context";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -13,14 +13,24 @@ type Insight = {
     insight: string;
 };
 
+const COOLDOWN_SECONDS = 30;
+
 export default function AssistantPage() {
   const { expenses, family } = useFamily();
   const [insights, setInsights] = useState<Insight[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
 
   const handleGenerateInsights = async () => {
-    if (!family) return;
+    if (!family || cooldown > 0) return;
     setIsLoading(true);
     setError(null);
     setInsights([]);
@@ -34,6 +44,7 @@ export default function AssistantPage() {
     
     if (result.success) {
       setInsights(result.insights);
+      setCooldown(COOLDOWN_SECONDS);
     } else {
       setError(result.error);
     }
@@ -49,13 +60,13 @@ export default function AssistantPage() {
         <h1 className="text-3xl font-bold font-headline">Your AI CFO Assistant</h1>
         <p className="max-w-xl text-muted-foreground">
           Let our AI analyze your family's spending to find savings opportunities and
-          provide personalized financial guidance based on your budget.
+          provide personalized financial guidance.
         </p>
       </div>
 
-      <Button onClick={handleGenerateInsights} disabled={isLoading} size="lg">
+      <Button onClick={handleGenerateInsights} disabled={isLoading || cooldown > 0} size="lg">
         <Sparkles className="mr-2 h-5 w-5" />
-        {isLoading ? "Analyzing Protocol..." : "Generate AI Audit"}
+        {isLoading ? "Analyzing..." : cooldown > 0 ? `Protocol Cooling (${cooldown}s)` : "Generate AI Audit"}
       </Button>
 
       <div className="w-full max-w-2xl mt-6 text-left">
@@ -69,15 +80,6 @@ export default function AssistantPage() {
                 <CardContent>
                     <Skeleton className="h-4 w-full" />
                     <Skeleton className="h-4 w-3/4 mt-2" />
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center gap-3 space-y-0">
-                    <Skeleton className="h-6 w-6 rounded-full" />
-                    <Skeleton className="h-5 w-32" />
-                </CardHeader>
-                <CardContent>
-                    <Skeleton className="h-4 w-full" />
                 </CardContent>
             </Card>
           </div>

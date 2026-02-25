@@ -1,51 +1,71 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // --- Helper Functions ---
     function isSignedIn() { return request.auth != null; }
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
-    function isFamilyMember(familyId) { return isSignedIn() && exists(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid)); }
-    function getUserRole(familyId) { return get(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid)).data.role; }
-    function isFamilyParent(familyId) { return isFamilyMember(familyId) && getUserRole(familyId) == 'Parent'; }
-    function isFamilyContributor(familyId) { return isFamilyMember(familyId) && (getUserRole(familyId) == 'Parent' || getUserRole(familyId) == 'Child'); }
+    
+    // Efficiently checks if the user is a member of the specific family
+    function isFamilyMember(familyId) { 
+      return isSignedIn() && exists(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid)); 
+    }
+    
+    function getUserData(familyId) {
+      return get(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid)).data;
+    }
+    
+    function isFamilyParent(familyId) { 
+      return isFamilyMember(familyId) && getUserData(familyId).role == 'Parent'; 
+    }
+    
+    function isFamilyContributor(familyId) { 
+      return isFamilyMember(familyId) && (getUserData(familyId).role == 'Parent' || getUserData(familyId).role == 'Child'); 
+    }
 
+    // --- Collection Rules ---
+    
     match /families/{familyId} {
       allow get: if isFamilyMember(familyId);
-      allow list: if isSignedIn(); // Necessary for "Join by Code" query
+      allow list: if isSignedIn(); // Necessary for joining by code
       allow create: if isSignedIn();
       allow update: if isFamilyParent(familyId);
 
       match /members/{userId} {
-        allow read: if isFamilyMember(familyId) || isOwner(userId);
+        allow read: if isFamilyMember(familyId);
         allow create: if isOwner(userId);
+        // Only the user or a parent can update a profile (e.g., points/personality)
         allow update: if isOwner(userId) || isFamilyParent(familyId);
-        allow delete: if isOwner(userId) || isFamilyParent(familyId);
+        allow delete: if isFamilyParent(familyId);
       }
 
       match /expenses/{expenseId} {
         allow read: if isFamilyMember(familyId);
-        allow create: if isFamilyContributor(familyId);
-        allow update, delete: if isFamilyContributor(familyId);
+        // Ensure amount is valid and contributor is correct
+        allow create: if isFamilyContributor(familyId) 
+                      && request.resource.data.amount > 0 
+                      && request.resource.data.contributorId == request.auth.uid;
+        allow delete: if isFamilyParent(familyId);
       }
 
       match /goals/{goalId} {
         allow read: if isFamilyMember(familyId);
-        allow create: if isFamilyContributor(familyId);
-        allow update, delete: if isFamilyContributor(familyId);
+        allow create: if isFamilyParent(familyId);
+        allow update: if isFamilyContributor(familyId);
+        allow delete: if isFamilyParent(familyId);
       }
 
       match /gamification/{userId} {
-        allow read: if isFamilyMember(familyId) || isOwner(userId);
-        allow create: if isOwner(userId);
-        allow update: if isOwner(userId);
+        allow read: if isFamilyMember(familyId);
+        allow write: if isOwner(userId) || isFamilyParent(familyId);
       }
 
       match /trustMetrics/{userId} {
-        allow read: if isOwner(userId) || isFamilyMember(familyId);
+        allow read: if isFamilyMember(familyId);
         allow write: if isOwner(userId) || isFamilyParent(familyId);
       }
 
       match /allowances/{userId} {
-        allow read: if isOwner(userId) || isFamilyMember(familyId);
+        allow read: if isFamilyMember(familyId);
         allow write: if isFamilyParent(familyId);
       }
 
