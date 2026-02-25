@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -58,12 +57,12 @@ function AppSidebar() {
   if (!currentUser || !family) {
     return (
        <Sidebar>
-        <SidebarHeader>
-          <AppLogo />
+        <SidebarHeader className="items-center py-6">
+          <AppLogo size="sm" />
         </SidebarHeader>
         <SidebarContent>
           <div className="p-4 flex justify-center">
-            <Loader2 className="h-6 w-6 animate-spin" />
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         </SidebarContent>
       </Sidebar>
@@ -72,14 +71,14 @@ function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader>
-        <AppLogo />
-        <p className="text-sm text-sidebar-foreground/80 group-data-[collapsible=icon]:hidden px-2">
+      <SidebarHeader className="items-center py-6">
+        <AppLogo size="sm" />
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 group-data-[collapsible=icon]:hidden mt-4">
             {family.familyName}
         </p>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarMenu>
+        <SidebarMenu className="px-2">
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
@@ -145,31 +144,31 @@ function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="p-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex w-full items-center gap-2 rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50">
-              <Avatar className="h-8 w-8">
+            <button className="flex w-full items-center gap-3 rounded-xl p-2 text-left text-sm outline-none ring-sidebar-ring transition-all hover:bg-white/5 group-data-[collapsible=icon]:justify-center">
+              <Avatar className="h-10 w-10 border-2 border-primary/20">
                 <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
                 <AvatarFallback>{getInitials(currentUser.name)}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col group-data-[collapsible=icon]:hidden overflow-hidden">
-                <span className="font-medium truncate">{currentUser.name}</span>
-                <span className="text-xs text-sidebar-foreground/70">{currentUser.role}</span>
+                <span className="font-bold truncate text-white">{currentUser.name}</span>
+                <span className="text-[10px] uppercase tracking-widest text-white/40">{currentUser.role}</span>
               </div>
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent side="right" align="start">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
+          <DropdownMenuContent side="right" align="end" className="w-56 bg-card border-white/5 backdrop-blur-xl">
+            <DropdownMenuLabel className="text-xs font-bold uppercase tracking-widest text-white/40">My Account</DropdownMenuLabel>
+            <DropdownMenuSeparator className="bg-white/5" />
+            <DropdownMenuItem asChild className="cursor-pointer">
               <Link href="/settings">
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout}>
+            <DropdownMenuSeparator className="bg-white/5" />
+            <DropdownMenuItem onClick={logout} className="cursor-pointer text-destructive focus:text-destructive">
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
             </DropdownMenuItem>
@@ -186,21 +185,16 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Only handle redirects once we've finished the initial check
     if (!loading) {
       if (!authUser) {
-        // Not logged in at all - send to login
         if (pathname !== '/login' && pathname !== '/signup') {
           router.push('/login');
         }
       } else if (!currentUser) {
-        // Logged in but NO family profile found after searching
-        // Only redirect to signup if they aren't already there
         if (pathname !== '/signup' && pathname !== '/login') {
           router.push('/signup');
         }
       } else {
-        // Logged in AND has profile - if they are on auth pages, send to dashboard
         if (pathname === '/login' || pathname === '/signup' || pathname === '/') {
           router.push('/dashboard');
         }
@@ -210,28 +204,26 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center">
+      <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground animate-pulse">Syncing family data...</p>
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-white/40 animate-pulse">Syncing Protocol...</p>
         </div>
       </div>
     );
   }
 
-  // Prevent flicker for authenticated users without profiles
   if (authUser && !currentUser && pathname !== '/signup') {
     return (
-      <div className="flex h-screen w-full items-center justify-center">
+      <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Setting up your family hub...</p>
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-white/40">Initializing Hub...</p>
         </div>
       </div>
     );
   }
 
-  // Final catch-all for unauthorized access
   if (!authUser && pathname !== '/login' && pathname !== '/signup') {
     return null;
   }
@@ -239,18 +231,17 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:h-16 sm:px-6">
+      <SidebarInset className="bg-transparent">
+        <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b border-white/5 bg-background/50 px-4 backdrop-blur-md sm:h-16 sm:px-6">
           <SidebarTrigger className="md:hidden" />
           <div className="flex-1" />
-          <AppLogo className="md:hidden" />
+          <AppLogo size="sm" className="md:hidden" />
         </header>
-        <main className="flex-1 p-4 sm:p-6">{children}</main>
+        <main className="flex-1 p-4 sm:p-8">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   );
 }
-
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return <AppLayoutContent>{children}</AppLayoutContent>;
