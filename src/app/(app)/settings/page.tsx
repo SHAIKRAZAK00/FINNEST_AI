@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, Trash2, Loader2, Wallet, Save, ShieldCheck } from "lucide-react";
+import { Copy, Trash2, Loader2, Wallet, Save } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,12 +24,11 @@ import {
 import type { User } from "@/lib/types";
 
 export default function SettingsPage() {
-  const { family, currentUser, users, authUser, removeUser, updateUserAvatar, setAllowance, linkGoogleAccount, t } = useFamily();
+  const { family, currentUser, users, removeUser, updateUserAvatar, setAllowance, t } = useFamily();
   const { toast } = useToast();
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [userToRemove, setUserToRemove] = useState<User | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [isLinking, setIsLinking] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // State for allowance inputs
@@ -115,17 +114,10 @@ export default function SettingsPage() {
     }
   };
 
-  const handleLinkGoogle = async () => {
-    setIsLinking(true);
-    await linkGoogleAccount();
-    setIsLinking(false);
-  };
-
   if (!currentUser || !family) {
     return null;
   }
 
-  const isGoogleLinked = authUser?.providerData.some(p => p.providerId === 'google.com');
   const children = users.filter(u => u.role === 'Child');
 
   return (
@@ -203,37 +195,6 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       )}
-
-      <Card className="border-primary/20 bg-primary/5">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-primary" /> {t.auth.security}
-          </CardTitle>
-          <CardDescription>Link additional authentication methods for account safety.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between p-4 rounded-xl bg-background border border-border">
-              <div className="flex items-center gap-4">
-                  <div className="p-2 bg-white/5 rounded-lg border border-white/10">
-                      <svg className="h-5 w-5" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path></svg>
-                  </div>
-                  <div>
-                      <p className="font-bold">Google Account</p>
-                      <p className="text-xs text-muted-foreground">{isGoogleLinked ? "Linked" : "Link for secondary access"}</p>
-                  </div>
-              </div>
-              <Button 
-                variant={isGoogleLinked ? "secondary" : "default"} 
-                size="sm" 
-                onClick={handleLinkGoogle} 
-                disabled={isGoogleLinked || isLinking}
-              >
-                  {isLinking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isGoogleLinked ? "Linked" : "Link Now"}
-              </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       {currentUser.role === 'Parent' && (
         <Card>

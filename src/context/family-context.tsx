@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth, useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, getDoc, increment, runTransaction } from 'firebase/firestore';
 import { setDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { signOut, linkWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { format } from 'date-fns';
 import { Language, translations } from '@/lib/translations';
@@ -34,7 +34,6 @@ interface FamilyContextType {
   updateLearning: (learningData: Partial<User['learning']>) => void;
   setAllowance: (childId: string, amount: number) => void;
   depositToVault: (amount: number) => void;
-  linkGoogleAccount: () => Promise<void>;
   loading: boolean;
   hasAttemptedLookup: boolean;
   activeConfettiGoal: string | null;
@@ -79,14 +78,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     if (!authUser || !firestore) return;
     setIsSearchingFamily(true);
     try {
-      const cachedId = typeof window !== 'undefined' ? localStorage.getItem(`familyId_${authUser.uid}`) : null;
-      if (cachedId) {
-        setFamilyId(cachedId);
-        setHasAttemptedLookup(true);
-        setIsSearchingFamily(false);
-        return;
-      }
-      
+      // Primary discovery: Global users directory
       const userRef = doc(firestore, 'users', authUser.uid);
       const userSnap = await getDoc(userRef);
       
@@ -95,7 +87,9 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
         setFamilyId(foundFamilyId);
         localStorage.setItem(`familyId_${authUser.uid}`, foundFamilyId);
       } else {
+        // Clear stale local storage if user doesn't exist in DB
         setFamilyId(null);
+        localStorage.removeItem(`familyId_${authUser.uid}`);
       }
     } catch (err: any) {
       console.error("Critical error finding family:", err);
@@ -141,12 +135,12 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     if (familyError || areUsersError) {
       const isPermissionError = (familyError as any)?.name === 'FirebaseError' || (areUsersError as any)?.name === 'FirebaseError';
       if (isPermissionError && familyId) {
-        console.warn("Permission denied for family. Clearing stale mapping.");
+        console.warn("Permission denied for family. Clearing mapping.");
         setFamilyId(null);
-        localStorage.removeItem(`familyId_${authUser?.uid}`);
+        setHasAttemptedLookup(true);
       }
     }
-  }, [familyError, areUsersError, familyId, authUser]);
+  }, [familyError, areUsersError, familyId]);
 
   useEffect(() => {
     if (users && authUser) {
@@ -198,15 +192,10 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
 
   const addExpense = async (expense: Omit<Expense, 'id' | 'contributorId' | 'date' | 'familyId'>) => {
     if (!currentUser || !familyId || !firestore) return;
-    if (expense.amount <= 0) {
-      toast({ variant: "destructive", title: "Invalid Amount", description: "Expense must be greater than 0." });
-      return;
-    }
     const familyDocRef = doc(firestore, 'families', familyId);
     const expensesColRef = collection(firestore, 'families', familyId, 'expenses');
     const expenseDocRef = doc(expensesColRef);
-    const id = expenseDocRef.id;
-    const newExpense = { ...expense, id, familyId, contributorId: currentUser.id, date: new Date().toISOString() };
+    const newExpense = { ...expense, id: expenseDocRef.id, familyId, contributorId: currentUser.id, date: new Date().toISOString() };
     try {
       await runTransaction(firestore, async (tx) => {
         const famSnap = await tx.get(familyDocRef);
@@ -218,7 +207,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
       toast({ title: "Expense Added" });
     } catch (e) { 
       console.error(e);
-      toast({ variant: "destructive", title: "Sync Error", description: "Could not add expense. Please try again." });
+      toast({ variant: "destructive", title: "Sync Error", description: "Could not add expense." });
     }
   };
 
@@ -226,7 +215,6 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     if (!currentUser || currentUser.role !== 'Parent' || !familyId || !firestore) return;
     const familyDocRef = doc(firestore, 'families', familyId);
     updateDocumentNonBlocking(familyDocRef, { monthlyBudget: increment(amount), budgetMonth: format(new Date(), 'yyyy-MM') });
-    toast({ title: "Budget Updated", description: `₹${amount} added to family limit.` });
   };
 
   const addGoal = (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors' | 'familyId'>) => {
@@ -238,14 +226,10 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
 
   const contributeToGoal = async (goalId: string, amount: number) => {
     if (!currentUser || !familyId || !firestore) return { goalCompleted: false, success: false };
-    if (amount <= 0) return { goalCompleted: false, success: false };
-
     const goalRef = doc(firestore, 'families', familyId, 'goals', goalId);
     try {
       const result = await runTransaction(firestore, async (tx) => {
         const goalSnap = await tx.get(goalRef);
-        if (!goalSnap.exists()) throw new Error("Goal not found");
-        
         const goalData = goalSnap.data() as Goal;
         const newAmount = Math.min(goalData.targetAmount, goalData.currentAmount + amount);
         const isCompleted = newAmount >= goalData.targetAmount;
@@ -253,25 +237,14 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
           ? goalData.contributors 
           : [...goalData.contributors, currentUser.id];
 
-        tx.update(goalRef, { 
-          currentAmount: newAmount, 
-          contributors: newContributors 
-        });
-
+        tx.update(goalRef, { currentAmount: newAmount, contributors: newContributors });
         return { isCompleted };
       });
-
       awardPoints(currentUser.id, 25);
-      if (result.isCompleted) {
-        setActiveConfettiGoal(goalId);
-        toast({ title: "Goal Achieved!", description: "Family milestone complete!" });
-      } else {
-        toast({ title: "Contribution Logged", description: "Great step towards the goal!" });
-      }
+      if (result.isCompleted) setActiveConfettiGoal(goalId);
       return { goalCompleted: result.isCompleted, success: true };
     } catch (e) {
       console.error(e);
-      toast({ variant: "destructive", title: "Sync Error", description: "Failed to log contribution." });
       return { goalCompleted: false, success: false };
     }
   };
@@ -280,19 +253,14 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     if (!currentUser || currentUser.role !== 'Parent' || !familyId || !firestore) return;
     const memberRef = doc(firestore, 'families', familyId, 'members', userId);
     deleteDocumentNonBlocking(memberRef);
-    toast({ title: "User Removed", description: "The member has been ejected from the family network." });
   };
 
   const updateUserAvatar = (avatarUrl: string) => {
     if (!currentUser || !familyId || !firestore) return;
-    // Update family member profile
     const memberRef = doc(firestore, 'families', familyId, 'members', currentUser.id);
     updateDocumentNonBlocking(memberRef, { avatarUrl });
-    // Update global user directory for identification
     const userRef = doc(firestore, 'users', currentUser.id);
     updateDocumentNonBlocking(userRef, { avatarUrl });
-    
-    toast({ title: "Photo Updated", description: "Your profile picture has been synchronized across the family network." });
   };
 
   const updatePersonality = (personality: string) => {
@@ -313,26 +281,12 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     if (currentUser?.role !== 'Parent' || !familyId || !firestore) return;
     const allowRef = doc(firestore, 'families', familyId, 'allowances', childId);
     setDocumentNonBlocking(allowRef, { total: amount, saved: 0, childId }, { merge: true });
-    toast({ title: "Allowance Set", description: `Updated child's monthly allowance to ₹${amount}.` });
   };
 
   const depositToVault = (amount: number) => {
     if (!currentUser || !familyId || !firestore || amount <= 0) return;
     const allowRef = doc(firestore, 'families', familyId, 'allowances', currentUser.id);
     setDocumentNonBlocking(allowRef, { saved: increment(amount), childId: currentUser.id }, { merge: true });
-    toast({ title: "Money Deposited!", description: `₹${amount} added to your virtual vault.` });
-  };
-
-  const linkGoogleAccount = async () => {
-    if (!auth.currentUser) return;
-    const provider = new GoogleAuthProvider();
-    try {
-      await linkWithPopup(auth.currentUser, provider);
-      toast({ title: "Account Linked", description: "Your Google account is now linked for easier sign-in." });
-    } catch (e: any) {
-      console.error(e);
-      toast({ variant: "destructive", title: "Linking Failed", description: e.message || "Could not link account." });
-    }
   };
 
   const logout = () => signOut(auth).then(() => { 
@@ -341,8 +295,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(`familyId_${authUser?.uid}`);
   });
 
-  const isProfileDetermined = hasAttemptedLookup || !!familyId;
-  const isGlobalLoading = isAuthLoading || (authUser && !isProfileDetermined) || isSearchingFamily || (familyId && isFamilyLoading) || (familyId && areUsersLoading);
+  const isGlobalLoading = isAuthLoading || (authUser && !hasAttemptedLookup) || isSearchingFamily || (familyId && isFamilyLoading) || (familyId && areUsersLoading);
 
   const value = { 
     family: familyData ? { ...familyData, id: familyId! } : null,
@@ -351,7 +304,6 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     trustMetric, allowance, language, setLanguage, t,
     addExpense, addGoal, contributeToGoal, setMonthlyBudget,
     updatePersonality, updateLearning, setAllowance, depositToVault,
-    linkGoogleAccount,
     removeUser, updateUserAvatar,
     loading: isGlobalLoading, 
     hasAttemptedLookup,
