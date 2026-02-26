@@ -32,7 +32,48 @@ export const translations = {
       confirm: "Confirm",
       cancel: "Cancel",
       loading: "Syncing Protocol...",
-      rupees: "₹"
+      rupees: "₹",
+      points: "XP",
+      level: "LEVEL"
+    },
+    learning: {
+      modeTitle: "Learning Mode",
+      modeDesc: "Master your financial protocol and unlock your inner Budget Guardian.",
+      vaultTitle: "Virtual Vault",
+      vaultDesc: "Total Monthly Allowance",
+      vaultDeposit: "Deposit to Vault",
+      savingProtocol: "Savings Protocol",
+      activeMissions: "Active Missions",
+      missionSubtitle: "Real-world operations to build financial XP.",
+      modulesTitle: "Intelligence Modules",
+      gameTitle: "Needs vs Wants Game",
+      gameDesc: "Test your financial knowledge by sorting items into needs and wants.",
+      need: "NEED",
+      want: "WANT",
+      score: "SCORE",
+      item: "ITEM",
+      of: "OF",
+      mastered: "Unit Mastered!",
+      masteredDesc: "Your financial IQ is growing!",
+      claim: "Claim XP",
+      items: [
+        { name: "Fresh Apples", type: "Need", desc: "Healthy food to keep you strong!" },
+        { name: "Diamond Watch", type: "Want", desc: "Looks cool, but we don't need it to live." },
+        { name: "Clean Water", type: "Need", desc: "We need water to stay hydrated!" },
+        { name: "New Video Game", type: "Want", desc: "Fun to play, but not a necessity." },
+        { name: "School Uniform", type: "Need", desc: "Important for going to school!" },
+        { name: "Giant Teddy Bear", type: "Want", desc: "Cute for hugs, but you can live without it." }
+      ],
+      missions: [
+        { title: "Saving Streak", goal: "Save ₹500 from your allowance" },
+        { title: "Knowledge Seeker", goal: "Complete 3 financial quizzes" },
+        { title: "Goal Contributor", goal: "Contribute to a family goal 5 times" }
+      ],
+      quizzes: [
+        { title: 'Needs vs Wants', desc: 'Can you tell the difference?' },
+        { title: 'The Power of Saving', desc: 'Why small amounts matter over time.' },
+        { title: 'Budgeting 101', desc: 'Mastering your allowance protocol.' }
+      ]
     },
     auth: {
       signIn: "Sign In",
@@ -95,7 +136,48 @@ export const translations = {
       confirm: "पुष्टि करें",
       cancel: "रद्द करें",
       loading: "सिंक हो रहा है...",
-      rupees: "₹"
+      rupees: "₹",
+      points: "XP",
+      level: "स्तर"
+    },
+    learning: {
+      modeTitle: "लर्निंग मोड",
+      modeDesc: "अपने वित्तीय प्रोटोकॉल में महारत हासिल करें और अपने भीतर के बजट संरक्षक को अनलॉक करें।",
+      vaultTitle: "वर्चुअल वॉल्ट",
+      vaultDesc: "कुल मासिक भत्ता",
+      vaultDeposit: "वॉल्ट में जमा करें",
+      savingProtocol: "बचत प्रोटोकॉल",
+      activeMissions: "सक्रिय मिशन",
+      missionSubtitle: "वित्तीय XP बनाने के लिए वास्तविक दुनिया के कार्य।",
+      modulesTitle: "इंटेलिजेंस मॉड्यूल",
+      gameTitle: "ज़रूरत बनाम चाहत का खेल",
+      gameDesc: "वस्तुओं को ज़रूरतों और चाहतों में छाँटकर अपने वित्तीय ज्ञान का परीक्षण करें।",
+      need: "ज़रूरत",
+      want: "चाहत",
+      score: "स्कोर",
+      item: "वस्तु",
+      of: "का",
+      mastered: "यूनिट में महारत!",
+      masteredDesc: "आपका वित्तीय आईक्यू बढ़ रहा है!",
+      claim: "XP प्राप्त करें",
+      items: [
+        { name: "ताजे सेब", type: "Need", desc: "आपको मजबूत रखने के लिए स्वस्थ भोजन!" },
+        { name: "हीरे की घड़ी", type: "Want", desc: "अच्छी लगती है, लेकिन हमें जीने के लिए इसकी ज़रूरत नहीं है।" },
+        { name: "साफ पानी", type: "Need", desc: "हमे हाइड्रेटेड रहने के लिए पानी की ज़रूरत है!" },
+        { name: "नया वीडियो गेम", type: "Want", desc: "खेलने में मज़ा आता है, लेकिन ज़रूरी नहीं है।" },
+        { name: "स्कूल यूनिफॉर्म", type: "Need", desc: "स्कूल जाने के लिए महत्वपूर्ण!" },
+        { name: "विशाल टेडी बियर", type: "Want", desc: "गले लगाने के लिए प्यारा, लेकिन आप इसके बिना रह सकते हैं।" }
+      ],
+      missions: [
+        { title: "बचत का सिलसिला", goal: "अपने भत्ते से ₹500 बचाएं" },
+        { title: "ज्ञान साधक", goal: "3 वित्तीय क्विज़ पूरे करें" },
+        { title: "लक्ष्य योगदानकर्ता", goal: "पारिवारिक लक्ष्य में 5 बार योगदान दें" }
+      ],
+      quizzes: [
+        { title: 'ज़रूरत बनाम चाहत', desc: 'क्या आप अंतर बता सकते हैं?' },
+        { title: 'बचत की शक्ति', desc: 'समय के साथ छोटी राशियाँ क्यों मायने रखती हैं।' },
+        { title: 'बजटिंग 101', desc: 'अपने भत्ते के प्रोटोकॉल में महारत हासिल करना।' }
+      ]
     },
     auth: {
       signIn: "साइन इन करें",
@@ -158,7 +240,48 @@ export const translations = {
       confirm: "ధృవీకరించు",
       cancel: "రద్దు చేయి",
       loading: "సింక్ అవుతోంది...",
-      rupees: "₹"
+      rupees: "₹",
+      points: "XP",
+      level: "స్థాయి"
+    },
+    learning: {
+      modeTitle: "లెర్నింగ్ మోడ్",
+      modeDesc: "మీ ఆర్థిక ప్రోటోకాల్‌లో నైపుణ్యం సాధించండి మరియు మీ అంతర్గత బడ్జెట్ గార్డియన్‌ను అన్‌లాక్ చేయండి.",
+      vaultTitle: "వర్చువల్ వాల్ట్",
+      vaultDesc: "మొత్తం నెలవారీ అలవెన్స్",
+      vaultDeposit: "వాల్ట్‌లో డిపాజిట్ చేయి",
+      savingProtocol: "పొదుపు ప్రోటోకాల్",
+      activeMissions: "క్రియాశీల మిషన్లు",
+      missionSubtitle: "ఆర్థిక XP నిర్మించడానికి వాస్తవ ప్రపంచ కార్యకలాపాలు.",
+      modulesTitle: "ఇంటెలిజెన్స్ మాడ్యూల్స్",
+      gameTitle: "అవసరాలు vs కోరికల ఆట",
+      gameDesc: "వస్తువులను అవసరాలు మరియు కోరికలుగా విభజించడం ద్వారా మీ ఆర్థిక జ్ఞానాన్ని పరీక్షించుకోండి.",
+      need: "అవసరం",
+      want: "కోరిక",
+      score: "స్కోరు",
+      item: "వస్తువు",
+      of: "లో",
+      mastered: "యూనిట్‌లో నైపుణ్యం!",
+      masteredDesc: "మీ ఆర్థిక ఐక్యూ పెరుగుతోంది!",
+      claim: "XPని క్లెయిమ్ చేయి",
+      items: [
+        { name: "తాజా ఆపిల్స్", type: "Need", desc: "మిమ్మల్ని దృఢంగా ఉంచడానికి ఆరోగ్యకరమైన ఆహారం!" },
+        { name: "డైమండ్ వాచ్", type: "Want", desc: "చూడటానికి బాగుంటుంది, కానీ జీవించడానికి ఇది అవసరం లేదు." },
+        { name: "శుభ్రమైన నీరు", type: "Need", desc: "మనం హైడ్రేటెడ్‌గా ఉండటానికి నీరు అవసరం!" },
+        { name: "కొత్త వీడియో గేమ్", type: "Want", desc: "ఆడుకోవడానికి సరదాగా ఉంటుంది, కానీ ఇది అత్యవసరం కాదు." },
+        { name: "స్కూల్ యూనిఫాం", type: "Need", desc: "పాఠశాలకు వెళ్లడానికి ముఖ్యం!" },
+        { name: "పెద్ద టెడ్డీ బేర్", type: "Want", desc: "కౌగిలించుకోవడానికి బాగుంటుంది, కానీ ఇది లేకుండా మీరు జీవించగలరు." }
+      ],
+      missions: [
+        { title: "పొదుపు పరంపర", goal: "మీ అలవెన్స్ నుండి ₹500 ఆదా చేయండి" },
+        { title: "జ్ఞాన అన్వేషకుడు", goal: "3 ఆర్థిక క్విజ్‌లను పూర్తి చేయండి" },
+        { title: "లక్ష్య సహకారి", goal: "కుటుంబ లక్ష్యానికి 5 సార్లు సహకరించండి" }
+      ],
+      quizzes: [
+        { title: 'అవసరాలు vs కోరికలు', desc: 'మీరు తేడాను చెప్పగలరా?' },
+        { title: 'పొదుపు శక్తి', desc: 'కాలక్రమేణా చిన్న మొత్తాలు ఎందుకు ముఖ్యమైనవి.' },
+        { title: 'బడ్జెటింగ్ 101', desc: 'మీ అలవెన్స్ ప్రోటోకాల్‌పై పట్టు సాధించడం.' }
+      ]
     },
     auth: {
       signIn: "సైన్ ఇన్",
@@ -221,7 +344,48 @@ export const translations = {
       confirm: "உறுதிப்படுத்து",
       cancel: "ரத்துசெய்",
       loading: "ஒத்திசைக்கப்படுகிறது...",
-      rupees: "₹"
+      rupees: "₹",
+      points: "XP",
+      level: "நிலை"
+    },
+    learning: {
+      modeTitle: "கற்றல் முறை",
+      modeDesc: "உங்கள் நிதி நெறிமுறையில் தேர்ச்சி பெற்று, உங்கள் உள்ளார்ந்த பட்ஜெட் பாதுகாவலரைத் திறக்கவும்.",
+      vaultTitle: "மெய்நிகர் பெட்டகம்",
+      vaultDesc: "மொத்த மாதாந்திர உதவித்தொகை",
+      vaultDeposit: "பெட்டகத்தில் டெபாசிட் செய்க",
+      savingProtocol: "சேமிப்பு நெறிமுறை",
+      activeMissions: "செயலில் உள்ள பணிகள்",
+      missionSubtitle: "நிதி XP ஐ உருவாக்க நிஜ உலக செயல்பாடுகள்.",
+      modulesTitle: "அறிவு தொகுதிகள்",
+      gameTitle: "தேவைகள் vs விருப்பங்கள் விளையாட்டு",
+      gameDesc: "பொருட்களை தேவைகள் மற்றும் விருப்பங்களாகப் பிரிப்பதன் மூலம் உங்கள் நிதி அறிவைச் சோதிக்கவும்.",
+      need: "தேவை",
+      want: "விருப்பம்",
+      score: "மதிப்பெண்",
+      item: "பொருள்",
+      of: "இல்",
+      mastered: "அலகில் தேர்ச்சி!",
+      masteredDesc: "உங்கள் நிதி IQ வளர்ந்து வருகிறது!",
+      claim: "XP ஐப் பெறுங்கள்",
+      items: [
+        { name: "புதிய ஆப்பிள்கள்", type: "Need", desc: "உங்களை வலுவாக வைத்திருக்க ஆரோக்கியமான உணவு!" },
+        { name: "வைரக் கடிகாரம்", type: "Want", desc: "அழகாக இருக்கிறது, ஆனால் உயிர்வாழ இது தேவையில்லை." },
+        { name: "சுத்தமான தண்ணீர்", type: "Need", desc: "நீரேற்றமாக இருக்க எங்களுக்கு தண்ணீர் தேவை!" },
+        { name: "புதிய வீடியோ கேம்", type: "Want", desc: "விளையாட வேடிக்கையாக இருக்கும், ஆனால் இது அவசியமில்லை." },
+        { name: "பள்ளி சீருடை", type: "Need", desc: "பள்ளிக்குச் செல்ல முக்கியம்!" },
+        { name: "பெரிய டெடி பியர்", type: "Want", desc: "கட்டியணைக்க அழகாக இருக்கும், ஆனால் இது இல்லாமல் நீங்கள் வாழலாம்." }
+      ],
+      missions: [
+        { title: "சேமிப்புத் தொடர்", goal: "உங்கள் உதவித்தொகையிலிருந்து ₹500 சேமிக்கவும்" },
+        { title: "அறிவுத் தேடல்", goal: "3 நிதி வினாடி வினாக்களை முடிக்கவும்" },
+        { title: "இலக்கு பங்களிப்பாளர்", goal: "குடும்ப இலக்குக்கு 5 முறை பங்களிக்கவும்" }
+      ],
+      quizzes: [
+        { title: 'தேவைகள் vs விருப்பங்கள்', desc: 'உங்களால் வித்தியாசத்தைச் சொல்ல முடியுமா?' },
+        { title: 'சேமிப்பின் சக்தி', desc: 'காலப்போக்கில் சிறிய தொகைகள் ஏன் முக்கியம்.' },
+        { title: 'பட்ஜெட்டிங் 101', desc: 'உங்கள் உதவித்தொகை நெறிமுறையில் தேர்ச்சி பெறுதல்.' }
+      ]
     },
     auth: {
       signIn: "உள்நுழைக",
