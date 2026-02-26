@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -26,19 +25,20 @@ import {
 } from "@/components/ui/select";
 import { AppLogo } from "@/components/app-logo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Copy, Loader2 } from "lucide-react";
+import { Copy, Loader2, Languages } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useFirestore } from "@/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { collection, query, where, getDocs, doc, writeBatch } from "firebase/firestore";
 import { useFamily } from "@/context/family-context";
+import { Language } from "@/lib/translations";
 
 export default function SignupPage() {
     const router = useRouter();
     const { toast } = useToast();
     const auth = useAuth();
     const firestore = useFirestore();
-    const { refreshFamily, authUser, currentUser, loading: isFamilyLoading } = useFamily();
+    const { refreshFamily, authUser, currentUser, loading: isFamilyLoading, t, language, setLanguage } = useFamily();
 
     const [role, setRole] = useState<string>("");
     const [step, setStep] = useState<'form' | 'code'>('form');
@@ -46,7 +46,6 @@ export default function SignupPage() {
     const [error, setError] = useState('');
     const [isSigningUp, setIsSigningUp] = useState(false);
 
-    // Auto-redirect if already logged in and profile exists
     useEffect(() => {
       if (!isFamilyLoading && authUser && currentUser) {
         router.push("/dashboard");
@@ -97,7 +96,7 @@ export default function SignupPage() {
                 batch.set(doc(firestore, "families", familyDocRef.id, "members", user.uid), userProfile);
                 
                 const gamificationData = { 
-                  id: user.uid, // Required by schema if using entities
+                  id: user.uid,
                   userId: user.uid, 
                   familyId: familyDocRef.id,
                   points: 50, 
@@ -109,7 +108,6 @@ export default function SignupPage() {
                 await batch.commit();
                 
                 setGeneratedCode(newFamilyCode);
-                // Seed the family ID immediately to stop the redirect loop
                 await refreshFamily(familyDocRef.id);
                 setStep('code');
             } else { // Join family
@@ -147,7 +145,6 @@ export default function SignupPage() {
                 batch.set(doc(firestore, "families", familyId, "gamification", user.uid), gamificationData);
 
                 await batch.commit();
-                // Seed the family ID immediately
                 await refreshFamily(familyId);
                 router.push('/dashboard');
             }
@@ -171,13 +168,13 @@ export default function SignupPage() {
             <Card className="mx-auto max-w-sm">
                 <CardHeader className="items-center text-center">
                     <AppLogo />
-                    <CardTitle className="text-2xl font-headline">Welcome to the Family!</CardTitle>
+                    <CardTitle className="text-2xl font-headline">{t.auth.welcomeFamily}</CardTitle>
                     <CardDescription>
-                        Your family is all set up. Share this code with other members to let them join.
+                        {t.auth.shareCode}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-4">
-                    <p className="text-sm text-muted-foreground">Your unique family code is:</p>
+                    <p className="text-sm text-muted-foreground">{t.auth.familyCode}:</p>
                     <div className="flex items-center justify-between rounded-lg border bg-muted p-3">
                         <span className="text-2xl font-bold tracking-widest">{generatedCode}</span>
                         <Button variant="ghost" size="icon" onClick={copyToClipboard}>
@@ -185,13 +182,13 @@ export default function SignupPage() {
                             <span className="sr-only">Copy code</span>
                         </Button>
                     </div>
-                     <Button onClick={() => router.push('/dashboard')}>Go to Dashboard</Button>
+                     <Button onClick={() => router.push('/dashboard')}>{t.auth.goToDashboard}</Button>
                 </CardContent>
                  <CardFooter className="justify-center">
                     <div className="text-sm">
-                        Finished?{" "}
+                        {t.auth.alreadyHaveAccount}{" "}
                         <Link href="/login" className="underline">
-                            Sign in
+                            {t.auth.signIn}
                         </Link>
                     </div>
                 </CardFooter>
@@ -200,75 +197,94 @@ export default function SignupPage() {
     }
 
   return (
-    <Card className="mx-auto max-w-sm">
-      <CardHeader className="items-center text-center">
+    <div className="flex flex-col items-center gap-6 w-full max-w-sm">
+      <div className="flex flex-col items-center gap-4 w-full">
         <AppLogo />
-        <CardTitle className="text-2xl font-headline">Create your Account</CardTitle>
-        <CardDescription>
-          Join your family's financial hub in a few easy steps.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSignup} className="grid gap-4">
-            {error && (
-                <Alert variant="destructive">
-                    <AlertTitle>Signup Failed</AlertTitle>
-                    <AlertDescription>{error}</AlertDescription>
-                </Alert>
-            )}
-          <div className="grid gap-2">
-            <Label htmlFor="full-name">Full Name</Label>
-            <Input id="full-name" name="full-name" placeholder="Alex Johnson" required disabled={isSigningUp} />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="alex@example.com"
-              required
-              disabled={isSigningUp}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" name="password" type="password" required disabled={isSigningUp} />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="role">Your Role</Label>
-            <Select required onValueChange={(value: string) => setRole(value)} disabled={isSigningUp}>
-              <SelectTrigger id="role">
-                <SelectValue placeholder="Select your role in the family" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ParentCreate">Parent (Create a new family)</SelectItem>
-                <SelectItem value="ParentJoin">Parent (Join a family)</SelectItem>
-                <SelectItem value="Child">Child (Join a family)</SelectItem>
-                <SelectItem value="Viewer">Viewer (Join a family)</SelectItem>
-              </SelectContent>
+        <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5">
+            <Languages className="h-4 w-4 text-primary" />
+            <Select value={language} onValueChange={(v) => setLanguage(v as Language)}>
+                <SelectTrigger className="bg-transparent border-none h-6 text-xs w-[120px] focus:ring-0">
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="hi">हिन्दी (Hindi)</SelectItem>
+                    <SelectItem value="te">తెలుగు (Telugu)</SelectItem>
+                    <SelectItem value="ta">தமிழ் (Tamil)</SelectItem>
+                </SelectContent>
             </Select>
-          </div>
-
-          {(role === 'Child' || role === 'Viewer' || role === 'ParentJoin') && (
-            <div className="grid gap-2">
-                <Label htmlFor="family-code">Family Code</Label>
-                <Input id="family-code" name="family-code" placeholder="Enter code from parent" required disabled={isSigningUp} />
-            </div>
-          )}
-
-          <Button type="submit" className="w-full" disabled={!role || isSigningUp}>
-            {isSigningUp && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isSigningUp ? 'Creating Account...' : 'Create an account'}
-          </Button>
-        </form>
-        <div className="mt-4 text-center text-sm">
-          Already have an account?{" "}
-          <Link href="/login" className="underline">
-            Sign in
-          </Link>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+      
+      <Card className="w-full">
+        <CardHeader className="items-center text-center">
+          <CardTitle className="text-2xl font-headline">{t.auth.createAccount}</CardTitle>
+          <CardDescription>
+            {t.auth.accessSecure}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSignup} className="grid gap-4">
+              {error && (
+                  <Alert variant="destructive">
+                      <AlertTitle>Signup Failed</AlertTitle>
+                      <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+              )}
+            <div className="grid gap-2">
+              <Label htmlFor="full-name">{t.auth.fullName}</Label>
+              <Input id="full-name" name="full-name" placeholder="Alex Johnson" required disabled={isSigningUp} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="email">{t.auth.email}</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="alex@example.com"
+                required
+                disabled={isSigningUp}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="password">{t.auth.password}</Label>
+              <Input id="password" name="password" type="password" required disabled={isSigningUp} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="role">{t.auth.role}</Label>
+              <Select required onValueChange={(value: string) => setRole(value)} disabled={isSigningUp}>
+                <SelectTrigger id="role">
+                  <SelectValue placeholder={t.auth.rolePlaceholder} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ParentCreate">{t.auth.parentCreate}</SelectItem>
+                  <SelectItem value="ParentJoin">{t.auth.parentJoin}</SelectItem>
+                  <SelectItem value="Child">{t.auth.childJoin}</SelectItem>
+                  <SelectItem value="Viewer">{t.auth.viewerJoin}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {(role === 'Child' || role === 'Viewer' || role === 'ParentJoin') && (
+              <div className="grid gap-2">
+                  <Label htmlFor="family-code">{t.auth.familyCode}</Label>
+                  <Input id="family-code" name="family-code" placeholder="Enter code from parent" required disabled={isSigningUp} />
+              </div>
+            )}
+
+            <Button type="submit" className="w-full" disabled={!role || isSigningUp}>
+              {isSigningUp && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isSigningUp ? t.auth.creatingAccount : t.auth.createAccount}
+            </Button>
+          </form>
+          <div className="mt-4 text-center text-sm">
+            {t.auth.alreadyHaveAccount}{" "}
+            <Link href="/login" className="underline">
+              {t.auth.signIn}
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
