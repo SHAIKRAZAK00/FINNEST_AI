@@ -112,7 +112,7 @@ function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/rewards'} tooltip={t.nav.rewards}>
               <Link href="/rewards"><Medal /><span>{t.nav.rewards}</span></Link>
-            </SidebarMenuItem>
+            </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/assistant'} tooltip={t.nav.assistant}>
@@ -179,17 +179,21 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
+    // Only perform routing decisions once authentication and profile lookup are finalized
     if (!loading && hasAttemptedLookup) {
       if (!authUser) {
+        // User is not logged in
         if (pathname !== '/login' && pathname !== '/signup') {
             router.replace('/login');
         }
       } else if (!currentUser) {
+          // User is logged in but has no database profile/family link
           if (pathname !== '/signup' && !pathname.startsWith('/login')) {
               router.replace('/signup');
           }
       } else {
-          if (pathname === '/login' || pathname === '/signup') {
+          // User is logged in and has a valid profile
+          if (pathname === '/login' || pathname === '/signup' || pathname === '/') {
               router.replace('/dashboard');
           }
       }

@@ -221,6 +221,51 @@ export default function SignupPage() {
         )
     }
 
+    if (authUser && !currentUser) {
+        return (
+            <div className="flex flex-col items-center gap-6 w-full max-w-sm">
+                <AppLogo />
+                <Card className="w-full">
+                    <CardHeader className="text-center">
+                        <CardTitle className="text-2xl font-headline">Finish Your Protocol</CardTitle>
+                        <CardDescription>We found your account, but you haven't joined a family yet.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid gap-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="role">Select Your Role</Label>
+                            <Select required onValueChange={(value: string) => setRole(value)} disabled={isSigningUp}>
+                                <SelectTrigger id="role">
+                                    <SelectValue placeholder="How will you use FinNest?" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="ParentCreate">{t.auth.parentCreate}</SelectItem>
+                                    <SelectItem value="ParentJoin">{t.auth.parentJoin}</SelectItem>
+                                    <SelectItem value="Child">{t.auth.childJoin}</SelectItem>
+                                    <SelectItem value="Viewer">{t.auth.viewerJoin}</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        {(role === 'Child' || role === 'Viewer' || role === 'ParentJoin') && (
+                            <div className="grid gap-2">
+                                <Label htmlFor="family-code">{t.auth.familyCode}</Label>
+                                <Input id="family-code" placeholder="Enter code from parent" required disabled={isSigningUp} />
+                            </div>
+                        )}
+                        <Button 
+                            className="w-full" 
+                            disabled={!role || isSigningUp}
+                            onClick={() => completeRegistration(authUser, authUser.displayName || "User", role)}
+                        >
+                            {isSigningUp && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Complete Profile
+                        </Button>
+                        <Button variant="ghost" className="w-full" onClick={() => auth.signOut()}>Log Out</Button>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
+
   return (
     <div className="flex flex-col items-center gap-6 w-full max-w-sm">
       <div className="flex flex-col items-center gap-4 w-full">
