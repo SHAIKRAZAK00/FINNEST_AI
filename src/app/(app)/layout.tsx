@@ -94,7 +94,7 @@ function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/leaderboard'} tooltip={t.nav.leaderboard}>
               <Link href="/leaderboard"><Trophy /><span>{t.nav.leaderboard}</span></Link>
-            </SidebarMenuItem>
+            </SidebarMenuButton>
           </SidebarMenuItem>
           
           <div className="h-px bg-white/5 my-2 mx-2" />
@@ -181,15 +181,22 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!loading) {
       if (!authUser) {
-        router.replace('/login');
+        if (pathname !== '/login' && pathname !== '/signup') {
+            router.replace('/login');
+        }
       } else if (!currentUser) {
-        // Increase timeout to 1.5s to ensure profile has time to load from Firestore
+        // Wait longer for the profile to resolve before pushing to signup
         const timer = setTimeout(() => {
           if (!currentUser && pathname !== '/signup' && !pathname.startsWith('/login')) {
             router.replace('/signup');
           }
-        }, 1500);
+        }, 2500);
         return () => clearTimeout(timer);
+      } else {
+          // Profile exists, if on auth pages, go to dashboard
+          if (pathname === '/login' || pathname === '/signup') {
+              router.replace('/dashboard');
+          }
       }
       setHasCheckedInitialState(true);
     }
