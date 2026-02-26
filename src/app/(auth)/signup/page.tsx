@@ -11,7 +11,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -26,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { AppLogo } from "@/components/app-logo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Copy, Loader2, Languages } from "lucide-react";
+import { Copy, Loader2, Languages, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useFirestore } from "@/firebase";
 import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
@@ -85,7 +84,11 @@ export default function SignupPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             await completeRegistration(userCredential.user, fullName, role);
         } catch (err: any) {
-            setError(err.message);
+            if (err.code === 'auth/email-already-in-use') {
+                setError(t.auth.invalidEmail || "This email is already in use. Please log in.");
+            } else {
+                setError(err.message);
+            }
             setIsSigningUp(false);
         }
     };
@@ -116,7 +119,7 @@ export default function SignupPage() {
                 };
                 batch.set(familyDocRef, newFamily);
 
-                // Populate Global Directory
+                // Populate Global Directory for Discovery
                 batch.set(doc(firestore, "users", user.uid), {
                   uid: user.uid,
                   familyId: familyDocRef.id,
@@ -155,15 +158,7 @@ export default function SignupPage() {
                 const familyDoc = querySnapshot.docs[0];
                 const familyId = familyDoc.id;
 
-                // Update family members map
-                batch.update(doc(firestore, "families", familyId), {
-                    [`members.${user.uid}`]: {
-                        role: roleForUserObject,
-                        joinedAt: new Date().toISOString()
-                    }
-                });
-
-                // Populate Global Directory
+                // Populate Global Directory for Discovery
                 batch.set(doc(firestore, "users", user.uid), {
                   uid: user.uid,
                   familyId: familyId,
@@ -256,9 +251,16 @@ export default function SignupPage() {
         <CardContent>
           <div className="grid gap-4">
               {error && (
-                  <Alert variant="destructive">
-                      <AlertTitle>Signup Failed</AlertTitle>
-                      <AlertDescription>{error}</AlertDescription>
+                  <Alert variant="destructive" className="flex flex-col gap-3">
+                      <div>
+                        <AlertTitle>Signup Failed</AlertTitle>
+                        <AlertDescription>{error}</AlertDescription>
+                      </div>
+                      {error.includes("already in use") && (
+                        <Button variant="outline" size="sm" asChild className="w-full border-destructive/20 hover:bg-destructive/10 text-destructive">
+                           <Link href="/login">Go to Login <ArrowRight className="ml-2 h-4 w-4"/></Link>
+                        </Button>
+                      )}
                   </Alert>
               )}
             

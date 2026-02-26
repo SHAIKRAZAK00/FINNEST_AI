@@ -94,10 +94,12 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
         setFamilyId(foundFamilyId);
         localStorage.setItem(`familyId_${authUser.uid}`, foundFamilyId);
       } else {
+        // Fallback: Check if user exists in any family (this can be slow/restricted, directory is preferred)
         setFamilyId(null);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Critical error finding family:", err);
+      // If we get a permission error on the discovery, it's a structural issue
       setFamilyId(null);
     } finally {
       setIsSearchingFamily(false);
@@ -136,7 +138,6 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const allowanceRef = useMemoFirebase(() => (familyId && authUser) ? doc(firestore, 'families', familyId, 'allowances', authUser.uid) : null, [firestore, familyId, authUser]);
   const { data: allowance } = useDoc<Allowance>(allowanceRef);
 
-  // Error recovery: If we get a permission denied error, the family mapping is likely stale
   useEffect(() => {
     if (familyError || areUsersError) {
       const isPermissionError = (familyError as any)?.name === 'FirebaseError' || (areUsersError as any)?.name === 'FirebaseError';
