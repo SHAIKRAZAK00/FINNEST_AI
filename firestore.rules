@@ -13,20 +13,15 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isMemberOf(dataMap) {
-      return isSignedIn() && (request.auth.uid in dataMap);
+    // Helper to check if a user is a member of a family.
+    // We check the sub-collection 'members' for the existence of the user document.
+    // This is more reliable than checking a map in the parent document for initial access.
+    function isMember(familyId) {
+      return isSignedIn() && exists(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid));
     }
 
-    function hasRole(dataMap, role) {
-      return isMemberOf(dataMap) && dataMap[request.auth.uid].role == role;
-    }
-
-    function isParent(dataMap) {
-      return hasRole(dataMap, 'Parent');
-    }
-
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
+    function isParent(familyId) {
+      return isMember(familyId) && get(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid)).data.role == 'Parent';
     }
 
     // --- GLOBAL USER DIRECTORY ---
@@ -39,39 +34,39 @@ service cloud.firestore {
 
     // --- FAMILY COLLECTION RULES ---
     match /families/{familyId} {
-      allow get: if isMemberOf(resource.data.members);
-      allow list: if isSignedIn() && isMemberOf(resource.data.members);
-      allow create: if isSignedIn() && request.resource.data.id == familyId;
-      allow update: if resource != null && isParent(resource.data.members);
-      allow delete: if resource != null && isParent(resource.data.members);
+      // Allow get if the user is a member or if they are in the process of creating/joining.
+      allow get: if isMember(familyId) || (isSignedIn() && request.auth.uid in request.resource.data.members);
+      allow list: if isMember(familyId);
+      
+      allow create: if isSignedIn();
+      allow update: if isParent(familyId);
+      allow delete: if isParent(familyId);
 
       match /members/{userId} {
-        allow get: if isSignedIn();
-        allow list: if isSignedIn();
+        allow get, list: if isMember(familyId) || isOwner(userId);
         allow create: if isOwner(userId);
-        allow update: if isOwner(userId) || isParent(get(/databases/$(database)/documents/families/$(familyId)).data.members);
-        allow delete: if isOwner(userId) || isParent(get(/databases/$(database)/documents/families/$(familyId)).data.members);
+        allow update, delete: if isOwner(userId) || isParent(familyId);
       }
 
       match /expenses/{expenseId} {
-        allow read: if isMemberOf(get(/databases/$(database)/documents/families/$(familyId)).data.members);
-        allow create: if isMemberOf(get(/databases/$(database)/documents/families/$(familyId)).data.members);
-        allow update, delete: if isParent(get(/databases/$(database)/documents/families/$(familyId)).data.members) || isOwner(resource.data.contributorId);
+        allow read: if isMember(familyId);
+        allow create: if isMember(familyId);
+        allow update, delete: if isParent(familyId) || (resource != null && isOwner(resource.data.contributorId));
       }
 
       match /goals/{goalId} {
-        allow read: if isMemberOf(get(/databases/$(database)/documents/families/$(familyId)).data.members);
-        allow create, update: if isMemberOf(get(/databases/$(database)/documents/families/$(familyId)).data.members);
-        allow delete: if isParent(get(/databases/$(database)/documents/families/$(familyId)).data.members);
+        allow read: if isMember(familyId);
+        allow create, update: if isMember(familyId);
+        allow delete: if isParent(familyId);
       }
 
       match /allowances/{userId} {
-        allow get: if isOwner(userId) || isParent(get(/databases/$(database)/documents/families/$(familyId)).data.members);
-        allow create, update, delete: if isParent(get(/databases/$(database)/documents/families/$(familyId)).data.members);
+        allow get: if isOwner(userId) || isParent(familyId);
+        allow create, update, delete: if isParent(familyId);
       }
 
       match /trustMetrics/{userId} {
-        allow read: if isOwner(userId) || isParent(get(/databases/$(database)/documents/families/$(familyId)).data.members);
+        allow read: if isOwner(userId) || isParent(familyId);
         allow write: if isOwner(userId);
       }
     }

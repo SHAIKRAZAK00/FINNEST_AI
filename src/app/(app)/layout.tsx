@@ -133,6 +133,7 @@ function AppSidebar() {
             <span className="text-[10px] uppercase font-bold text-white/40 px-2 flex items-center gap-2">
                 <Languages className="h-3 w-3" /> {t.nav.language}
             </span>
+            <span className="text-[10px] text-white/40 px-2 font-mono">EN | HI | TE | TA</span>
             <Select value={language} onValueChange={(v) => setLanguage(v as Language)}>
                 <SelectTrigger className="bg-white/5 border-white/5 h-8 text-xs">
                     <SelectValue />
@@ -185,12 +186,12 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
             router.replace('/login');
         }
       } else if (!currentUser) {
-        // Wait longer for the profile to resolve before pushing to signup
+        // Wait for the profile to potentially resolve before pushing to signup
         const timer = setTimeout(() => {
-          if (!currentUser && pathname !== '/signup' && !pathname.startsWith('/login')) {
+          if (!currentUser && !loading && pathname !== '/signup' && !pathname.startsWith('/login')) {
             router.replace('/signup');
           }
-        }, 5000);
+        }, 3000);
         return () => clearTimeout(timer);
       } else {
           if (pathname === '/login' || pathname === '/signup') {

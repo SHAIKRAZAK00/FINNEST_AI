@@ -78,7 +78,6 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     if (!authUser || !firestore) return;
     setIsSearchingFamily(true);
     try {
-      // 1. Check local storage
       const cachedId = typeof window !== 'undefined' ? localStorage.getItem(`familyId_${authUser.uid}`) : null;
       if (cachedId) {
         setFamilyId(cachedId);
@@ -87,7 +86,6 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
         return;
       }
       
-      // 2. Use global user directory for discovery
       const userRef = doc(firestore, 'users', authUser.uid);
       const userSnap = await getDoc(userRef);
       
@@ -121,22 +119,34 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   }, [authUser, firestore, isAuthLoading, hasAttemptedLookup, isSearchingFamily, findFamily]);
   
   const familyRef = useMemoFirebase(() => familyId ? doc(firestore, 'families', familyId) : null, [firestore, familyId]);
-  const { data: familyData, isLoading: isFamilyLoading } = useDoc<Family>(familyRef);
+  const { data: familyData, isLoading: isFamilyLoading, error: familyError } = useDoc<Family>(familyRef);
 
   const membersRef = useMemoFirebase(() => familyId ? collection(firestore, 'families', familyId, 'members') : null, [firestore, familyId]);
-  const { data: users, isLoading: areUsersLoading } = useCollection<User>(membersRef);
+  const { data: users, isLoading: areUsersLoading, error: areUsersError } = useCollection<User>(membersRef);
 
   const expensesRef = useMemoFirebase(() => familyId ? collection(firestore, 'families', familyId, 'expenses') : null, [firestore, familyId]);
-  const { data: expenses, isLoading: areExpensesLoading } = useCollection<Expense>(expensesRef);
+  const { data: expenses } = useCollection<Expense>(expensesRef);
 
   const goalsRef = useMemoFirebase(() => familyId ? collection(firestore, 'families', familyId, 'goals') : null, [firestore, familyId]);
-  const { data: goals, isLoading: areGoalsLoading } = useCollection<Goal>(goalsRef);
+  const { data: goals } = useCollection<Goal>(goalsRef);
   
   const trustRef = useMemoFirebase(() => (familyId && authUser) ? doc(firestore, 'families', familyId, 'trustMetrics', authUser.uid) : null, [firestore, familyId, authUser]);
   const { data: trustMetric } = useDoc<TrustMetric>(trustRef);
 
   const allowanceRef = useMemoFirebase(() => (familyId && authUser) ? doc(firestore, 'families', familyId, 'allowances', authUser.uid) : null, [firestore, familyId, authUser]);
   const { data: allowance } = useDoc<Allowance>(allowanceRef);
+
+  // Error recovery: If we get a permission denied error, the family mapping is likely stale
+  useEffect(() => {
+    if (familyError || areUsersError) {
+      const isPermissionError = (familyError as any)?.name === 'FirebaseError' || (areUsersError as any)?.name === 'FirebaseError';
+      if (isPermissionError && familyId) {
+        console.warn("Permission denied for family. Clearing stale mapping.");
+        setFamilyId(null);
+        localStorage.removeItem(`familyId_${authUser?.uid}`);
+      }
+    }
+  }, [familyError, areUsersError, familyId, authUser]);
 
   useEffect(() => {
     if (users && authUser) {
