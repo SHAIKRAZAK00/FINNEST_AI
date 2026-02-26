@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -9,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, Trash2, Loader2, Moon, Sun } from "lucide-react";
+import { Copy, Trash2, Loader2, Moon, Sun, Wallet, Save } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,16 +24,18 @@ import {
 import type { User } from "@/lib/types";
 
 export default function SettingsPage() {
-  const { family, currentUser, users, removeUser, updateUserAvatar } = useFamily();
+  const { family, currentUser, users, removeUser, updateUserAvatar, setAllowance } = useFamily();
   const { toast } = useToast();
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [userToRemove, setUserToRemove] = useState<User | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // State for allowance inputs
+  const [allowanceValues, setAllowanceValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    // Sync UI with actual document state
     setIsDark(document.documentElement.classList.contains('dark'));
   }, []);
 
@@ -118,34 +121,93 @@ export default function SettingsPage() {
       description: "Your theme preference has been saved.",
     });
   };
-  
+
+  const handleSetAllowance = (childId: string) => {
+    const value = allowanceValues[childId];
+    if (!value) return;
+    const amount = parseFloat(value);
+    if (!isNaN(amount) && amount >= 0) {
+      setAllowance(childId, amount);
+    }
+  };
+
   if (!currentUser || !family) {
-    return null; // Or a loading state
+    return null;
   }
 
+  const children = users.filter(u => u.role === 'Child');
+
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6 max-w-4xl mx-auto">
        {currentUser.role === 'Parent' && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+                <Wallet className="h-5 w-5 text-primary" /> Allowance Management
+            </CardTitle>
+            <CardDescription>Set individual monthly virtual allowances for your children.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {children.length > 0 ? (
+                <div className="space-y-6">
+                    {children.map(child => (
+                        <div key={child.id} className="flex flex-col sm:flex-row items-center justify-between p-4 rounded-xl bg-background border border-border gap-4">
+                            <div className="flex items-center gap-4">
+                                <Avatar className="h-12 w-12 border-2 border-primary/20">
+                                    <AvatarImage src={child.avatarUrl} alt={child.name} />
+                                    <AvatarFallback>{getInitials(child.name)}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <p className="font-bold">{child.name}</p>
+                                    <p className="text-[10px] uppercase text-muted-foreground">Child Member</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                                <div className="relative flex-1 sm:w-32">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">₹</span>
+                                    <Input 
+                                        type="number" 
+                                        className="pl-7" 
+                                        placeholder="Amount"
+                                        value={allowanceValues[child.id] || ""}
+                                        onChange={(e) => setAllowanceValues({...allowanceValues, [child.id]: e.target.value})}
+                                    />
+                                </div>
+                                <Button size="sm" onClick={() => handleSetAllowance(child.id)}>
+                                    <Save className="h-4 w-4 mr-2" /> Set
+                                </Button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <p className="text-sm text-muted-foreground italic text-center py-4">No child accounts found in this family.</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {currentUser.role === 'Parent' && (
         <Card>
           <CardHeader>
-            <CardTitle>Family Settings</CardTitle>
-            <CardDescription>Manage your family group and invite members.</CardDescription>
+            <CardTitle>Family Protocol</CardTitle>
+            <CardDescription>Manage your family identity and recruitment code.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-                <Label>Family Name</Label>
+                <Label>Family Designation</Label>
                 <Input value={family.familyName} readOnly />
             </div>
             <div className="space-y-2">
-                <Label htmlFor="family-code">Family Code</Label>
+                <Label htmlFor="family-code">Synchronization Code</Label>
                 <div className="flex items-center gap-2">
-                    <Input id="family-code" value={family.familyCode} readOnly />
+                    <Input id="family-code" value={family.familyCode} readOnly className="font-mono tracking-widest text-lg" />
                     <Button variant="outline" size="icon" onClick={handleCopy}>
                         <Copy className="h-4 w-4" />
                         <span className="sr-only">Copy code</span>
                     </Button>
                 </div>
-                <p className="text-sm text-muted-foreground">Share this code with family members to let them join.</p>
+                <p className="text-xs text-muted-foreground">Share this code to onboard new members into the ecosystem.</p>
             </div>
           </CardContent>
         </Card>
@@ -154,13 +216,13 @@ export default function SettingsPage() {
       {currentUser.role === 'Parent' && (
         <Card>
             <CardHeader>
-                <CardTitle>Manage Members</CardTitle>
-                <CardDescription>Remove members from your family group.</CardDescription>
+                <CardTitle>Network Members</CardTitle>
+                <CardDescription>Manage authorized users in your family network.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
                     {users.map(user => (
-                        <div key={user.id} className="flex items-center justify-between">
+                        <div key={user.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
                            <div className="flex items-center gap-4">
                                 <Avatar className="h-10 w-10">
                                     <AvatarImage src={user.avatarUrl} alt={user.name} />
@@ -186,8 +248,8 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Profile Settings</CardTitle>
-          <CardDescription>Update your personal information.</CardDescription>
+          <CardTitle>Individual Profile</CardTitle>
+          <CardDescription>Update your personal identity parameters.</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="grid gap-6" onSubmit={(e) => e.preventDefault()}>
@@ -199,7 +261,7 @@ export default function SettingsPage() {
               accept="image/*"
             />
             <div className="flex items-center gap-4">
-              <Avatar className="h-20 w-20">
+              <Avatar className="h-20 w-20 border-4 border-primary/10">
                 <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
                 <AvatarFallback>{getInitials(currentUser.name)}</AvatarFallback>
               </Avatar>
@@ -209,35 +271,35 @@ export default function SettingsPage() {
               </Button>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name">Full Designation</Label>
               <Input id="name" defaultValue={currentUser.name} />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" defaultValue={currentUser.email} readOnly />
+              <Label htmlFor="email">Encrypted Email</Label>
+              <Input id="email" type="email" defaultValue={currentUser.email} readOnly className="opacity-60" />
             </div>
-            <Button>Save Changes</Button>
+            <Button className="w-full sm:w-auto">Update Profile</Button>
           </form>
         </CardContent>
       </Card>
       
       <Card>
         <CardHeader>
-          <CardTitle>App Preferences</CardTitle>
-          <CardDescription>Customize your FinNest AI experience.</CardDescription>
+          <CardTitle>Interface Customization</CardTitle>
+          <CardDescription>Tailor the FinNest AI visual experience.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <Label htmlFor="email-notifications">Email Notifications</Label>
-                    <p className="text-sm text-muted-foreground">Receive weekly summaries and alerts.</p>
+                    <Label htmlFor="email-notifications">Email Summaries</Label>
+                    <p className="text-xs text-muted-foreground">Receive weekly financial performance briefs.</p>
                 </div>
                 <Switch id="email-notifications" defaultChecked/>
             </div>
             <div className="flex items-center justify-between">
                 <div>
-                    <Label htmlFor="push-notifications">Push Notifications</Label>
-                    <p className="text-sm text-muted-foreground">Get real-time updates on your device.</p>
+                    <Label htmlFor="push-notifications">Push Alerts</Label>
+                    <p className="text-xs text-muted-foreground">Real-time status updates on budget and goals.</p>
                 </div>
                 <Switch id="push-notifications" defaultChecked />
             </div>
@@ -245,9 +307,9 @@ export default function SettingsPage() {
                 <div>
                     <Label htmlFor="dark-mode" className="flex items-center gap-2">
                         {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-                        Theme Mode
+                        Chromatic Theme
                     </Label>
-                    <p className="text-sm text-muted-foreground">Switch between Light and Dark themes.</p>
+                    <p className="text-xs text-muted-foreground">Switch between high-contrast dark and light modes.</p>
                 </div>
                 <Button variant="outline" onClick={toggleTheme} className="w-32">
                     {isDark ? "Light Mode" : "Dark Mode"}
@@ -256,33 +318,34 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-destructive/20 bg-destructive/5">
         <CardHeader>
-          <CardTitle className="text-destructive">Danger Zone</CardTitle>
-          <CardDescription>Be careful with these actions.</CardDescription>
+          <CardTitle className="text-destructive">System Termination</CardTitle>
+          <CardDescription>Irreversible destructive actions.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-            <div className="flex items-center justify-between rounded-lg border border-destructive/50 p-4">
+            <div className="flex items-center justify-between rounded-lg border border-destructive/50 p-4 bg-background">
                 <div>
-                    <h3 className="font-semibold">Leave Family</h3>
-                    <p className="text-sm text-muted-foreground">You will lose access to all shared data.</p>
+                    <h3 className="font-semibold">Exit Family Network</h3>
+                    <p className="text-xs text-muted-foreground">Sever ties and lose access to all shared family intelligence.</p>
                 </div>
-                <Button variant="destructive" disabled={users.filter(u => u.role === 'Parent').length <= 1}>Leave Family</Button>
+                <Button variant="destructive" disabled={users.filter(u => u.role === 'Parent').length <= 1}>Exit</Button>
             </div>
         </CardContent>
       </Card>
+      
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent>
             <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogTitle>Execute Removal?</AlertDialogTitle>
                 <AlertDialogDescription>
-                    This will permanently remove <strong>{userToRemove?.name}</strong> from the family. All their associated data, like expenses and goal contributions, will also be deleted. This action cannot be undone.
+                    This will permanently eject <strong>{userToRemove?.name}</strong> from the family network. This operation cannot be reversed.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setUserToRemove(null)}>Cancel</AlertDialogCancel>
+                <AlertDialogCancel onClick={() => setUserToRemove(null)}>Abort</AlertDialogCancel>
                 <AlertDialogAction onClick={handleRemoveUser} className={buttonVariants({ variant: "destructive" })}>
-                    Remove
+                    Confirm Ejection
                 </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>

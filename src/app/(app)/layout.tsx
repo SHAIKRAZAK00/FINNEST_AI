@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -156,22 +156,28 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const { loading, currentUser, authUser } = useFamily();
   const router = useRouter();
   const pathname = usePathname();
+  const [hasCheckedInitialState, setHasCheckedInitialState] = useState(false);
 
   useEffect(() => {
+    // Only handle redirects once we've definitely finished the initial loading sequence.
     if (!loading) {
       if (!authUser) {
         router.replace('/login');
       } else if (!currentUser) {
-        // Only redirect to signup if we are definitely authenticated but have no profile
-        // and we aren't already there.
-        if (pathname !== '/signup' && !pathname.startsWith('/login')) {
-          router.replace('/signup');
-        }
+        // Profile check. We add a tiny buffer to avoid flickering redirects while 
+        // the state is stabilizing.
+        const timer = setTimeout(() => {
+          if (!currentUser && pathname !== '/signup' && !pathname.startsWith('/login')) {
+            router.replace('/signup');
+          }
+        }, 300);
+        return () => clearTimeout(timer);
       }
+      setHasCheckedInitialState(true);
     }
   }, [loading, authUser, currentUser, router, pathname]);
 
-  if (loading) return (
+  if (loading || (!hasCheckedInitialState && authUser)) return (
     <div className="flex h-screen w-full items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

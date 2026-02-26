@@ -15,17 +15,21 @@ export default function RootPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // We only act once the initial auth and profile lookup are resolved
+    // Only act when we are definitively not loading.
     if (!loading) {
       if (authUser) {
+        // We have an authenticated user.
         if (currentUser) {
+          // Profile exists, go to dashboard.
           router.replace('/dashboard');
         } else {
-          // No profile found for this authenticated user, send to setup
+          // No profile found yet, go to setup.
+          // Note: If currentUser is just taking a moment to load even after 'loading' is false,
+          // the layout guard in (app)/layout.tsx will handle secondary checks.
           router.replace('/signup');
         }
       } else {
-        // Not logged in at all
+        // Not logged in.
         router.replace('/login');
       }
     }

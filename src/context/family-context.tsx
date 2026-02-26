@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from 'react';
@@ -272,13 +273,12 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     if (currentUser?.role !== 'Parent' || !familyId || !firestore) return;
     const allowRef = doc(firestore, 'families', familyId, 'allowances', childId);
     setDocumentNonBlocking(allowRef, { total: amount, saved: 0, childId }, { merge: true });
-    toast({ title: "Allowance Set", description: `Child will receive ₹${amount} monthly.` });
+    toast({ title: "Allowance Set", description: `Updated child's monthly allowance to ₹${amount}.` });
   };
 
   const depositToVault = (amount: number) => {
     if (!currentUser || !familyId || !firestore || amount <= 0) return;
     const allowRef = doc(firestore, 'families', familyId, 'allowances', currentUser.id);
-    // Use set with merge to ensure the document exists, preventing crashes if parent hasn't set initial allowance
     setDocumentNonBlocking(allowRef, { saved: increment(amount), childId: currentUser.id }, { merge: true });
     toast({ title: "Money Deposited!", description: `₹${amount} added to your virtual vault.` });
   };
@@ -286,7 +286,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const logout = () => signOut(auth).then(() => { setFamilyId(null); setHasAttemptedLookup(false); });
 
   const isProfileDetermined = hasAttemptedLookup || !!familyId;
-  const isGlobalLoading = isAuthLoading || (authUser && !isProfileDetermined) || isSearchingFamily || isFamilyLoading || areUsersLoading;
+  const isGlobalLoading = isAuthLoading || (authUser && !isProfileDetermined) || isSearchingFamily || (familyId && isFamilyLoading) || (familyId && areUsersLoading);
 
   const value = { 
     family: familyData ? { ...familyData, id: familyId! } : null,
