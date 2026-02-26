@@ -28,13 +28,13 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
-  const { authUser, currentUser, loading, t, language, setLanguage } = useFamily();
+  const { authUser, currentUser, loading, t, language, setLanguage, refreshFamily } = useFamily();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && authUser && currentUser) {
-      router.push("/dashboard");
+      router.replace("/dashboard");
     }
   }, [loading, authUser, currentUser, router]);
 
@@ -47,8 +47,10 @@ export default function LoginPage() {
     const password = (form.elements.namedItem("password") as HTMLInputElement).value;
     
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      router.push("/dashboard");
+      const userCred = await signInWithEmailAndPassword(auth, email, password);
+      // Immediately try to refresh family mapping to speed up redirect
+      await refreshFamily();
+      router.replace("/dashboard");
     } catch (err: any) {
       setError(err.message);
       toast({

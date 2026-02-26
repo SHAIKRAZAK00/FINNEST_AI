@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -176,18 +176,22 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const { loading, hasAttemptedLookup, currentUser, authUser } = useFamily();
   const router = useRouter();
   const pathname = usePathname();
+  const [isStable, setIsStable] = useState(false);
 
   useEffect(() => {
+    // Wait for the lookup to actually finish before deciding on redirects
     if (!loading && hasAttemptedLookup) {
       if (!authUser) {
         if (pathname !== '/login' && pathname !== '/signup') {
             router.replace('/login');
         }
       } else if (!currentUser) {
+          // Only redirect if we definitely attempted a lookup and found nothing
           if (pathname !== '/signup' && !pathname.startsWith('/login')) {
               router.replace('/signup');
           }
       } else {
+          setIsStable(true);
           if (pathname === '/login' || pathname === '/signup' || pathname === '/') {
               router.replace('/dashboard');
           }
@@ -199,7 +203,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen w-full items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-xs font-bold uppercase tracking-[0.3em] text-white/40 animate-pulse">Initializing...</p>
+        <p className="text-xs font-bold uppercase tracking-[0.3em] text-white/40 animate-pulse">Synchronizing Identity...</p>
       </div>
     </div>
   );

@@ -58,13 +58,13 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const [language, setLangState] = useState<Language>('en');
 
   useEffect(() => {
-    const savedLang = localStorage.getItem('app_language') as Language;
+    const savedLang = typeof window !== 'undefined' ? localStorage.getItem('app_language') as Language : null;
     if (savedLang) setLangState(savedLang);
   }, []);
 
   const setLanguage = (lang: Language) => {
     setLangState(lang);
-    localStorage.setItem('app_language', lang);
+    if (typeof window !== 'undefined') localStorage.setItem('app_language', lang);
   };
 
   const t = translations[language];
@@ -85,14 +85,13 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
       if (userSnap.exists()) {
         const foundFamilyId = userSnap.data().familyId;
         setFamilyId(foundFamilyId);
-        localStorage.setItem(`familyId_${authUser.uid}`, foundFamilyId);
+        if (typeof window !== 'undefined') localStorage.setItem(`familyId_${authUser.uid}`, foundFamilyId);
       } else {
-        // Clear stale local storage if user doesn't exist in DB
         setFamilyId(null);
-        localStorage.removeItem(`familyId_${authUser.uid}`);
+        if (typeof window !== 'undefined') localStorage.removeItem(`familyId_${authUser.uid}`);
       }
     } catch (err: any) {
-      console.error("Critical error finding family:", err);
+      console.warn("Could not find family for user, might be new or stale session.");
       setFamilyId(null);
     } finally {
       setIsSearchingFamily(false);
@@ -135,7 +134,6 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     if (familyError || areUsersError) {
       const isPermissionError = (familyError as any)?.name === 'FirebaseError' || (areUsersError as any)?.name === 'FirebaseError';
       if (isPermissionError && familyId) {
-        console.warn("Permission denied for family. Clearing mapping.");
         setFamilyId(null);
         setHasAttemptedLookup(true);
       }
@@ -292,7 +290,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const logout = () => signOut(auth).then(() => { 
     setFamilyId(null); 
     setHasAttemptedLookup(false); 
-    localStorage.removeItem(`familyId_${authUser?.uid}`);
+    if (typeof window !== 'undefined') localStorage.removeItem(`familyId_${authUser?.uid}`);
   });
 
   const isGlobalLoading = isAuthLoading || (authUser && !hasAttemptedLookup) || isSearchingFamily || (familyId && isFamilyLoading) || (familyId && areUsersLoading);

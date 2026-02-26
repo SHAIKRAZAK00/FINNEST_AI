@@ -32,8 +32,9 @@ service cloud.firestore {
 
     // --- FAMILY COLLECTION RULES ---
     match /families/{familyId} {
-      // allow list for family discovery by code.
+      // Allow authenticated users to search for families by code
       allow list: if isSignedIn();
+      // Allow access if the user is a member OR if their global profile says they belong here (for initial sync)
       allow get: if isMember(familyId) || (isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.familyId == familyId);
       
       allow create: if isSignedIn();
