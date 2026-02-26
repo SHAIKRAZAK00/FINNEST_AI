@@ -1,39 +1,41 @@
 
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFamily } from '@/context/family-context';
 import { Loader2 } from 'lucide-react';
 
 /**
  * RootPage acts as a smart redirector. 
- * It checks the user's session and sends them to the appropriate destination.
  */
 export default function RootPage() {
   const { authUser, currentUser, loading } = useFamily();
   const router = useRouter();
+  const [isStable, setIsStable] = useState(false);
 
   useEffect(() => {
-    // Only act when we are definitively not loading.
     if (!loading) {
+      // Small buffer to ensure context states have settled
+      const timer = setTimeout(() => setIsStable(true), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
+
+  useEffect(() => {
+    if (isStable) {
       if (authUser) {
-        // We have an authenticated user.
         if (currentUser) {
-          // Profile exists, go to dashboard.
           router.replace('/dashboard');
         } else {
-          // No profile found yet, go to setup.
-          // Note: If currentUser is just taking a moment to load even after 'loading' is false,
-          // the layout guard in (app)/layout.tsx will handle secondary checks.
+          // Double check if we're actually logged in with no profile
           router.replace('/signup');
         }
       } else {
-        // Not logged in.
         router.replace('/login');
       }
     }
-  }, [authUser, currentUser, loading, router]);
+  }, [isStable, authUser, currentUser, router]);
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-background">

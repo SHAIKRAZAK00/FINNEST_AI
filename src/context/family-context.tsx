@@ -1,10 +1,11 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import type { User, Expense, Goal, Family, TrustMetric, Allowance } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, getDocs, getDoc, increment, runTransaction, limit, query, where } from 'firebase/firestore';
+import { collection, doc, getDocs, getDoc, increment, runTransaction, query, where } from 'firebase/firestore';
 import { setDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { signOut, linkWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
@@ -77,30 +78,21 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     if (!authUser || !firestore) return;
     setIsSearchingFamily(true);
     try {
-      // 1. Check local storage first for speed
+      // 1. Check local storage
       const cachedId = typeof window !== 'undefined' ? localStorage.getItem(`familyId_${authUser.uid}`) : null;
       if (cachedId) {
-        try {
-          const memberDocRef = doc(firestore, 'families', cachedId, 'members', authUser.uid);
-          const memberSnapshot = await getDoc(memberDocRef);
-          if (memberSnapshot.exists()) {
-            setFamilyId(cachedId);
-            setHasAttemptedLookup(true);
-            setIsSearchingFamily(false);
-            return;
-          }
-        } catch (e) {
-          localStorage.removeItem(`familyId_${authUser.uid}`);
-        }
+        setFamilyId(cachedId);
+        setHasAttemptedLookup(true);
+        setIsSearchingFamily(false);
+        return;
       }
       
-      // 2. Query families where user is a member (complying with security rules)
-      const familiesCol = collection(firestore, 'families');
-      const q = query(familiesCol, where(`members.${authUser.uid}.role`, ">=", ""));
-      const snapshot = await getDocs(q);
+      // 2. Use global user directory for discovery
+      const userRef = doc(firestore, 'users', authUser.uid);
+      const userSnap = await getDoc(userRef);
       
-      if (!snapshot.empty) {
-        const foundFamilyId = snapshot.docs[0].id;
+      if (userSnap.exists()) {
+        const foundFamilyId = userSnap.data().familyId;
         setFamilyId(foundFamilyId);
         localStorage.setItem(`familyId_${authUser.uid}`, foundFamilyId);
       } else {
@@ -328,7 +320,11 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => signOut(auth).then(() => { setFamilyId(null); setHasAttemptedLookup(false); });
+  const logout = () => signOut(auth).then(() => { 
+    setFamilyId(null); 
+    setHasAttemptedLookup(false); 
+    localStorage.removeItem(`familyId_${authUser?.uid}`);
+  });
 
   const isProfileDetermined = hasAttemptedLookup || !!familyId;
   const isGlobalLoading = isAuthLoading || (authUser && !isProfileDetermined) || isSearchingFamily || (familyId && isFamilyLoading) || (familyId && areUsersLoading);

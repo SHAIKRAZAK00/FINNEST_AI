@@ -30,7 +30,7 @@ import { Copy, Loader2, Languages } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useFirestore } from "@/firebase";
 import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { collection, query, where, getDocs, doc, writeBatch, getDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, writeBatch } from "firebase/firestore";
 import { useFamily } from "@/context/family-context";
 import { Language } from "@/lib/translations";
 
@@ -116,6 +116,14 @@ export default function SignupPage() {
                 };
                 batch.set(familyDocRef, newFamily);
 
+                // Populate Global Directory
+                batch.set(doc(firestore, "users", user.uid), {
+                  uid: user.uid,
+                  familyId: familyDocRef.id,
+                  name: fullName,
+                  email: user.email
+                });
+
                 const userProfile = {
                     id: user.uid,
                     familyId: familyDocRef.id,
@@ -147,12 +155,20 @@ export default function SignupPage() {
                 const familyDoc = querySnapshot.docs[0];
                 const familyId = familyDoc.id;
 
-                // Update family members map for authorization
+                // Update family members map
                 batch.update(doc(firestore, "families", familyId), {
                     [`members.${user.uid}`]: {
                         role: roleForUserObject,
                         joinedAt: new Date().toISOString()
                     }
+                });
+
+                // Populate Global Directory
+                batch.set(doc(firestore, "users", user.uid), {
+                  uid: user.uid,
+                  familyId: familyId,
+                  name: fullName,
+                  email: user.email
                 });
 
                 const userProfile = {

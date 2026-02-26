@@ -1,35 +1,7 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * FINNEST AI - FIRESTORE SECURITY RULES
-     * 
-     * CORE PHILOSOPHY:
-     * This ruleset implements an "Authorization Independence" model. We prioritize high-performance 
-     * authorization by denormalizing membership and role data directly onto documents. This allows 
-     * the security layer to make decisions without performing expensive cross-document lookups (get() calls).
-     * 
-     * DATA STRUCTURE:
-     * - /families/{familyId}: The root container for a family unit.
-     * - /families/{familyId}/familyMembers/{userId}: Detailed member profiles.
-     * - /families/{familyId}/expenses/{expenseId}: Shared financial records.
-     * - /families/{familyId}/goals/{goalId}: Collaborative savings objectives.
-     * - /families/{familyId}/insights/{insightId}: AI-generated guidance.
-     * - /families/{familyId}/gamificationRecords/{userId}: User-specific progress within a family.
-     * 
-     * KEY SECURITY DECISIONS:
-     * 1. DENORMALIZED ROLES: Every collaborative document (Expenses, Goals, etc.) contains a 
-     *    `familyRoles` map (uid -> role). This allows the `list` and `get` rules to verify 
-     *    access instantly using `resource.data.familyRoles[request.auth.uid]`.
-     * 2. ROLE-BASED ACCESS (RBAC): We distinguish between 'Parent', 'Child', and 'Viewer'. 
-     *    Destructive operations (delete) and sensitive updates are generally restricted to 'Parent' roles.
-     * 3. STRUCTURAL CONSISTENCY: Rules enforce that documents created within a family path 
-     *    actually belong to that family by validating the internal `familyId` field.
-     * 4. PROTOTYPING FLEXIBILITY: While ownership and membership are strictly enforced, the 
-     *    specific shape of content (descriptions, amounts, etc.) is not validated to allow 
-     *    rapid frontend iteration.
-     */
 
     // --- GLOBAL HELPER FUNCTIONS ---
 
@@ -41,103 +13,69 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Checks if the user is present in a denormalized 'familyRoles' or 'members' map
     function isMemberOf(dataMap) {
       return isSignedIn() && (request.auth.uid in dataMap);
     }
 
-    // Checks if the user has a specific role in a denormalized map
     function hasRole(dataMap, role) {
       return isMemberOf(dataMap) && dataMap[request.auth.uid].role == role;
     }
 
-    // Checks if the user is a 'Parent' (authorized for administrative/destructive actions)
     function isParent(dataMap) {
       return hasRole(dataMap, 'Parent');
     }
 
-    // Validates that a document exists and the user is the owner (via path UID)
     function isExistingOwner(userId) {
       return resource != null && isOwner(userId);
     }
 
-    // --- COLLECTION RULES ---
+    // --- GLOBAL USER DIRECTORY ---
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
 
-    /**
-     * @description Rules for the top-level Family collection. Uses a 'members' map for membership.
-     * @path /families/{familyId}
-     * @allow (get) Any user present in the 'members' map.
-     * @deny (update) Any user who does not have the 'Parent' role in the 'members' map.
-     * @principle DBAC - Access is determined by roles stored within the document itself.
-     */
+    // --- FAMILY COLLECTION RULES ---
     match /families/{familyId} {
       allow get: if isMemberOf(resource.data.members);
-      // Allow listing only if the user is a member of the resulting documents (Query Filtered)
       allow list: if isSignedIn() && isMemberOf(resource.data.members);
       allow create: if isSignedIn() && request.resource.data.id == familyId;
       allow update: if resource != null && isParent(resource.data.members);
       allow delete: if resource != null && isParent(resource.data.members);
 
-      /**
-       * @description Detailed records for family members.
-       * @path /families/{familyId}/members/{userId}
-       */
       match /members/{userId} {
         allow get: if isSignedIn();
         allow list: if isSignedIn();
-        allow create: if isOwner(userId) && request.resource.data.familyId == familyId;
-        allow update: if isExistingOwner(userId) && (request.resource.data.familyId == resource.data.familyId || !('familyId' in request.resource.data));
-        allow delete: if isExistingOwner(userId);
-      }
-
-      /**
-       * @description Shared family expenses. Access controlled via denormalized 'familyRoles'.
-       * @path /families/{familyId}/expenses/{expenseId}
-       */
-      match /expenses/{expenseId} {
-        allow get: if isMemberOf(resource.data.familyRoles);
-        allow list: if isMemberOf(resource.data.familyRoles);
-        allow create: if isSignedIn() && request.resource.data.familyId == familyId && isMemberOf(request.resource.data.familyRoles);
-        allow update: if resource != null && (isParent(resource.data.familyRoles) || isOwner(resource.data.contributorUserId));
-        allow delete: if resource != null && (isParent(resource.data.familyRoles) || isOwner(resource.data.contributorUserId));
-      }
-
-      /**
-       * @description Shared family goals.
-       * @path /families/{familyId}/goals/{goalId}
-       */
-      match /goals/{goalId} {
-        allow get: if isMemberOf(resource.data.familyRoles);
-        allow list: if isMemberOf(resource.data.familyRoles);
-        allow create: if isSignedIn() && request.resource.data.familyId == familyId && isMemberOf(request.resource.data.familyRoles);
-        allow update: if resource != null && isMemberOf(resource.data.familyRoles);
-        allow delete: if resource != null && isParent(resource.data.familyRoles);
-      }
-
-      /**
-       * @description AI-generated financial insights.
-       */
-      match /insights/{insightId} {
-        allow get: if isMemberOf(resource.data.familyRoles);
-        allow list: if isMemberOf(resource.data.familyRoles);
-        allow create: if false; 
-        allow update: if resource != null && isMemberOf(resource.data.familyRoles);
-        allow delete: if false;
-      }
-
-      /**
-       * @description Individual virtual allowances.
-       */
-      match /allowances/{userId} {
-        allow get: if isOwner(userId) || (resource != null && isParent(get(/databases/$(database)/documents/families/$(familyId)).data.members));
-        allow list: if isSignedIn();
-        allow create: if isParent(get(/databases/$(database)/documents/families/$(familyId)).data.members);
+        allow create: if isOwner(userId);
         allow update: if isOwner(userId) || isParent(get(/databases/$(database)/documents/families/$(familyId)).data.members);
+        allow delete: if isOwner(userId) || isParent(get(/databases/$(database)/documents/families/$(familyId)).data.members);
+      }
+
+      match /expenses/{expenseId} {
+        allow read: if isMemberOf(get(/databases/$(database)/documents/families/$(familyId)).data.members);
+        allow create: if isMemberOf(get(/databases/$(database)/documents/families/$(familyId)).data.members);
+        allow update, delete: if isParent(get(/databases/$(database)/documents/families/$(familyId)).data.members) || isOwner(resource.data.contributorId);
+      }
+
+      match /goals/{goalId} {
+        allow read: if isMemberOf(get(/databases/$(database)/documents/families/$(familyId)).data.members);
+        allow create, update: if isMemberOf(get(/databases/$(database)/documents/families/$(familyId)).data.members);
         allow delete: if isParent(get(/databases/$(database)/documents/families/$(familyId)).data.members);
+      }
+
+      match /allowances/{userId} {
+        allow get: if isOwner(userId) || isParent(get(/databases/$(database)/documents/families/$(familyId)).data.members);
+        allow create, update, delete: if isParent(get(/databases/$(database)/documents/families/$(familyId)).data.members);
+      }
+
+      match /trustMetrics/{userId} {
+        allow read: if isOwner(userId) || isParent(get(/databases/$(database)/documents/families/$(familyId)).data.members);
+        allow write: if isOwner(userId);
       }
     }
 
-    // Default deny for any unmatched paths
     match /{document=**} {
       allow read, write: if false;
     }

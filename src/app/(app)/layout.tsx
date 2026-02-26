@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -185,15 +186,13 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         }
       } else if (!currentUser) {
         // Wait longer for the profile to resolve before pushing to signup
-        // This prevents flashes during auth transition
         const timer = setTimeout(() => {
           if (!currentUser && pathname !== '/signup' && !pathname.startsWith('/login')) {
             router.replace('/signup');
           }
-        }, 3000);
+        }, 5000);
         return () => clearTimeout(timer);
       } else {
-          // Profile exists, if on auth pages, go to dashboard
           if (pathname === '/login' || pathname === '/signup') {
               router.replace('/dashboard');
           }

@@ -21,11 +21,11 @@
         },
         "createdByUserId": {
           "type": "string",
-          "description": "Reference to the User ID (from Firebase Auth) of the parent who initially created this family. (Relationship: User 1:N Family)"
+          "description": "Reference to the User ID (from Firebase Auth) of the parent who initially created this family."
         },
         "members": {
           "type": "object",
-          "description": "A denormalized map of userId to their role and join status, used for fast authorization checks in Security Rules.",
+          "description": "A denormalized map of userId to their role and join status.",
           "additionalProperties": {
             "type": "object",
             "properties": {
@@ -49,41 +49,18 @@
         "createdAt"
       ]
     },
-    "FamilyMember": {
+    "UserProfile": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "FamilyMember",
+      "title": "UserProfile",
       "type": "object",
-      "description": "Represents a specific user's membership within a family, defining their role and join date.",
+      "description": "Global user profile for quick discovery of family membership.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for this FamilyMember record, typically the user's ID from Firebase Auth."
-        },
-        "familyId": {
-          "type": "string",
-          "description": "Reference to the Family this member belongs to. (Relationship: Family 1:N FamilyMember)"
-        },
-        "userId": {
-          "type": "string",
-          "description": "The unique identifier of the user from Firebase Authentication."
-        },
-        "role": {
-          "type": "string",
-          "description": "The role of the user within the family (e.g., 'Parent', 'Child', 'Viewer')."
-        },
-        "joinedAt": {
-          "type": "string",
-          "description": "Timestamp when the user joined the family.",
-          "format": "date-time"
-        }
+        "uid": { "type": "string" },
+        "familyId": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" }
       },
-      "required": [
-        "id",
-        "familyId",
-        "userId",
-        "role",
-        "joinedAt"
-      ]
+      "required": ["uid", "familyId"]
     }
   },
   "auth": {
@@ -102,13 +79,23 @@
           "schema": {
             "$ref": "#/backend/entities/Family"
           },
-          "description": "Top-level collection for family units. Each document represents a family and includes a denormalized 'members' map (userId -> {role, joinedAt}) for direct family-level authorization checks and as the source of truth for membership.",
+          "description": "Top-level collection for family units.",
           "params": [
             {
               "name": "familyId",
               "description": "The unique identifier for the family."
             }
           ]
+        }
+      },
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Global user directory for finding family membership."
         }
       }
     ]
