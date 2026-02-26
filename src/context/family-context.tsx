@@ -78,7 +78,6 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     if (!authUser || !firestore) return;
     setIsSearchingFamily(true);
     try {
-      // Primary discovery: Global users directory
       const userRef = doc(firestore, 'users', authUser.uid);
       const userSnap = await getDoc(userRef);
       
@@ -91,7 +90,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
         if (typeof window !== 'undefined') localStorage.removeItem(`familyId_${authUser.uid}`);
       }
     } catch (err: any) {
-      console.warn("Could not find family for user, might be new or stale session.");
+      console.warn("Family lookup encountered restricted access or missing data.");
       setFamilyId(null);
     } finally {
       setIsSearchingFamily(false);
@@ -287,11 +286,14 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     setDocumentNonBlocking(allowRef, { saved: increment(amount), childId: currentUser.id }, { merge: true });
   };
 
-  const logout = () => signOut(auth).then(() => { 
-    setFamilyId(null); 
-    setHasAttemptedLookup(false); 
+  const logout = () => {
+    // Immediate state reset for responsiveness
+    setFamilyId(null);
+    setCurrentUser(null);
+    setHasAttemptedLookup(false);
     if (typeof window !== 'undefined') localStorage.removeItem(`familyId_${authUser?.uid}`);
-  });
+    signOut(auth);
+  };
 
   const isGlobalLoading = isAuthLoading || (authUser && !hasAttemptedLookup) || isSearchingFamily || (familyId && isFamilyLoading) || (familyId && areUsersLoading);
 

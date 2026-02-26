@@ -176,25 +176,24 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const { loading, hasAttemptedLookup, currentUser, authUser } = useFamily();
   const router = useRouter();
   const pathname = usePathname();
-  const [isStable, setIsStable] = useState(false);
 
   useEffect(() => {
-    // Wait for the lookup to actually finish before deciding on redirects
-    if (!loading && hasAttemptedLookup) {
-      if (!authUser) {
-        if (pathname !== '/login' && pathname !== '/signup') {
-            router.replace('/login');
+    // Instant redirect for unauthenticated users
+    if (!authUser && !loading) {
+      if (pathname !== '/login' && pathname !== '/signup') {
+        router.replace('/login');
+      }
+      return;
+    }
+
+    // Logic for authenticated users after database lookup
+    if (!loading && hasAttemptedLookup && authUser) {
+      if (!currentUser) {
+        if (pathname !== '/signup' && !pathname.startsWith('/login')) {
+          router.replace('/signup');
         }
-      } else if (!currentUser) {
-          // Only redirect if we definitely attempted a lookup and found nothing
-          if (pathname !== '/signup' && !pathname.startsWith('/login')) {
-              router.replace('/signup');
-          }
-      } else {
-          setIsStable(true);
-          if (pathname === '/login' || pathname === '/signup' || pathname === '/') {
-              router.replace('/dashboard');
-          }
+      } else if (pathname === '/login' || pathname === '/signup' || pathname === '/') {
+        router.replace('/dashboard');
       }
     }
   }, [loading, hasAttemptedLookup, authUser, currentUser, router, pathname]);
