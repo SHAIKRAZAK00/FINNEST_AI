@@ -38,7 +38,7 @@ export default function SignupPage() {
     const { toast } = useToast();
     const auth = useAuth();
     const firestore = useFirestore();
-    const { refreshFamily, authUser, currentUser, loading: isFamilyLoading, t, language, setLanguage } = useFamily();
+    const { refreshFamily, authUser, currentUser, loading: isFamilyLoading, hasAttemptedLookup, t, language, setLanguage } = useFamily();
 
     const [role, setRole] = useState<string>("");
     const [step, setStep] = useState<'form' | 'code'>('form');
@@ -47,10 +47,10 @@ export default function SignupPage() {
     const [isSigningUp, setIsSigningUp] = useState(false);
 
     useEffect(() => {
-      if (!isFamilyLoading && authUser && currentUser) {
+      if (!isFamilyLoading && hasAttemptedLookup && authUser && currentUser) {
         router.push("/dashboard");
       }
-    }, [isFamilyLoading, authUser, currentUser, router]);
+    }, [isFamilyLoading, hasAttemptedLookup, authUser, currentUser, router]);
 
     const handleGoogleSignup = async () => {
         if (!role) {
@@ -76,13 +76,6 @@ export default function SignupPage() {
         setIsSigningUp(true);
 
         const form = e.target as HTMLFormElement;
-        
-        // If user is already authenticated but just needs to create a profile
-        if (authUser) {
-            await completeRegistration(authUser, authUser.displayName || authUser.email?.split('@')[0] || "User", role);
-            return;
-        }
-
         const fullName = (form.elements.namedItem("full-name") as HTMLInputElement).value;
         const email = (form.elements.namedItem("email") as HTMLInputElement).value;
         const password = (form.elements.namedItem("password") as HTMLInputElement).value;
@@ -92,7 +85,7 @@ export default function SignupPage() {
             await completeRegistration(userCredential.user, fullName, role);
         } catch (err: any) {
             if (err.code === 'auth/email-already-in-use') {
-                setError("This email is already registered. If you are the owner, please log in or pick a role to continue if you were redirected here.");
+                setError("This email is already registered. Please log in to your existing account.");
             } else {
                 setError(err.message);
             }
@@ -251,10 +244,10 @@ export default function SignupPage() {
       <Card className="w-full">
         <CardHeader className="items-center text-center">
           <CardTitle className="text-2xl font-headline">
-            {authUser ? "Complete Your Profile" : t.auth.createAccount}
+            {t.auth.createAccount}
           </CardTitle>
           <CardDescription>
-            {authUser ? "We found your account, but you haven't joined a family yet." : t.auth.accessSecure}
+            {t.auth.accessSecure}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -262,24 +255,16 @@ export default function SignupPage() {
               {error && (
                   <Alert variant="destructive" className="flex flex-col gap-3">
                       <div>
-                        <AlertTitle>Profile Setup Required</AlertTitle>
+                        <AlertTitle>Signup Error</AlertTitle>
                         <AlertDescription>{error}</AlertDescription>
                       </div>
-                      {!authUser && error.includes("already registered") && (
+                      {error.includes("already registered") && (
                         <Button variant="outline" size="sm" asChild className="w-full border-destructive/20 hover:bg-destructive/10 text-destructive">
                            <Link href="/login">Go to Login <ArrowRight className="ml-2 h-4 w-4"/></Link>
                         </Button>
                       )}
                   </Alert>
               )}
-
-            {authUser && (
-                <Alert className="bg-primary/10 border-primary/20">
-                    <UserCheck className="h-4 w-4 text-primary" />
-                    <AlertTitle>Authenticated as</AlertTitle>
-                    <AlertDescription className="text-xs truncate">{authUser.email}</AlertDescription>
-                </Alert>
-            )}
             
             <div className="grid gap-2">
               <Label htmlFor="role">{t.auth.role}</Label>
@@ -303,68 +288,58 @@ export default function SignupPage() {
               </div>
             )}
 
-            {!authUser && (
-                <>
-                    <Button 
-                        variant="outline" 
-                        className="w-full h-10 border-white/10 hover:bg-white/5" 
-                        onClick={handleGoogleSignup} 
-                        disabled={!role || isSigningUp}
-                    >
-                    <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path></svg>
-                    Signup with Google
-                    </Button>
+            <Button 
+                variant="outline" 
+                className="w-full h-10 border-white/10 hover:bg-white/5" 
+                onClick={handleGoogleSignup} 
+                disabled={!role || isSigningUp}
+            >
+            <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path></svg>
+            Signup with Google
+            </Button>
 
-                    <div className="relative my-2">
-                    <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t border-white/10" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-[#0f0c29] px-2 text-white/30">{t.auth.or}</span>
-                    </div>
-                    </div>
-                </>
-            )}
+            <div className="relative my-2">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-white/10" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-[#0f0c29] px-2 text-white/30">{t.auth.or}</span>
+                </div>
+            </div>
 
             <form onSubmit={handleEmailSignup} className="grid gap-4">
-                {!authUser && (
-                    <>
-                        <div className="grid gap-2">
-                            <Label htmlFor="full-name">{t.auth.fullName}</Label>
-                            <Input id="full-name" name="full-name" placeholder="Alex Johnson" required disabled={isSigningUp} />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="email">{t.auth.email}</Label>
-                            <Input
-                                id="email"
-                                name="email"
-                                type="email"
-                                placeholder="alex@example.com"
-                                required
-                                disabled={isSigningUp}
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="password">{t.auth.password}</Label>
-                            <Input id="password" name="password" type="password" required disabled={isSigningUp} />
-                        </div>
-                    </>
-                )}
+                <div className="grid gap-2">
+                    <Label htmlFor="full-name">{t.auth.fullName}</Label>
+                    <Input id="full-name" name="full-name" placeholder="Alex Johnson" required disabled={isSigningUp} />
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="email">{t.auth.email}</Label>
+                    <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        placeholder="alex@example.com"
+                        required
+                        disabled={isSigningUp}
+                    />
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="password">{t.auth.password}</Label>
+                    <Input id="password" name="password" type="password" required disabled={isSigningUp} />
+                </div>
                 
                 <Button type="submit" className="w-full" disabled={!role || isSigningUp}>
                 {isSigningUp && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isSigningUp ? (authUser ? "Finalizing..." : t.auth.creatingAccount) : (authUser ? "Complete Setup" : t.auth.createAccount)}
+                {isSigningUp ? t.auth.creatingAccount : t.auth.createAccount}
                 </Button>
             </form>
           </div>
-          {!authUser && (
-            <div className="mt-4 text-center text-sm">
+          <div className="mt-4 text-center text-sm">
                 {t.auth.alreadyHaveAccount}{" "}
                 <Link href="/login" className="underline">
                 {t.auth.signIn}
                 </Link>
-            </div>
-          )}
+          </div>
         </CardContent>
       </Card>
     </div>

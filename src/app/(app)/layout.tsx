@@ -112,7 +112,7 @@ function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/rewards'} tooltip={t.nav.rewards}>
               <Link href="/rewards"><Medal /><span>{t.nav.rewards}</span></Link>
-            </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/assistant'} tooltip={t.nav.assistant}>
@@ -174,41 +174,29 @@ function AppSidebar() {
 }
 
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
-  const { loading, currentUser, authUser, t } = useFamily();
+  const { loading, hasAttemptedLookup, currentUser, authUser, t } = useFamily();
   const router = useRouter();
   const pathname = usePathname();
-  const [hasCheckedInitialState, setHasCheckedInitialState] = useState(false);
 
   useEffect(() => {
-    if (!loading) {
+    if (!loading && hasAttemptedLookup) {
       if (!authUser) {
         if (pathname !== '/login' && pathname !== '/signup') {
             router.replace('/login');
         }
       } else if (!currentUser) {
-        // Wait for the profile to potentially resolve before pushing to signup
-        // If we land on /signup, stay there to complete profile
-        if (pathname === '/signup') {
-           setHasCheckedInitialState(true);
-           return;
-        }
-
-        const timer = setTimeout(() => {
-          if (!currentUser && !loading && pathname !== '/signup' && !pathname.startsWith('/login')) {
-            router.replace('/signup');
+          if (pathname !== '/signup' && !pathname.startsWith('/login')) {
+              router.replace('/signup');
           }
-        }, 4000); // Increased buffer to allow database to resolve
-        return () => clearTimeout(timer);
       } else {
           if (pathname === '/login' || pathname === '/signup') {
               router.replace('/dashboard');
           }
       }
-      setHasCheckedInitialState(true);
     }
-  }, [loading, authUser, currentUser, router, pathname]);
+  }, [loading, hasAttemptedLookup, authUser, currentUser, router, pathname]);
 
-  if (loading || (!hasCheckedInitialState && authUser)) return (
+  if (loading || (authUser && !hasAttemptedLookup)) return (
     <div className="flex h-screen w-full items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

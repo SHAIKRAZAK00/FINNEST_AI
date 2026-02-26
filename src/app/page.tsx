@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFamily } from '@/context/family-context';
 import { Loader2 } from 'lucide-react';
@@ -10,32 +10,22 @@ import { Loader2 } from 'lucide-react';
  * RootPage acts as a smart redirector. 
  */
 export default function RootPage() {
-  const { authUser, currentUser, loading } = useFamily();
+  const { authUser, currentUser, loading, hasAttemptedLookup } = useFamily();
   const router = useRouter();
-  const [isStable, setIsStable] = useState(false);
 
   useEffect(() => {
-    if (!loading) {
-      // Small buffer to ensure context states have settled
-      const timer = setTimeout(() => setIsStable(true), 500);
-      return () => clearTimeout(timer);
-    }
-  }, [loading]);
-
-  useEffect(() => {
-    if (isStable) {
+    if (!loading && hasAttemptedLookup) {
       if (authUser) {
         if (currentUser) {
           router.replace('/dashboard');
         } else {
-          // Double check if we're actually logged in with no profile
           router.replace('/signup');
         }
       } else {
         router.replace('/login');
       }
     }
-  }, [isStable, authUser, currentUser, router]);
+  }, [loading, hasAttemptedLookup, authUser, currentUser, router]);
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-background">

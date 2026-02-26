@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect, useCa
 import type { User, Expense, Goal, Family, TrustMetric, Allowance } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, getDocs, getDoc, increment, runTransaction, query, where } from 'firebase/firestore';
+import { collection, doc, getDoc, increment, runTransaction } from 'firebase/firestore';
 import { setDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { signOut, linkWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
@@ -36,6 +36,7 @@ interface FamilyContextType {
   depositToVault: (amount: number) => void;
   linkGoogleAccount: () => Promise<void>;
   loading: boolean;
+  hasAttemptedLookup: boolean;
   activeConfettiGoal: string | null;
   clearConfetti: () => void;
   logout: () => void;
@@ -353,6 +354,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     linkGoogleAccount,
     removeUser, updateUserAvatar,
     loading: isGlobalLoading, 
+    hasAttemptedLookup,
     activeConfettiGoal, clearConfetti: () => setActiveConfettiGoal(null),
     logout, refreshFamily: findFamily,
   };
