@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 
 export default function LeaderboardPage() {
-  const { users } = useFamily();
+  const { users, t } = useFamily();
   
   const getInitials = (name: string) => name.split(" ").map((n) => n[0]).join("");
   const getBadgeById = (id: string) => mockBadges.find(b => b.id === id);
@@ -31,9 +31,9 @@ export default function LeaderboardPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Family Leaderboard</CardTitle>
+        <CardTitle>{t.leaderboard.title}</CardTitle>
         <CardDescription>
-          See who's leading the way in financial wellness!
+          {t.leaderboard.desc}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -41,11 +41,11 @@ export default function LeaderboardPage() {
             <Table>
             <TableHeader>
                 <TableRow>
-                <TableHead className="w-[80px] text-center">Rank</TableHead>
-                <TableHead>Member</TableHead>
-                <TableHead className="text-center">Level</TableHead>
-                <TableHead>Badges</TableHead>
-                <TableHead className="text-right">Points</TableHead>
+                <TableHead className="w-[80px] text-center">{t.leaderboard.rank}</TableHead>
+                <TableHead>{t.leaderboard.member}</TableHead>
+                <TableHead className="text-center">{t.leaderboard.level}</TableHead>
+                <TableHead>{t.leaderboard.badges}</TableHead>
+                <TableHead className="text-right">{t.leaderboard.points}</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>

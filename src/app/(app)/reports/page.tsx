@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -11,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
 export default function ReportsPage() {
-  const { family, users, expenses, currentUser } = useFamily();
+  const { family, users, expenses, currentUser, t } = useFamily();
   const [isLoading, setIsLoading] = useState(false);
   const [report, setReport] = useState<any>(null);
 
@@ -49,11 +48,11 @@ export default function ReportsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold font-headline flex items-center gap-2">
-            <FileText className="h-6 w-6 text-primary" /> Monthly Audit
+            <FileText className="h-6 w-6 text-primary" /> {t.reports.title}
         </h1>
         <Button onClick={handleGenerate} disabled={isLoading} size="sm" className="gap-2">
             <Sparkles className="h-4 w-4" />
-            {isLoading ? "Auditing..." : "Generate Audit"}
+            {isLoading ? t.reports.auditing : t.reports.button}
         </Button>
       </div>
 
@@ -68,12 +67,12 @@ export default function ReportsPage() {
                 <CardHeader className="border-b">
                     <div className="flex justify-between items-start">
                         <div>
-                            <CardTitle className="text-2xl">{family?.familyName} Report Card</CardTitle>
-                            <CardDescription>Fiscal Period: October 2024</CardDescription>
+                            <CardTitle className="text-2xl">{family?.familyName} {t.reports.reportCard}</CardTitle>
+                            <CardDescription>{t.reports.period}: October 2024</CardDescription>
                         </div>
                         <div className="text-center">
                             <div className="text-4xl font-bold text-primary">{report.grade}</div>
-                            <div className="text-[10px] font-bold uppercase text-muted-foreground">Discipline Grade</div>
+                            <div className="text-[10px] font-bold uppercase text-muted-foreground">{t.reports.grade}</div>
                         </div>
                     </div>
                 </CardHeader>
@@ -81,12 +80,12 @@ export default function ReportsPage() {
                     <div className="grid gap-4 md:grid-cols-2">
                         <div className="p-4 rounded-xl bg-muted/50 border">
                             <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2 flex items-center gap-2">
-                                <TrendingUp className="h-3 w-3" /> Executive Summary
+                                <TrendingUp className="h-3 w-3" /> {t.reports.summary}
                             </h4>
                             <p className="text-sm italic">"{report.summary}"</p>
                         </div>
                         <div className="p-4 rounded-xl bg-muted/50 border">
-                            <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">MVP Member</h4>
+                            <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">{t.reports.mvp}</h4>
                             <div className="flex items-center gap-3">
                                 <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
                                     {report.topContributor[0]}
@@ -97,7 +96,7 @@ export default function ReportsPage() {
                     </div>
 
                     <div>
-                        <h4 className="text-xs font-bold uppercase text-muted-foreground mb-3">Protocol Recommendations</h4>
+                        <h4 className="text-xs font-bold uppercase text-muted-foreground mb-3">{t.reports.recommendations}</h4>
                         <div className="grid gap-2">
                             {report.recommendations.map((rec: string, i: number) => (
                                 <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
@@ -113,17 +112,17 @@ export default function ReportsPage() {
             </Card>
             <div className="flex justify-center gap-4 print:hidden">
                 <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2">
-                    <Printer className="h-4 w-4" /> Print PDF
+                    <Printer className="h-4 w-4" /> {t.reports.print}
                 </Button>
                 <Button variant="outline" size="sm" className="gap-2">
-                    <Download className="h-4 w-4" /> Export Data
+                    <Download className="h-4 w-4" /> {t.reports.export}
                 </Button>
             </div>
         </div>
       ) : (
         <Card className="text-center p-20 border-dashed">
             <CardContent>
-                <p className="text-muted-foreground">Initiate audit to generate the monthly report card.</p>
+                <p className="text-muted-foreground">{t.reports.placeholder}</p>
             </CardContent>
         </Card>
       )}

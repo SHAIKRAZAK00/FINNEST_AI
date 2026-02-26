@@ -23,7 +23,7 @@ import {
 import type { User } from "@/lib/types";
 
 export default function SettingsPage() {
-  const { family, currentUser, users, removeUser, updateUserAvatar, setAllowance } = useFamily();
+  const { family, currentUser, users, removeUser, updateUserAvatar, setAllowance, t } = useFamily();
   const { toast } = useToast();
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [userToRemove, setUserToRemove] = useState<User | null>(null);
@@ -125,9 +125,9 @@ export default function SettingsPage() {
         <Card className="border-primary/20 bg-primary/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-                <Wallet className="h-5 w-5 text-primary" /> Allowance Management
+                <Wallet className="h-5 w-5 text-primary" /> {t.settings.allowanceTitle}
             </CardTitle>
-            <CardDescription>Set individual monthly virtual allowances for your children.</CardDescription>
+            <CardDescription>{t.settings.allowanceDesc}</CardDescription>
           </CardHeader>
           <CardContent>
             {children.length > 0 ? (
@@ -141,22 +141,22 @@ export default function SettingsPage() {
                                 </Avatar>
                                 <div>
                                     <p className="font-bold">{child.name}</p>
-                                    <p className="text-[10px] uppercase text-muted-foreground">Child Member</p>
+                                    <p className="text-[10px] uppercase text-muted-foreground">{t.settings.childMember}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 w-full sm:w-auto">
                                 <div className="relative flex-1 sm:w-32">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">₹</span>
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">{t.common.rupees}</span>
                                     <Input 
                                         type="number" 
                                         className="pl-7" 
-                                        placeholder="Amount"
+                                        placeholder={t.goals.amount}
                                         value={allowanceValues[child.id] || ""}
                                         onChange={(e) => setAllowanceValues({...allowanceValues, [child.id]: e.target.value})}
                                     />
                                 </div>
                                 <Button size="sm" onClick={() => handleSetAllowance(child.id)}>
-                                    <Save className="h-4 w-4 mr-2" /> Set
+                                    <Save className="h-4 w-4 mr-2" /> {t.settings.setButton}
                                 </Button>
                             </div>
                         </div>
@@ -172,16 +172,16 @@ export default function SettingsPage() {
       {currentUser.role === 'Parent' && (
         <Card>
           <CardHeader>
-            <CardTitle>Family Protocol</CardTitle>
-            <CardDescription>Manage your family identity and recruitment code.</CardDescription>
+            <CardTitle>{t.settings.protocolTitle}</CardTitle>
+            <CardDescription>{t.settings.protocolDesc}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-                <Label>Family Designation</Label>
+                <Label>{t.settings.familyName}</Label>
                 <Input value={family.familyName} readOnly />
             </div>
             <div className="space-y-2">
-                <Label htmlFor="family-code">Synchronization Code</Label>
+                <Label htmlFor="family-code">{t.settings.familyCode}</Label>
                 <div className="flex items-center gap-2">
                     <Input id="family-code" value={family.familyCode} readOnly className="font-mono tracking-widest text-lg" />
                     <Button variant="outline" size="icon" onClick={handleCopy}>
@@ -189,7 +189,7 @@ export default function SettingsPage() {
                         <span className="sr-only">Copy code</span>
                     </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">Share this code to onboard new members into the ecosystem.</p>
+                <p className="text-xs text-muted-foreground">{t.settings.codeHelp}</p>
             </div>
           </CardContent>
         </Card>
@@ -198,8 +198,8 @@ export default function SettingsPage() {
       {currentUser.role === 'Parent' && (
         <Card>
             <CardHeader>
-                <CardTitle>Network Members</CardTitle>
-                <CardDescription>Manage authorized users in your family network.</CardDescription>
+                <CardTitle>{t.settings.membersTitle}</CardTitle>
+                <CardDescription>{t.settings.membersDesc}</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
@@ -230,8 +230,8 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Individual Profile</CardTitle>
-          <CardDescription>Update your personal identity parameters.</CardDescription>
+          <CardTitle>{t.settings.profileTitle}</CardTitle>
+          <CardDescription>{t.settings.profileDesc}</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="grid gap-6" onSubmit={(e) => e.preventDefault()}>
@@ -249,39 +249,39 @@ export default function SettingsPage() {
               </Avatar>
               <Button type="button" variant="outline" onClick={handlePhotoChangeClick} disabled={isUploading}>
                 {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {isUploading ? 'Uploading...' : 'Change Photo'}
+                {isUploading ? t.settings.uploading : t.settings.photoButton}
               </Button>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="name">Full Designation</Label>
+              <Label htmlFor="name">{t.settings.nameLabel}</Label>
               <Input id="name" defaultValue={currentUser.name} />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="email">Encrypted Email</Label>
+              <Label htmlFor="email">{t.settings.emailLabel}</Label>
               <Input id="email" type="email" defaultValue={currentUser.email} readOnly className="opacity-60" />
             </div>
-            <Button className="w-full sm:w-auto">Update Profile</Button>
+            <Button className="w-full sm:w-auto">{t.settings.updateButton}</Button>
           </form>
         </CardContent>
       </Card>
       
       <Card>
         <CardHeader>
-          <CardTitle>Interface Customization</CardTitle>
-          <CardDescription>Tailor the FinNest AI visual experience.</CardDescription>
+          <CardTitle>{t.settings.uiTitle}</CardTitle>
+          <CardDescription>{t.settings.uiDesc}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <Label htmlFor="email-notifications">Email Summaries</Label>
-                    <p className="text-xs text-muted-foreground">Receive weekly financial performance briefs.</p>
+                    <Label htmlFor="email-notifications">{t.settings.emailNotif}</Label>
+                    <p className="text-xs text-muted-foreground">{t.settings.emailNotifDesc}</p>
                 </div>
                 <Switch id="email-notifications" defaultChecked/>
             </div>
             <div className="flex items-center justify-between">
                 <div>
-                    <Label htmlFor="push-notifications">Push Alerts</Label>
-                    <p className="text-xs text-muted-foreground">Real-time status updates on budget and goals.</p>
+                    <Label htmlFor="push-notifications">{t.settings.pushNotif}</Label>
+                    <p className="text-xs text-muted-foreground">{t.settings.pushNotifDesc}</p>
                 </div>
                 <Switch id="push-notifications" defaultChecked />
             </div>
@@ -290,16 +290,16 @@ export default function SettingsPage() {
 
       <Card className="border-destructive/20 bg-destructive/5">
         <CardHeader>
-          <CardTitle className="text-destructive">System Termination</CardTitle>
-          <CardDescription>Irreversible destructive actions.</CardDescription>
+          <CardTitle className="text-destructive">{t.settings.terminationTitle}</CardTitle>
+          <CardDescription>{t.settings.terminationDesc}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
             <div className="flex items-center justify-between rounded-lg border border-destructive/50 p-4 bg-background">
                 <div>
-                    <h3 className="font-semibold">Exit Family Network</h3>
-                    <p className="text-xs text-muted-foreground">Sever ties and lose access to all shared family intelligence.</p>
+                    <h3 className="font-semibold">{t.settings.exitNetwork}</h3>
+                    <p className="text-xs text-muted-foreground">{t.settings.exitDesc}</p>
                 </div>
-                <Button variant="destructive" disabled={users.filter(u => u.role === 'Parent').length <= 1}>Exit</Button>
+                <Button variant="destructive" disabled={users.filter(u => u.role === 'Parent').length <= 1}>{t.settings.exitButton}</Button>
             </div>
         </CardContent>
       </Card>
@@ -313,7 +313,7 @@ export default function SettingsPage() {
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setUserToRemove(null)}>Abort</AlertDialogCancel>
+                <AlertDialogCancel onClick={() => setUserToRemove(null)}>{t.common.cancel}</AlertDialogCancel>
                 <AlertDialogAction onClick={handleRemoveUser} className={buttonVariants({ variant: "destructive" })}>
                     Confirm Ejection
                 </AlertDialogAction>

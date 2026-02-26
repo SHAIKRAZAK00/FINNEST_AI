@@ -32,7 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 
 
 export default function GoalsPage() {
-  const { goals, users, currentUser, contributeToGoal, addGoal, activeConfettiGoal, clearConfetti } = useFamily();
+  const { goals, users, currentUser, contributeToGoal, addGoal, activeConfettiGoal, clearConfetti, t } = useFamily();
   const [isNewGoalOpen, setIsNewGoalOpen] = useState(false);
   const [isContributeOpen, setIsContributeOpen] = useState(false);
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
@@ -85,43 +85,43 @@ export default function GoalsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold font-headline">Family Goals</h1>
+        <h1 className="text-2xl font-bold font-headline">{t.goals.title}</h1>
         <Dialog open={isNewGoalOpen} onOpenChange={setIsNewGoalOpen}>
             <DialogTrigger asChild>
                 <Button size="sm" className="gap-1" disabled={!isActionAllowed}>
                     <PlusCircle className="h-3.5 w-3.5" />
                     <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                        New Goal
+                        {t.goals.newGoal}
                     </span>
                 </Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Create a New Family Goal</DialogTitle>
-                    <DialogDescription>Set a target for your family to achieve together.</DialogDescription>
+                    <DialogTitle>{t.goals.createTitle}</DialogTitle>
+                    <DialogDescription>{t.goals.createDesc}</DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
-                        <Label htmlFor="goal-name">Goal Name</Label>
-                        <Input id="goal-name" value={newGoal.name} onChange={(e) => setNewGoal({...newGoal, name: e.target.value})} placeholder="e.g., Summer Vacation Fund" />
+                        <Label htmlFor="goal-name">{t.goals.goalName}</Label>
+                        <Input id="goal-name" value={newGoal.name} onChange={(e) => setNewGoal({...newGoal, name: e.target.value})} placeholder={t.goals.goalNamePlaceholder} />
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="goal-desc">Description</Label>
-                        <Textarea id="goal-desc" value={newGoal.description} onChange={(e) => setNewGoal({...newGoal, description: e.target.value})} placeholder="A short description of the goal."/>
+                        <Label htmlFor="goal-desc">{t.goals.description}</Label>
+                        <Textarea id="goal-desc" value={newGoal.description} onChange={(e) => setNewGoal({...newGoal, description: e.target.value})} placeholder={t.goals.descPlaceholder}/>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-2">
-                            <Label htmlFor="goal-amount">Target Amount</Label>
+                            <Label htmlFor="goal-amount">{t.goals.targetAmount}</Label>
                             <Input id="goal-amount" type="number" value={newGoal.targetAmount} onChange={(e) => setNewGoal({...newGoal, targetAmount: e.target.value})} placeholder="₹150000" />
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="goal-deadline">Deadline</Label>
+                            <Label htmlFor="goal-deadline">{t.goals.deadline}</Label>
                             <Input id="goal-deadline" type="date" value={newGoal.deadline} onChange={(e) => setNewGoal({...newGoal, deadline: e.target.value})} />
                         </div>
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button onClick={handleAddGoal}>Create Goal</Button>
+                    <Button onClick={handleAddGoal}>{t.goals.createButton}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -138,14 +138,14 @@ export default function GoalsPage() {
               <CardHeader>
                 <CardTitle className="flex items-start justify-between">
                   <span className="flex items-center gap-2"><Target className="h-5 w-5"/>{goal.name}</span>
-                  {isCompleted && <span className="text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 px-2 py-1 rounded-full">Completed!</span>}
+                  {isCompleted && <span className="text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 px-2 py-1 rounded-full">{t.goals.completed}</span>}
                 </CardTitle>
                 <CardDescription>{goal.description}</CardDescription>
               </CardHeader>
               <CardContent className="flex-grow">
                 <div className="mb-2 flex justify-between text-sm text-muted-foreground">
-                  <span>Progress</span>
-                  <span>{daysLeft >= 0 ? `${daysLeft} days left` : 'Past deadline'}</span>
+                  <span>{t.goals.progress}</span>
+                  <span>{daysLeft >= 0 ? `${daysLeft} ${t.goals.daysLeft}` : t.goals.pastDeadline}</span>
                 </div>
                 <Progress value={progress} aria-label={`${goal.name} progress`} />
                 <div className="mt-2 flex justify-between text-sm font-semibold">
@@ -165,11 +165,11 @@ export default function GoalsPage() {
                         ) : null;
                     })}
                     {goal.contributors && goal.contributors.length > 0 && <span className="pl-4 text-xs text-muted-foreground">
-                        {goal.contributors.length} contributor{goal.contributors.length > 1 ? 's' : ''}
+                        {goal.contributors.length} {goal.contributors.length > 1 ? t.goals.contributors : t.goals.contributor}
                     </span>}
                  </div>
                 <Button className="w-full" disabled={isCompleted || !currentUser || (currentUser.role !== 'Parent' && currentUser.role !== 'Child') } onClick={() => openContributeDialog(goal.id)}>
-                    Contribute
+                    {t.goals.addButton}
                 </Button>
               </CardFooter>
             </Card>
@@ -186,15 +186,15 @@ export default function GoalsPage() {
        }}>
             <DialogContent>
             <DialogHeader>
-                <DialogTitle>Contribute to {goals.find(g => g.id === selectedGoalId)?.name}</DialogTitle>
-                <DialogDescription>Every bit helps the family reach its goals!</DialogDescription>
+                <DialogTitle>{t.goals.contributeTitle} {goals.find(g => g.id === selectedGoalId)?.name}</DialogTitle>
+                <DialogDescription>{t.goals.contributeDesc}</DialogDescription>
             </DialogHeader>
             <div className="py-4">
-                <Label htmlFor="contribution-amount">Amount</Label>
+                <Label htmlFor="contribution-amount">{t.goals.amount}</Label>
                 <Input id="contribution-amount" type="number" placeholder="₹5000" value={contributionAmount} onChange={(e) => setContributionAmount(e.target.value)} />
             </div>
             <DialogFooter>
-                <Button onClick={handleContribute}>Add Contribution</Button>
+                <Button onClick={handleContribute}>{t.goals.addButton}</Button>
             </DialogFooter>
             </DialogContent>
        </Dialog>

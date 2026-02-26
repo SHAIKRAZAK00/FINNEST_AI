@@ -16,7 +16,7 @@ type Insight = {
 const COOLDOWN_SECONDS = 30;
 
 export default function AssistantPage() {
-  const { expenses, family } = useFamily();
+  const { expenses, family, t } = useFamily();
   const [insights, setInsights] = useState<Insight[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,16 +57,15 @@ export default function AssistantPage() {
         <div className="p-3 bg-primary/10 rounded-full border-8 border-background">
             <Bot className="h-8 w-8 text-primary" />
         </div>
-        <h1 className="text-3xl font-bold font-headline">Your AI CFO Assistant</h1>
+        <h1 className="text-3xl font-bold font-headline">{t.assistant.title}</h1>
         <p className="max-w-xl text-muted-foreground">
-          Let our AI analyze your family's spending to find savings opportunities and
-          provide personalized financial guidance.
+          {t.assistant.desc}
         </p>
       </div>
 
       <Button onClick={handleGenerateInsights} disabled={isLoading || cooldown > 0} size="lg">
         <Sparkles className="mr-2 h-5 w-5" />
-        {isLoading ? "Analyzing..." : cooldown > 0 ? `Protocol Cooling (${cooldown}s)` : "Generate AI Audit"}
+        {isLoading ? t.assistant.analyzing : cooldown > 0 ? `${t.assistant.cooling} (${cooldown}s)` : t.assistant.button}
       </Button>
 
       <div className="w-full max-w-2xl mt-6 text-left">
@@ -94,7 +93,7 @@ export default function AssistantPage() {
 
         {!isLoading && insights.length > 0 && (
             <div className="space-y-4">
-                <h2 className="text-xl font-semibold font-headline text-center">Audit Findings</h2>
+                <h2 className="text-xl font-semibold font-headline text-center">{t.assistant.findings}</h2>
                 {insights.map((item, index) => (
                 <Alert key={index}>
                     <Lightbulb className="h-4 w-4" />
@@ -108,7 +107,7 @@ export default function AssistantPage() {
         {!isLoading && insights.length === 0 && !error && (
             <Card className="text-center">
                 <CardContent className="p-10">
-                    <p className="text-muted-foreground">Initiate audit to see your personalized report.</p>
+                    <p className="text-muted-foreground">{t.assistant.placeholder}</p>
                 </CardContent>
             </Card>
         )}

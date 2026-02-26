@@ -48,7 +48,7 @@ import { useToast } from "@/hooks/use-toast";
 
 
 export default function ExpensesPage() {
-  const { expenses, users, currentUser, addExpense } = useFamily();
+  const { expenses, users, currentUser, addExpense, t } = useFamily();
   const [open, setOpen] = useState(false);
   const [newExpense, setNewExpense] = useState({
       description: '',
@@ -121,8 +121,8 @@ export default function ExpensesPage() {
     };
   };
 
-  const canAddExpense = currentUser.role === 'Parent' || currentUser.role === 'Child';
-  const canEditOrDelete = currentUser.role === 'Parent';
+  const canAddExpense = currentUser?.role === 'Parent' || currentUser?.role === 'Child';
+  const canEditOrDelete = currentUser?.role === 'Parent';
 
   const sortedExpenses = useMemo(() => 
     [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
@@ -133,9 +133,9 @@ export default function ExpensesPage() {
     <Card className="max-w-full overflow-hidden">
       <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <CardTitle className="text-xl sm:text-2xl">Expenses</CardTitle>
+          <CardTitle className="text-xl sm:text-2xl">{t.expenses.title}</CardTitle>
           <CardDescription className="text-xs sm:text-sm">
-            Manage and track all family expenses.
+            {t.expenses.desc}
           </CardDescription>
         </div>
         <Dialog open={open} onOpenChange={(isOpen) => {
@@ -147,14 +147,14 @@ export default function ExpensesPage() {
           <DialogTrigger asChild>
             <Button size="sm" className="gap-1 w-full sm:w-auto" disabled={!canAddExpense}>
               <PlusCircle className="h-3.5 w-3.5" />
-              <span>Add Expense</span>
+              <span>{t.expenses.addExpense}</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Add New Expense</DialogTitle>
+              <DialogTitle>{t.expenses.dialogTitle}</DialogTitle>
               <DialogDescription>
-                Log a new transaction or scan a receipt to get started.
+                {t.expenses.dialogDesc}
               </DialogDescription>
             </DialogHeader>
             
@@ -173,7 +173,7 @@ export default function ExpensesPage() {
                 className="w-full"
               >
                 <Camera className="mr-2 h-4 w-4" />
-                Scan Receipt with AI
+                {t.expenses.scanWithAi}
               </Button>
 
               <div className="relative my-2">
@@ -182,30 +182,30 @@ export default function ExpensesPage() {
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
                   <span className="bg-background px-2 text-muted-foreground">
-                    Or Enter Manually
+                    {t.expenses.orManual}
                   </span>
                 </div>
               </div>
 
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="description" className="text-right text-xs sm:text-sm">
-                  Description
+                  {t.expenses.description}
                 </Label>
-                <Input id="description" value={newExpense.description} onChange={(e) => setNewExpense({...newExpense, description: e.target.value})} className="col-span-3 h-8 sm:h-10" placeholder="Weekly groceries"/>
+                <Input id="description" value={newExpense.description} onChange={(e) => setNewExpense({...newExpense, description: e.target.value})} className="col-span-3 h-8 sm:h-10" placeholder={t.expenses.descPlaceholder}/>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="amount" className="text-right text-xs sm:text-sm">
-                  Amount
+                  {t.expenses.amount}
                 </Label>
                 <Input id="amount" type="number" value={newExpense.amount} onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})} className="col-span-3 h-8 sm:h-10" placeholder="₹4000"/>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="category" className="text-right text-xs sm:text-sm">
-                  Category
+                  {t.expenses.category}
                 </Label>
                 <Select value={newExpense.category} onValueChange={(value: ExpenseCategory) => setNewExpense({...newExpense, category: value})}>
                   <SelectTrigger className="col-span-3 h-8 sm:h-10">
-                    <SelectValue placeholder="Select a category" />
+                    <SelectValue placeholder={t.expenses.catPlaceholder} />
                   </SelectTrigger>
                   <SelectContent>
                     {expenseCategories.map((cat) => (
@@ -220,14 +220,14 @@ export default function ExpensesPage() {
               {isScanning && (
                 <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2 rounded-lg">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">Scanning receipt...</p>
+                    <p className="text-sm text-muted-foreground">{t.expenses.scanning}</p>
                 </div>
               )}
             </div>
 
             <DialogFooter>
               <Button type="submit" onClick={handleAddExpense} disabled={isScanning} className="w-full sm:w-auto">
-                {isScanning ? "Please wait..." : "Add Expense"}
+                {isScanning ? t.expenses.pleaseWait : t.expenses.addExpense}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -238,13 +238,13 @@ export default function ExpensesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[150px] sm:w-auto">Contributor</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="hidden sm:table-cell">Category</TableHead>
-                <TableHead className="hidden md:table-cell">Date</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="w-[150px] sm:w-auto">{t.expenses.tableContributor}</TableHead>
+                <TableHead>{t.expenses.tableDesc}</TableHead>
+                <TableHead className="hidden sm:table-cell">{t.expenses.tableCat}</TableHead>
+                <TableHead className="hidden md:table-cell">{t.expenses.tableDate}</TableHead>
+                <TableHead className="text-right">{t.expenses.tableAmount}</TableHead>
                 <TableHead className="w-[50px]">
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">{t.expenses.tableActions}</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -257,7 +257,7 @@ export default function ExpensesPage() {
                       <div className="flex items-center gap-2">
                           <Avatar className="h-6 w-6 sm:h-8 sm:w-8">
                               <AvatarImage src={contributor?.avatarUrl} />
-                              <AvatarFallback>{contributor ? getInitials(contributor.name) : 'N/A'}</AvatarFallback>
+                              <AvatarFallback>{contributor ? getInitials(contributor.name) : t.common.na}</AvatarFallback>
                           </Avatar>
                           <span className="font-medium text-xs sm:text-sm truncate max-w-[80px] sm:max-w-none">{contributor?.name}</span>
                       </div>
@@ -284,7 +284,7 @@ export default function ExpensesPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuLabel>{t.expenses.tableActions}</DropdownMenuLabel>
                           <DropdownMenuItem disabled={!canEditOrDelete}>Edit</DropdownMenuItem>
                           <DropdownMenuItem className="text-destructive" disabled={!canEditOrDelete}>Delete</DropdownMenuItem>
                         </DropdownMenuContent>

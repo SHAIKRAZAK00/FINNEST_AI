@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -11,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
 export default function PersonalityPage() {
-  const { expenses, currentUser, updatePersonality } = useFamily();
+  const { expenses, currentUser, updatePersonality, t } = useFamily();
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
 
@@ -42,16 +41,15 @@ export default function PersonalityPage() {
         <div className="p-4 bg-primary/10 rounded-full border-4 border-primary/20">
             <BrainCircuit className="h-10 w-10 text-primary" />
         </div>
-        <h1 className="text-3xl font-bold font-headline">Financial DNA Scanner</h1>
+        <h1 className="text-3xl font-bold font-headline">{t.personality.title}</h1>
         <p className="max-w-xl text-muted-foreground">
-          Discover your inner spender. Our behavioral AI analyzes your categories, 
-          timing, and discipline to reveal your financial personality.
+          {t.personality.desc}
         </p>
       </div>
 
       <Button onClick={handleAnalyze} disabled={isLoading} size="lg" className="gap-2">
         <Sparkles className="h-5 w-5" />
-        {isLoading ? "Analyzing DNA..." : "Scan My Spending"}
+        {isLoading ? t.personality.scanning : t.personality.button}
       </Button>
 
       <div className="w-full max-w-2xl mt-8">
@@ -71,19 +69,19 @@ export default function PersonalityPage() {
                     <div className="p-4 rounded-xl bg-muted/50 border text-left flex gap-4">
                         <Compass className="h-10 w-10 text-primary shrink-0" />
                         <div>
-                            <p className="font-bold text-sm uppercase text-muted-foreground">Expert Advice</p>
+                            <p className="font-bold text-sm uppercase text-muted-foreground">{t.personality.advice}</p>
                             <p className="text-sm italic">"{result.advice}"</p>
                         </div>
                     </div>
                     <div className="flex justify-center gap-4">
                         <div className="flex flex-col items-center p-3 rounded-lg bg-primary/10 border border-primary/20 w-32">
                             <ShieldCheck className="h-6 w-6 text-primary mb-1" />
-                            <span className="text-[10px] uppercase font-bold text-muted-foreground">Discipline</span>
+                            <span className="text-[10px] uppercase font-bold text-muted-foreground">{t.personality.discipline}</span>
                             <span className="font-bold">High</span>
                         </div>
                         <div className="flex flex-col items-center p-3 rounded-lg bg-primary/10 border border-primary/20 w-32">
                             <Sparkles className="h-6 w-6 text-primary mb-1" />
-                            <span className="text-[10px] uppercase font-bold text-muted-foreground">Growth</span>
+                            <span className="text-[10px] uppercase font-bold text-muted-foreground">{t.personality.growth}</span>
                             <span className="font-bold">+15%</span>
                         </div>
                     </div>
@@ -92,7 +90,7 @@ export default function PersonalityPage() {
         ) : (
             <Card className="border-dashed">
                 <CardContent className="p-12 text-muted-foreground">
-                    Initiate scan to reveal your financial archetype.
+                    {t.personality.placeholder}
                 </CardContent>
             </Card>
         )}
