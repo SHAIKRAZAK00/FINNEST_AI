@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -63,7 +63,7 @@ function AppSidebar() {
           </div>
         </SidebarContent>
       </Sidebar>
-    )
+    );
   }
 
   return (
@@ -133,7 +133,6 @@ function AppSidebar() {
             <span className="text-[10px] uppercase font-bold text-white/40 px-2 flex items-center gap-2">
                 <Languages className="h-3 w-3" /> {t.nav.language}
             </span>
-            <span className="text-[10px] text-white/40 px-2 font-mono">EN | HI | TE | TA</span>
             <Select value={language} onValueChange={(v) => setLanguage(v as Language)}>
                 <SelectTrigger className="bg-white/5 border-white/5 h-8 text-xs">
                     <SelectValue />
@@ -174,25 +173,21 @@ function AppSidebar() {
 }
 
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
-  const { loading, hasAttemptedLookup, currentUser, authUser, t } = useFamily();
+  const { loading, hasAttemptedLookup, currentUser, authUser } = useFamily();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    // Only perform routing decisions once authentication and profile lookup are finalized
     if (!loading && hasAttemptedLookup) {
       if (!authUser) {
-        // User is not logged in
         if (pathname !== '/login' && pathname !== '/signup') {
             router.replace('/login');
         }
       } else if (!currentUser) {
-          // User is logged in but has no database profile/family link
           if (pathname !== '/signup' && !pathname.startsWith('/login')) {
               router.replace('/signup');
           }
       } else {
-          // User is logged in and has a valid profile
           if (pathname === '/login' || pathname === '/signup' || pathname === '/') {
               router.replace('/dashboard');
           }
@@ -204,7 +199,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen w-full items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-xs font-bold uppercase tracking-[0.3em] text-white/40 animate-pulse">{t.common.loading}</p>
+        <p className="text-xs font-bold uppercase tracking-[0.3em] text-white/40 animate-pulse">Initializing...</p>
       </div>
     </div>
   );
