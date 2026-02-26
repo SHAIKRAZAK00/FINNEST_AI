@@ -39,11 +39,14 @@ import {
   BookOpen,
   Medal,
   FileText,
+  Languages,
 } from "lucide-react";
 import { useFamily } from "@/context/family-context";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Language } from "@/lib/translations";
 
 function AppSidebar() {
-  const { family, currentUser, logout } = useFamily();
+  const { family, currentUser, logout, language, setLanguage, t } = useFamily();
   const pathname = usePathname();
 
   const getInitials = (name: string) => name.split(" ").map((n) => n[0]).join("");
@@ -74,58 +77,75 @@ function AppSidebar() {
       <SidebarContent>
         <SidebarMenu className="px-2">
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname === '/dashboard'} tooltip="Dashboard">
-              <Link href="/dashboard"><LayoutDashboard /><span>Dashboard</span></Link>
+            <SidebarMenuButton asChild isActive={pathname === '/dashboard'} tooltip={t.nav.dashboard}>
+              <Link href="/dashboard"><LayoutDashboard /><span>{t.nav.dashboard}</span></Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname === '/expenses'} tooltip="Expenses">
-              <Link href="/expenses"><ReceiptText /><span>Expenses</span></Link>
+            <SidebarMenuButton asChild isActive={pathname === '/expenses'} tooltip={t.nav.expenses}>
+              <Link href="/expenses"><ReceiptText /><span>{t.nav.expenses}</span></Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname === '/goals'} tooltip="Goals">
-              <Link href="/goals"><Target /><span>Goals</span></Link>
+            <SidebarMenuButton asChild isActive={pathname === '/goals'} tooltip={t.nav.goals}>
+              <Link href="/goals"><Target /><span>{t.nav.goals}</span></Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname === '/leaderboard'} tooltip="Leaderboard">
-              <Link href="/leaderboard"><Trophy /><span>Leaderboard</span></Link>
+            <SidebarMenuButton asChild isActive={pathname === '/leaderboard'} tooltip={t.nav.leaderboard}>
+              <Link href="/leaderboard"><Trophy /><span>{t.nav.leaderboard}</span></Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           
           <div className="h-px bg-white/5 my-2 mx-2" />
           
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname === '/personality'} tooltip="Personality">
-              <Link href="/personality"><BrainCircuit /><span>Personality</span></Link>
+            <SidebarMenuButton asChild isActive={pathname === '/personality'} tooltip={t.nav.personality}>
+              <Link href="/personality"><BrainCircuit /><span>{t.nav.personality}</span></Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname === '/learning'} tooltip="Learning Mode">
-              <Link href="/learning"><BookOpen /><span>Learning Mode</span></Link>
+            <SidebarMenuButton asChild isActive={pathname === '/learning'} tooltip={t.nav.learning}>
+              <Link href="/learning"><BookOpen /><span>{t.nav.learning}</span></Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname === '/rewards'} tooltip="Rewards">
-              <Link href="/rewards"><Medal /><span>Rewards</span></Link>
+            <SidebarMenuButton asChild isActive={pathname === '/rewards'} tooltip={t.nav.rewards}>
+              <Link href="/rewards"><Medal /><span>{t.nav.rewards}</span></Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname === '/assistant'} tooltip="AI CFO">
-              <Link href="/assistant"><Bot /><span>AI CFO</span></Link>
+            <SidebarMenuButton asChild isActive={pathname === '/assistant'} tooltip={t.nav.assistant}>
+              <Link href="/assistant"><Bot /><span>{t.nav.assistant}</span></Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           {currentUser.role === 'Parent' && (
             <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === '/reports'} tooltip="Monthly Reports">
-                <Link href="/reports"><FileText /><span>Reports</span></Link>
+                <SidebarMenuButton asChild isActive={pathname === '/reports'} tooltip={t.nav.reports}>
+                <Link href="/reports"><FileText /><span>{t.nav.reports}</span></Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
           )}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter className="p-4">
+      <SidebarFooter className="p-4 gap-4">
+        <div className="flex flex-col gap-2">
+            <span className="text-[10px] uppercase font-bold text-white/40 px-2 flex items-center gap-2">
+                <Languages className="h-3 w-3" /> {t.nav.language}
+            </span>
+            <Select value={language} onValueChange={(v) => setLanguage(v as Language)}>
+                <SelectTrigger className="bg-white/5 border-white/5 h-8 text-xs">
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="hi">हिन्दी (Hindi)</SelectItem>
+                    <SelectItem value="te">తెలుగు (Telugu)</SelectItem>
+                    <SelectItem value="ta">தமிழ் (Tamil)</SelectItem>
+                </SelectContent>
+            </Select>
+        </div>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex w-full items-center gap-3 rounded-xl p-2 text-left text-sm outline-none ring-sidebar-ring transition-all hover:bg-white/5">
@@ -142,9 +162,9 @@ function AppSidebar() {
           <DropdownMenuContent side="right" align="end" className="w-56 bg-card border-white/5 backdrop-blur-xl">
             <DropdownMenuLabel className="text-xs font-bold uppercase tracking-widest text-white/40">Account</DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-white/5" />
-            <DropdownMenuItem asChild><Link href="/settings"><Settings className="mr-2 h-4 w-4" /><span>Settings</span></Link></DropdownMenuItem>
+            <DropdownMenuItem asChild><Link href="/settings"><Settings className="mr-2 h-4 w-4" /><span>{t.nav.settings}</span></Link></DropdownMenuItem>
             <DropdownMenuSeparator className="bg-white/5" />
-            <DropdownMenuItem onClick={logout} className="text-destructive"><LogOut className="mr-2 h-4 w-4" /><span>Log out</span></DropdownMenuItem>
+            <DropdownMenuItem onClick={logout} className="text-destructive"><LogOut className="mr-2 h-4 w-4" /><span>{t.nav.logout}</span></DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarFooter>
@@ -153,19 +173,16 @@ function AppSidebar() {
 }
 
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
-  const { loading, currentUser, authUser } = useFamily();
+  const { loading, currentUser, authUser, t } = useFamily();
   const router = useRouter();
   const pathname = usePathname();
   const [hasCheckedInitialState, setHasCheckedInitialState] = useState(false);
 
   useEffect(() => {
-    // Only handle redirects once we've definitely finished the initial loading sequence.
     if (!loading) {
       if (!authUser) {
         router.replace('/login');
       } else if (!currentUser) {
-        // Profile check. We add a tiny buffer to avoid flickering redirects while 
-        // the state is stabilizing.
         const timer = setTimeout(() => {
           if (!currentUser && pathname !== '/signup' && !pathname.startsWith('/login')) {
             router.replace('/signup');
@@ -181,7 +198,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen w-full items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-xs font-bold uppercase tracking-[0.3em] text-white/40 animate-pulse">Syncing Protocol...</p>
+        <p className="text-xs font-bold uppercase tracking-[0.3em] text-white/40 animate-pulse">{t.common.loading}</p>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import type { User, Expense, Goal, Family, TrustMetric, Allowance } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
@@ -10,6 +10,7 @@ import { setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/no
 import { signOut } from 'firebase/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { format } from 'date-fns';
+import { Language, translations } from '@/lib/translations';
 
 interface FamilyContextType {
   family: Family | null;
@@ -20,6 +21,9 @@ interface FamilyContextType {
   goals: Goal[];
   trustMetric: TrustMetric | null;
   allowance: Allowance | null;
+  language: Language;
+  setLanguage: (lang: Language) => void;
+  t: any;
   addExpense: (expense: Omit<Expense, 'id' | 'contributorId' | 'date' | 'familyId'>) => void;
   addGoal: (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors' | 'familyId'>) => void;
   contributeToGoal: (goalId: string, amount: number) => Promise<{ goalCompleted: boolean; success: boolean }>;
@@ -50,6 +54,19 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const [hasAttemptedLookup, setHasAttemptedLookup] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeConfettiGoal, setActiveConfettiGoal] = useState<string | null>(null);
+  const [language, setLangState] = useState<Language>('en');
+
+  useEffect(() => {
+    const savedLang = localStorage.getItem('app_language') as Language;
+    if (savedLang) setLangState(savedLang);
+  }, []);
+
+  const setLanguage = (lang: Language) => {
+    setLangState(lang);
+    localStorage.setItem('app_language', lang);
+  };
+
+  const t = translations[language];
 
   const findFamily = useCallback(async (forcedId?: string) => {
     if (forcedId) {
@@ -292,7 +309,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     family: familyData ? { ...familyData, id: familyId! } : null,
     users: users || [], currentUser, authUser,
     expenses: expenses || [], goals: goals || [], 
-    trustMetric, allowance,
+    trustMetric, allowance, language, setLanguage, t,
     addExpense, addGoal, contributeToGoal, setMonthlyBudget,
     updatePersonality, updateLearning, setAllowance, depositToVault,
     removeUser: (uid: string) => {},

@@ -2,9 +2,9 @@
 "use client";
 
 import { useFamily } from "@/context/family-context";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { IndianRupee, PiggyBank, Users, Wallet, Zap, ShieldCheck, Star, Info } from "lucide-react";
+import { PiggyBank, Wallet, Zap, ShieldCheck, Star, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useMemo, useState } from "react";
@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function DashboardPage() {
-  const { expenses, goals, users, family, currentUser, trustMetric, setMonthlyBudget } = useFamily();
+  const { expenses, goals, users, family, currentUser, trustMetric, setMonthlyBudget, t } = useFamily();
   const [isBudgetDialogOpen, setIsBudgetDialogOpen] = useState(false);
   const [budgetInput, setBudgetInput] = useState("");
 
@@ -41,7 +41,7 @@ export default function DashboardPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-xs font-bold uppercase tracking-wider flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4" /> Family Trust Meter
+                  <ShieldCheck className="h-4 w-4" /> {t.dashboard.trustMeter}
                 </div>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -50,9 +50,8 @@ export default function DashboardPage() {
                     </button>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs p-3">
-                    <p className="font-bold mb-1">How it works:</p>
                     <p className="text-[10px] leading-relaxed">
-                      60% based on <span className="text-primary font-bold">Discipline</span> (staying under budget) and 40% on <span className="text-primary font-bold">Participation</span> (contributing to goals).
+                        Measured via protocol compliance and goal activity.
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -70,7 +69,7 @@ export default function DashboardPage() {
                   <span className="text-xs font-bold text-primary">{trustMetric?.disciplineScore || 0}%</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[8px] text-muted-foreground uppercase font-bold">Goal Collab</span>
+                  <span className="text-[8px] text-muted-foreground uppercase font-bold">Participation</span>
                   <span className="text-xs font-bold text-primary">{trustMetric?.contributionScore || 0}%</span>
                 </div>
               </div>
@@ -81,23 +80,23 @@ export default function DashboardPage() {
         {/* Monthly Budget Card */}
         <Card className="bg-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Budget Protocol</CardTitle>
+            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.dashboard.budgetProtocol}</CardTitle>
             <Wallet className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             {family?.monthlyBudget ? (
               <div className="space-y-2">
                 <div className="flex items-baseline justify-between">
-                  <span className="text-2xl font-bold">₹{(family.monthlyBudget - (family.currentMonthSpent || 0)).toLocaleString()}</span>
-                  <span className="text-[10px] text-muted-foreground uppercase">Remaining</span>
+                  <span className="text-2xl font-bold">{t.common.rupees}{(family.monthlyBudget - (family.currentMonthSpent || 0)).toLocaleString()}</span>
+                  <span className="text-[10px] text-muted-foreground uppercase">{t.dashboard.remaining}</span>
                 </div>
                 <Progress value={budgetUsage} className="h-1.5" />
                 <div className="flex justify-between items-center text-[10px] uppercase">
                   <span className={budgetUsage > 85 ? "text-destructive font-bold" : "text-muted-foreground"}>
-                    {budgetUsage.toFixed(0)}% Used
+                    {budgetUsage.toFixed(0)}% {t.dashboard.used}
                   </span>
                   {currentUser?.role === 'Parent' && (
-                    <Button variant="ghost" className="h-4 p-0 text-[8px] hover:text-primary" onClick={() => setIsBudgetDialogOpen(true)}>ADD TO BUDGET</Button>
+                    <Button variant="ghost" className="h-4 p-0 text-[8px] hover:text-primary" onClick={() => setIsBudgetDialogOpen(true)}>{t.common.add}</Button>
                   )}
                 </div>
               </div>
@@ -105,7 +104,7 @@ export default function DashboardPage() {
               <div className="flex flex-col gap-2">
                 <p className="text-xs text-muted-foreground italic">No budget set.</p>
                 {currentUser?.role === 'Parent' && (
-                  <Button variant="outline" size="sm" className="h-7 text-[10px] uppercase" onClick={() => setIsBudgetDialogOpen(true)}>Initialize Budget</Button>
+                  <Button variant="outline" size="sm" className="h-7 text-[10px] uppercase" onClick={() => setIsBudgetDialogOpen(true)}>Initialize</Button>
                 )}
               </div>
             )}
@@ -114,7 +113,7 @@ export default function DashboardPage() {
 
         <Card className="bg-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Active Goals</CardTitle>
+            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.dashboard.activeGoals}</CardTitle>
             <PiggyBank className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -125,7 +124,7 @@ export default function DashboardPage() {
 
         <Card className="bg-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Intelligence XP</CardTitle>
+            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.dashboard.intelligenceXp}</CardTitle>
             <Star className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
@@ -138,17 +137,17 @@ export default function DashboardPage() {
       <Dialog open={isBudgetDialogOpen} onOpenChange={setIsBudgetDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Add to Family Budget</DialogTitle>
+            <DialogTitle>{t.common.add} Budget</DialogTitle>
             <DialogDescription>Increase the global spending limit for the family ecosystem.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="budget">Amount to Add (₹)</Label>
+              <Label htmlFor="budget">Amount ({t.common.rupees})</Label>
               <Input id="budget" type="number" value={budgetInput} onChange={(e) => setBudgetInput(e.target.value)} placeholder="e.g. 5000" />
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleUpdateBudget} className="w-full">Confirm Top-Up</Button>
+            <Button onClick={handleUpdateBudget} className="w-full">{t.common.confirm}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -157,23 +156,20 @@ export default function DashboardPage() {
         <Card className="bg-card">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                    <Zap className="h-5 w-5 text-primary"/> Financial Personality
+                    <Zap className="h-5 w-5 text-primary"/> {t.dashboard.financialPersona}
                 </CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 text-center">
-                    <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Your Classification</p>
+                    <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Classification</p>
                     <h3 className="text-xl font-bold text-primary">{currentUser?.financialPersonality || "Analyzing..."}</h3>
-                    <p className="text-sm text-muted-foreground mt-2 italic">
-                        {currentUser?.financialPersonality ? "Based on your spending behavior this month." : "Add more expenses to reveal your persona."}
-                    </p>
                 </div>
             </CardContent>
         </Card>
 
         <Card className="bg-card">
             <CardHeader>
-                <CardTitle className="text-lg">Network Status</CardTitle>
+                <CardTitle className="text-lg">{t.dashboard.networkStatus}</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
