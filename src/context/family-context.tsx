@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
@@ -91,35 +90,25 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
             return;
           }
         } catch (e) {
-          // Stale cache or no permission for this family
           localStorage.removeItem(`familyId_${authUser.uid}`);
         }
       }
       
-      // 2. Scan families where user might be a member
-      // Note: This is an expensive scan. In a production app, we would use a top-level 'users' collection 
-      // or custom claims to avoid this. For the MVP, we iterate safely.
+      // 2. Query families where user is a member (complying with security rules)
       const familiesCol = collection(firestore, 'families');
-      const snapshot = await getDocs(familiesCol);
-      let foundFamilyId = null;
+      const q = query(familiesCol, where(`members.${authUser.uid}.role`, ">=", ""));
+      const snapshot = await getDocs(q);
       
-      for (const familyDoc of snapshot.docs) {
-        try {
-          const memberDocRef = doc(firestore, 'families', familyDoc.id, 'members', authUser.uid);
-          const memberSnapshot = await getDoc(memberDocRef);
-          if (memberSnapshot.exists()) {
-            foundFamilyId = familyDoc.id;
-            localStorage.setItem(`familyId_${authUser.uid}`, foundFamilyId);
-            break;
-          }
-        } catch (e) { 
-          // Expected for families the user doesn't belong to
-          continue; 
-        }
+      if (!snapshot.empty) {
+        const foundFamilyId = snapshot.docs[0].id;
+        setFamilyId(foundFamilyId);
+        localStorage.setItem(`familyId_${authUser.uid}`, foundFamilyId);
+      } else {
+        setFamilyId(null);
       }
-      setFamilyId(foundFamilyId);
     } catch (err) {
       console.error("Critical error finding family:", err);
+      setFamilyId(null);
     } finally {
       setIsSearchingFamily(false);
       setHasAttemptedLookup(true);

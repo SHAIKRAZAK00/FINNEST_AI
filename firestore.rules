@@ -48,7 +48,7 @@ service cloud.firestore {
 
     // Checks if the user has a specific role in a denormalized map
     function hasRole(dataMap, role) {
-      return isMemberOf(dataMap) && dataMap[request.auth.uid] == role;
+      return isMemberOf(dataMap) && dataMap[request.auth.uid].role == role;
     }
 
     // Checks if the user is a 'Parent' (authorized for administrative/destructive actions)
@@ -72,6 +72,7 @@ service cloud.firestore {
      */
     match /families/{familyId} {
       allow get: if isMemberOf(resource.data.members);
+      // Allow listing only if the user is a member of the resulting documents (Query Filtered)
       allow list: if isSignedIn() && isMemberOf(resource.data.members);
       allow create: if isSignedIn() && request.resource.data.id == familyId;
       allow update: if resource != null && isParent(resource.data.members);
@@ -79,25 +80,19 @@ service cloud.firestore {
 
       /**
        * @description Detailed records for family members.
-       * @path /families/{familyId}/familyMembers/{userId}
-       * @allow (list) Any authenticated member of the parent family.
-       * @deny (create) A user attempting to create a member record for someone else.
-       * @principle Ownership and Path-Consistency - Ensures user records match the Auth UID.
+       * @path /families/{familyId}/members/{userId}
        */
-      match /familyMembers/{userId} {
+      match /members/{userId} {
         allow get: if isSignedIn();
         allow list: if isSignedIn();
         allow create: if isOwner(userId) && request.resource.data.familyId == familyId;
-        allow update: if isExistingOwner(userId) && request.resource.data.familyId == resource.data.familyId;
+        allow update: if isExistingOwner(userId) && (request.resource.data.familyId == resource.data.familyId || !('familyId' in request.resource.data));
         allow delete: if isExistingOwner(userId);
       }
 
       /**
        * @description Shared family expenses. Access controlled via denormalized 'familyRoles'.
        * @path /families/{familyId}/expenses/{expenseId}
-       * @allow (create) Any family member; requires setting internal familyId correctly.
-       * @deny (delete) Any user who is not a 'Parent' or the original contributor.
-       * @principle Authorization Independence - Uses local data for all access decisions.
        */
       match /expenses/{expenseId} {
         allow get: if isMemberOf(resource.data.familyRoles);
@@ -110,9 +105,6 @@ service cloud.firestore {
       /**
        * @description Shared family goals.
        * @path /families/{familyId}/goals/{goalId}
-       * @allow (update) Any member to contribute to the currentAmount.
-       * @deny (update) Non-parents attempting to change the targetAmount.
-       * @principle Collaborative Access - Open for reading by members, restricted for management.
        */
       match /goals/{goalId} {
         allow get: if isMemberOf(resource.data.familyRoles);
@@ -124,32 +116,24 @@ service cloud.firestore {
 
       /**
        * @description AI-generated financial insights.
-       * @path /families/{familyId}/insights/{insightId}
-       * @allow (list) All family members to view insights.
-       * @deny (create/delete) Client-side write operations (reserved for system/AI).
-       * @principle Read-Only Collaborative Data - Only allows reading and marking as read.
        */
       match /insights/{insightId} {
         allow get: if isMemberOf(resource.data.familyRoles);
         allow list: if isMemberOf(resource.data.familyRoles);
-        allow create: if false; // Reserved for backend/AI generation
-        allow update: if resource != null && isMemberOf(resource.data.familyRoles); // Allows marking as 'read'
+        allow create: if false; 
+        allow update: if resource != null && isMemberOf(resource.data.familyRoles);
         allow delete: if false;
       }
 
       /**
-       * @description Individual gamification progress.
-       * @path /families/{familyId}/gamificationRecords/{userId}
-       * @allow (get) The specific user or a 'Parent' in the family.
-       * @deny (update) A user trying to modify another user's points.
-       * @principle Private Data within Collaborative Context - Restricted to the owner.
+       * @description Individual virtual allowances.
        */
-      match /gamificationRecords/{userId} {
-        allow get: if isOwner(userId) || (resource != null && isParent(resource.data.familyRoles));
+      match /allowances/{userId} {
+        allow get: if isOwner(userId) || (resource != null && isParent(get(/databases/$(database)/documents/families/$(familyId)).data.members));
         allow list: if isSignedIn();
-        allow create: if isOwner(userId) && request.resource.data.familyId == familyId;
-        allow update: if isExistingOwner(userId) && request.resource.data.familyId == resource.data.familyId;
-        allow delete: if isExistingOwner(userId);
+        allow create: if isParent(get(/databases/$(database)/documents/families/$(familyId)).data.members);
+        allow update: if isOwner(userId) || isParent(get(/databases/$(database)/documents/families/$(familyId)).data.members);
+        allow delete: if isParent(get(/databases/$(database)/documents/families/$(familyId)).data.members);
       }
     }
 
@@ -159,6 +143,3 @@ service cloud.firestore {
     }
   }
 }
-// END OF RULES 
-// Note: Google Auth and Password signups are managed via Firebase Authentication settings. 
-// These rules handle the resulting authorization for Firestore data.
