@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from 'react';
@@ -29,6 +28,7 @@ interface FamilyContextType {
   updatePersonality: (personality: string) => void;
   updateLearning: (learningData: Partial<User['learning']>) => void;
   setAllowance: (childId: string, amount: number) => void;
+  depositToVault: (amount: number) => void;
   loading: boolean;
   activeConfettiGoal: string | null;
   clearConfetti: () => void;
@@ -275,9 +275,15 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     toast({ title: "Allowance Set", description: `Child will receive ₹${amount} monthly.` });
   };
 
+  const depositToVault = (amount: number) => {
+    if (!currentUser || !familyId || !firestore || amount <= 0) return;
+    const allowRef = doc(firestore, 'families', familyId, 'allowances', currentUser.id);
+    updateDocumentNonBlocking(allowRef, { saved: increment(amount) });
+    toast({ title: "Money Deposited!", description: `₹${amount} added to your virtual vault.` });
+  };
+
   const logout = () => signOut(auth).then(() => { setFamilyId(null); setHasAttemptedLookup(false); });
 
-  // Complex loading state to ensure we don't prematurely stop "loading" before profile lookup is conclusive
   const isProfileDetermined = hasAttemptedLookup || !!familyId;
   const isGlobalLoading = isAuthLoading || (authUser && !isProfileDetermined) || isSearchingFamily || isFamilyLoading || areUsersLoading;
 
@@ -287,7 +293,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     expenses: expenses || [], goals: goals || [], 
     trustMetric, allowance,
     addExpense, addGoal, contributeToGoal, setMonthlyBudget,
-    updatePersonality, updateLearning, setAllowance,
+    updatePersonality, updateLearning, setAllowance, depositToVault,
     removeUser: (uid: string) => {},
     loading: isGlobalLoading, 
     updateUserAvatar: (url: string) => {},
