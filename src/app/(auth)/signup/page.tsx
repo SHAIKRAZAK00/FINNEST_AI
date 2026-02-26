@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -28,8 +29,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Copy, Loader2, Languages } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useFirestore } from "@/firebase";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { collection, query, where, getDocs, doc, writeBatch } from "firebase/firestore";
+import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { collection, query, where, getDocs, doc, writeBatch, getDoc } from "firebase/firestore";
 import { useFamily } from "@/context/family-context";
 import { Language } from "@/lib/translations";
 
@@ -52,7 +53,25 @@ export default function SignupPage() {
       }
     }, [isFamilyLoading, authUser, currentUser, router]);
 
-    const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
+    const handleGoogleSignup = async () => {
+        if (!role) {
+            setError("Please select a role first.");
+            return;
+        }
+        setIsSigningUp(true);
+        setError("");
+        const provider = new GoogleAuthProvider();
+        try {
+            const userCredential = await signInWithPopup(auth, provider);
+            const user = userCredential.user;
+            await completeRegistration(user, user.displayName || "User", role);
+        } catch (err: any) {
+            setError(err.message);
+            setIsSigningUp(false);
+        }
+    };
+
+    const handleEmailSignup = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError('');
         setIsSigningUp(true);
@@ -61,16 +80,23 @@ export default function SignupPage() {
         const fullName = (form.elements.namedItem("full-name") as HTMLInputElement).value;
         const email = (form.elements.namedItem("email") as HTMLInputElement).value;
         const password = (form.elements.namedItem("password") as HTMLInputElement).value;
-        const familyCodeInput = (form.elements.namedItem("family-code") as HTMLInputElement)?.value;
         
-        const roleForUserObject: UserRole = role === 'ParentCreate' || role === 'ParentJoin' ? 'Parent' : role as UserRole;
-
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
-            const batch = writeBatch(firestore);
+            await completeRegistration(userCredential.user, fullName, role);
+        } catch (err: any) {
+            setError(err.message);
+            setIsSigningUp(false);
+        }
+    };
 
-            if (role === 'ParentCreate') {
+    const completeRegistration = async (user: any, fullName: string, selectedRole: string) => {
+        const batch = writeBatch(firestore);
+        const roleForUserObject: UserRole = selectedRole === 'ParentCreate' || selectedRole === 'ParentJoin' ? 'Parent' : selectedRole as UserRole;
+        const familyCodeInput = (document.getElementById("family-code") as HTMLInputElement)?.value;
+
+        try {
+            if (selectedRole === 'ParentCreate') {
                 const familyNamePart = fullName.split(' ').pop() || 'User';
                 const newFamilyCode = `${familyNamePart.substring(0, 3).toUpperCase()}-${String(Date.now()).slice(-4)}`;
                 const familyDocRef = doc(collection(firestore, "families"));
@@ -79,7 +105,14 @@ export default function SignupPage() {
                     id: familyDocRef.id,
                     familyName: `The ${familyNamePart}s`,
                     familyCode: newFamilyCode,
-                    createdBy: user.uid,
+                    createdByUserId: user.uid,
+                    createdAt: new Date().toISOString(),
+                    members: {
+                        [user.uid]: {
+                            role: roleForUserObject,
+                            joinedAt: new Date().toISOString()
+                        }
+                    }
                 };
                 batch.set(familyDocRef, newFamily);
 
@@ -89,28 +122,20 @@ export default function SignupPage() {
                     name: fullName,
                     email: user.email,
                     role: roleForUserObject,
-                    avatarUrl: `https://picsum.photos/seed/${fullName.split(' ')[0]}/200/200`,
+                    avatarUrl: user.photoURL || `https://picsum.photos/seed/${fullName.split(' ')[0]}/200/200`,
                     points: 50,
                     badges: []
                 };
                 batch.set(doc(firestore, "families", familyDocRef.id, "members", user.uid), userProfile);
                 
-                const gamificationData = { 
-                  id: user.uid,
-                  userId: user.uid, 
-                  familyId: familyDocRef.id,
-                  points: 50, 
-                  level: 1, 
-                  savingStreaks: 0 
-                };
-                batch.set(doc(firestore, "families", familyDocRef.id, "gamification", user.uid), gamificationData);
-
                 await batch.commit();
-                
                 setGeneratedCode(newFamilyCode);
                 await refreshFamily(familyDocRef.id);
                 setStep('code');
             } else { // Join family
+                if (!familyCodeInput) {
+                    throw new Error("Family code is required to join.");
+                }
                 const familiesRef = collection(firestore, "families");
                 const q = query(familiesRef, where("familyCode", "==", familyCodeInput));
                 const querySnapshot = await getDocs(q);
@@ -122,35 +147,32 @@ export default function SignupPage() {
                 const familyDoc = querySnapshot.docs[0];
                 const familyId = familyDoc.id;
 
+                // Update family members map for authorization
+                batch.update(doc(firestore, "families", familyId), {
+                    [`members.${user.uid}`]: {
+                        role: roleForUserObject,
+                        joinedAt: new Date().toISOString()
+                    }
+                });
+
                 const userProfile = {
                     id: user.uid,
                     familyId: familyId,
                     name: fullName,
                     email: user.email,
                     role: roleForUserObject,
-                    avatarUrl: `https://picsum.photos/seed/${fullName.split(' ')[0]}/200/200`,
+                    avatarUrl: user.photoURL || `https://picsum.photos/seed/${fullName.split(' ')[0]}/200/200`,
                     points: 0,
                     badges: []
                 };
                 batch.set(doc(firestore, "families", familyId, "members", user.uid), userProfile);
                 
-                const gamificationData = { 
-                  id: user.uid,
-                  userId: user.uid, 
-                  familyId: familyId,
-                  points: 0, 
-                  level: 1, 
-                  savingStreaks: 0 
-                };
-                batch.set(doc(firestore, "families", familyId, "gamification", user.uid), gamificationData);
-
                 await batch.commit();
                 await refreshFamily(familyId);
                 router.push('/dashboard');
             }
         } catch (err: any) {
             setError(err.message);
-        } finally {
             setIsSigningUp(false);
         }
     };
@@ -184,14 +206,6 @@ export default function SignupPage() {
                     </div>
                      <Button onClick={() => router.push('/dashboard')}>{t.auth.goToDashboard}</Button>
                 </CardContent>
-                 <CardFooter className="justify-center">
-                    <div className="text-sm">
-                        {t.auth.alreadyHaveAccount}{" "}
-                        <Link href="/login" className="underline">
-                            {t.auth.signIn}
-                        </Link>
-                    </div>
-                </CardFooter>
             </Card>
         )
     }
@@ -224,32 +238,14 @@ export default function SignupPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSignup} className="grid gap-4">
+          <div className="grid gap-4">
               {error && (
                   <Alert variant="destructive">
                       <AlertTitle>Signup Failed</AlertTitle>
                       <AlertDescription>{error}</AlertDescription>
                   </Alert>
               )}
-            <div className="grid gap-2">
-              <Label htmlFor="full-name">{t.auth.fullName}</Label>
-              <Input id="full-name" name="full-name" placeholder="Alex Johnson" required disabled={isSigningUp} />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="email">{t.auth.email}</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="alex@example.com"
-                required
-                disabled={isSigningUp}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="password">{t.auth.password}</Label>
-              <Input id="password" name="password" type="password" required disabled={isSigningUp} />
-            </div>
+            
             <div className="grid gap-2">
               <Label htmlFor="role">{t.auth.role}</Label>
               <Select required onValueChange={(value: string) => setRole(value)} disabled={isSigningUp}>
@@ -272,11 +268,51 @@ export default function SignupPage() {
               </div>
             )}
 
-            <Button type="submit" className="w-full" disabled={!role || isSigningUp}>
-              {isSigningUp && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isSigningUp ? t.auth.creatingAccount : t.auth.createAccount}
+            <Button 
+                variant="outline" 
+                className="w-full h-10 border-white/10 hover:bg-white/5" 
+                onClick={handleGoogleSignup} 
+                disabled={!role || isSigningUp}
+            >
+              <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path></svg>
+              Signup with Google
             </Button>
-          </form>
+
+            <div className="relative my-2">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-white/10" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-[#0f0c29] px-2 text-white/30">{t.auth.or}</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleEmailSignup} className="grid gap-4">
+                <div className="grid gap-2">
+                <Label htmlFor="full-name">{t.auth.fullName}</Label>
+                <Input id="full-name" name="full-name" placeholder="Alex Johnson" required disabled={isSigningUp} />
+                </div>
+                <div className="grid gap-2">
+                <Label htmlFor="email">{t.auth.email}</Label>
+                <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="alex@example.com"
+                    required
+                    disabled={isSigningUp}
+                />
+                </div>
+                <div className="grid gap-2">
+                <Label htmlFor="password">{t.auth.password}</Label>
+                <Input id="password" name="password" type="password" required disabled={isSigningUp} />
+                </div>
+                <Button type="submit" className="w-full" disabled={!role || isSigningUp}>
+                {isSigningUp && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSigningUp ? t.auth.creatingAccount : t.auth.createAccount}
+                </Button>
+            </form>
+          </div>
           <div className="mt-4 text-center text-sm">
             {t.auth.alreadyHaveAccount}{" "}
             <Link href="/login" className="underline">
