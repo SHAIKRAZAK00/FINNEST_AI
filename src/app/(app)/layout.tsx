@@ -187,11 +187,17 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         }
       } else if (!currentUser) {
         // Wait for the profile to potentially resolve before pushing to signup
+        // If we land on /signup, stay there to complete profile
+        if (pathname === '/signup') {
+           setHasCheckedInitialState(true);
+           return;
+        }
+
         const timer = setTimeout(() => {
           if (!currentUser && !loading && pathname !== '/signup' && !pathname.startsWith('/login')) {
             router.replace('/signup');
           }
-        }, 3000);
+        }, 4000); // Increased buffer to allow database to resolve
         return () => clearTimeout(timer);
       } else {
           if (pathname === '/login' || pathname === '/signup') {
