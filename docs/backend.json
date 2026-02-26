@@ -1,99 +1,449 @@
-
 {
   "entities": {
-    "User": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "User",
-      "type": "object",
-      "description": "Represents a user within the FinNest AI application.",
-      "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
-        "avatarUrl": { "type": "string" },
-        "familyId": { "type": "string" },
-        "role": { "type": "string", "enum": ["Parent", "Child", "Viewer"] },
-        "points": { "type": "number" },
-        "badges": { "type": "array", "items": { "type": "string" } },
-        "financialPersonality": { "type": "string" },
-        "personalityLastUpdated": { "type": "string" },
-        "learning": {
-          "type": "object",
-          "properties": {
-            "completedQuizzes": { "type": "array", "items": { "type": "string" } },
-            "missionProgress": { "type": "object" },
-            "unlockedRewards": { "type": "array", "items": { "type": "string" } }
-          }
-        }
-      },
-      "required": ["id", "name", "email", "role", "familyId"]
-    },
     "Family": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Family",
       "type": "object",
-      "description": "Represents a family group.",
+      "description": "Represents a secure family unit within the FinNest AI ecosystem, sharing financial data and goals.",
       "properties": {
-        "id": { "type": "string" },
-        "familyName": { "type": "string" },
-        "createdBy": { "type": "string" },
-        "familyCode": { "type": "string" },
-        "monthlyBudget": { "type": "number" },
-        "currentMonthSpent": { "type": "number" },
-        "budgetMonth": { "type": "string" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Family entity."
+        },
+        "familyName": {
+          "type": "string",
+          "description": "A user-friendly name for the family (e.g., 'The Smith Family')."
+        },
+        "familyCode": {
+          "type": "string",
+          "description": "A unique, short code generated for members to use when joining the family."
+        },
+        "createdByUserId": {
+          "type": "string",
+          "description": "Reference to the User ID (from Firebase Auth) of the parent who initially created this family. (Relationship: User 1:N Family)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the family record was created.",
+          "format": "date-time"
+        }
       },
-      "required": ["id", "familyName", "createdBy", "familyCode"]
+      "required": [
+        "id",
+        "familyName",
+        "familyCode",
+        "createdByUserId",
+        "createdAt"
+      ]
     },
-    "TrustMetric": {
+    "FamilyMember": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FamilyMember",
       "type": "object",
+      "description": "Represents a specific user's membership within a family, defining their role and join date.",
       "properties": {
-        "overallTrustScore": { "type": "number" },
-        "contributionScore": { "type": "number" },
-        "disciplineScore": { "type": "number" },
-        "updatedAt": { "type": "string" }
-      }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for this FamilyMember record, typically the user's ID from Firebase Auth."
+        },
+        "familyId": {
+          "type": "string",
+          "description": "Reference to the Family this member belongs to. (Relationship: Family 1:N FamilyMember)"
+        },
+        "userId": {
+          "type": "string",
+          "description": "The unique identifier of the user from Firebase Authentication."
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user within the family (e.g., 'Parent', 'Child', 'Viewer')."
+        },
+        "joinedAt": {
+          "type": "string",
+          "description": "Timestamp when the user joined the family.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "familyId",
+        "userId",
+        "role",
+        "joinedAt"
+      ]
     },
-    "Allowance": {
+    "Expense": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Expense",
       "type": "object",
+      "description": "Records a financial expenditure made by a family member, including details like amount, category, and contributor.",
       "properties": {
-        "total": { "type": "number" },
-        "saved": { "type": "number" },
-        "childId": { "type": "string" }
-      }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Expense entity."
+        },
+        "familyId": {
+          "type": "string",
+          "description": "Reference to the Family this expense belongs to. (Relationship: Family 1:N Expense)"
+        },
+        "name": {
+          "type": "string",
+          "description": "A brief description or name for the expense (e.g., 'Grocery Shopping')."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the expense (e.g., 'Food', 'Transport', 'Utilities')."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The monetary value of the expense."
+        },
+        "contributorUserId": {
+          "type": "string",
+          "description": "Reference to the User ID (from Firebase Auth) of the family member who contributed or made this expense. (Relationship: FamilyMember 1:N Expense)"
+        },
+        "expenseDate": {
+          "type": "string",
+          "description": "The date when the expense occurred.",
+          "format": "date"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the expense record was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "familyId",
+        "name",
+        "category",
+        "amount",
+        "contributorUserId",
+        "expenseDate",
+        "createdAt"
+      ]
     },
-    "Report": {
+    "Goal": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Goal",
       "type": "object",
+      "description": "Represents a shared financial objective for the family, with tracking for progress and contributions.",
       "properties": {
-        "monthId": { "type": "string" },
-        "summary": { "type": "string" },
-        "topContributor": { "type": "string" },
-        "data": { "type": "object" }
-      }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Goal entity."
+        },
+        "familyId": {
+          "type": "string",
+          "description": "Reference to the Family this goal belongs to. (Relationship: Family 1:N Goal)"
+        },
+        "name": {
+          "type": "string",
+          "description": "A short, descriptive name for the financial goal (e.g., 'Vacation Fund')."
+        },
+        "description": {
+          "type": "string",
+          "description": "An optional detailed description of the goal."
+        },
+        "targetAmount": {
+          "type": "number",
+          "description": "The total monetary amount to be saved or achieved for this goal."
+        },
+        "currentAmount": {
+          "type": "number",
+          "description": "The current monetary amount saved towards this goal."
+        },
+        "targetDate": {
+          "type": "string",
+          "description": "The desired date for the goal to be achieved.",
+          "format": "date"
+        },
+        "contributorUserIds": {
+          "type": "array",
+          "description": "An array of User IDs (from Firebase Auth) of family members contributing to this goal. (Relationship: FamilyMember N:N Goal)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the goal (e.g., 'Active', 'Achieved', 'On Track', 'On Hold')."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the goal was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the goal was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "familyId",
+        "name",
+        "targetAmount",
+        "currentAmount",
+        "contributorUserIds",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Insight": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Insight",
+      "type": "object",
+      "description": "Stores AI-generated financial guidance, suggestions, or observations relevant to a family's financial behavior.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Insight entity."
+        },
+        "familyId": {
+          "type": "string",
+          "description": "Reference to the Family this insight belongs to. (Relationship: Family 1:N Insight)"
+        },
+        "title": {
+          "type": "string",
+          "description": "A concise title for the insight (e.g., 'Potential Overspending Alert')."
+        },
+        "content": {
+          "type": "string",
+          "description": "The detailed AI-generated advice or analysis, presented in a chat-style format."
+        },
+        "category": {
+          "type": "string",
+          "description": "The type or focus area of the insight (e.g., 'Overspending Alert', 'Savings Suggestion', 'Budget Optimization')."
+        },
+        "generatedAt": {
+          "type": "string",
+          "description": "Timestamp when the insight was generated by the AI.",
+          "format": "date-time"
+        },
+        "relevantExpenseIds": {
+          "type": "array",
+          "description": "Optional array of Expense IDs that this insight directly relates to. (Relationship: Expense N:N Insight)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "suggestedGoalId": {
+          "type": "string",
+          "description": "Optional reference to a Goal that this insight might suggest or relate to. (Relationship: Goal 1:N Insight)"
+        },
+        "readByUsers": {
+          "type": "array",
+          "description": "An array of User IDs (from Firebase Auth) of family members who have marked this insight as read. (Relationship: FamilyMember N:N Insight)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "familyId",
+        "title",
+        "content",
+        "category",
+        "generatedAt"
+      ]
+    },
+    "GamificationRecord": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "GamificationRecord",
+      "type": "object",
+      "description": "Stores a user's progress, points, levels, and badges earned through gamified financial activities within a family.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the GamificationRecord entity, typically the user's ID from Firebase Auth."
+        },
+        "familyId": {
+          "type": "string",
+          "description": "Reference to the Family this gamification record belongs to. (Relationship: Family 1:N GamificationRecord)"
+        },
+        "userId": {
+          "type": "string",
+          "description": "The unique identifier of the user (from Firebase Authentication) this record is for. (Relationship: User 1:N GamificationRecord)"
+        },
+        "points": {
+          "type": "number",
+          "description": "Total gamification points accumulated by the user."
+        },
+        "level": {
+          "type": "number",
+          "description": "The current gamification level achieved by the user."
+        },
+        "badges": {
+          "type": "array",
+          "description": "An array of unique badge identifiers or names earned by the user.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "savingsStreaks": {
+          "type": "number",
+          "description": "The current count of consecutive positive savings actions or days."
+        },
+        "lastActivityAt": {
+          "type": "string",
+          "description": "Timestamp of the last significant gamified action or update.",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the gamification record was initially created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the gamification record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "familyId",
+        "userId",
+        "points",
+        "level",
+        "badges",
+        "savingsStreaks",
+        "lastActivityAt",
+        "createdAt",
+        "updatedAt"
+      ]
     }
   },
   "auth": {
-    "providers": ["password"]
+    "providers": [
+      "password",
+      "anonymous"
+    ]
   },
   "firestore": {
-    "families/{familyId}": {
-      "schema": "#/entities/Family",
-      "description": "Family metadata."
-    },
-    "families/{familyId}/members/{userId}": {
-      "schema": "#/entities/User",
-      "description": "Member details."
-    },
-    "families/{familyId}/trustMetrics/{userId}": {
-      "schema": "#/entities/TrustMetric",
-      "description": "Financial trust transparency scores."
-    },
-    "families/{familyId}/allowances/{userId}": {
-      "schema": "#/entities/Allowance",
-      "description": "Virtual allowance for children."
-    },
-    "families/{familyId}/reports/{reportId}": {
-      "schema": "#/entities/Report",
-      "description": "Monthly financial reports."
-    }
+    "structure": [
+      {
+        "path": "/families/{familyId}",
+        "definition": {
+          "entityName": "Family",
+          "schema": {
+            "$ref": "#/backend/entities/Family"
+          },
+          "description": "Top-level collection for family units. Each document represents a family and includes a denormalized 'members' map (userId -> {role, joinedAt}) for direct family-level authorization checks and as the source of truth for membership.",
+          "params": [
+            {
+              "name": "familyId",
+              "description": "The unique identifier for the family."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/families/{familyId}/familyMembers/{userId}",
+        "definition": {
+          "entityName": "FamilyMember",
+          "schema": {
+            "$ref": "#/backend/entities/FamilyMember"
+          },
+          "description": "Subcollection storing detailed information about individual family members. While the parent `Family` document's `members` map is used for primary authorization, this collection serves as the detailed record for each member within a family.",
+          "params": [
+            {
+              "name": "familyId",
+              "description": "The unique identifier for the family this member belongs to."
+            },
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user (from Firebase Auth) who is a member of this family."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/families/{familyId}/expenses/{expenseId}",
+        "definition": {
+          "entityName": "Expense",
+          "schema": {
+            "$ref": "#/backend/entities/Expense"
+          },
+          "description": "Subcollection for financial expenses within a specific family. Each document includes `familyId` and a denormalized `familyRoles` map (userId -> role) for direct authorization checks, enabling secure `list` queries without `get()` calls to the parent `Family` document.",
+          "params": [
+            {
+              "name": "familyId",
+              "description": "The unique identifier for the family this expense belongs to."
+            },
+            {
+              "name": "expenseId",
+              "description": "The unique identifier for the expense."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/families/{familyId}/goals/{goalId}",
+        "definition": {
+          "entityName": "Goal",
+          "schema": {
+            "$ref": "#/backend/entities/Goal"
+          },
+          "description": "Subcollection for shared financial goals within a family. Each document includes `familyId` and a denormalized `familyRoles` map (userId -> role) for direct authorization checks, enabling secure `list` queries without `get()` calls to the parent `Family` document.",
+          "params": [
+            {
+              "name": "familyId",
+              "description": "The unique identifier for the family this goal belongs to."
+            },
+            {
+              "name": "goalId",
+              "description": "The unique identifier for the goal."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/families/{familyId}/insights/{insightId}",
+        "definition": {
+          "entityName": "Insight",
+          "schema": {
+            "$ref": "#/backend/entities/Insight"
+          },
+          "description": "Subcollection for AI-generated financial insights specific to a family. Each document includes `familyId` and a denormalized `familyRoles` map (userId -> role) for direct authorization checks, enabling secure `list` queries without `get()` calls to the parent `Family` document.",
+          "params": [
+            {
+              "name": "familyId",
+              "description": "The unique identifier for the family this insight belongs to."
+            },
+            {
+              "name": "insightId",
+              "description": "The unique identifier for the insight."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/families/{familyId}/gamificationRecords/{userId}",
+        "definition": {
+          "entityName": "GamificationRecord",
+          "schema": {
+            "$ref": "#/backend/entities/GamificationRecord"
+          },
+          "description": "Subcollection for individual user's gamification records within a specific family. Each document includes `familyId`, `userId` (matching the path wildcard for direct ownership), and a denormalized `familyRoles` map (userId -> role) for authorization checks, enabling secure access.",
+          "params": [
+            {
+              "name": "familyId",
+              "description": "The unique identifier for the family this gamification record is associated with."
+            },
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user (from Firebase Auth) whose gamification record this is."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure for FinNest AI is designed with paramount focus on Authorization Independence, scalability, and debuggability, adhering strictly to the provided core principles and design mandates. The primary strategy employed is **Authorization Independence via Denormalization** (Mandate A), which is critical for robust and simple security rules.\n\n1.  **Family Collection (`/families/{familyId}`):** This is the top-level collection representing each family unit. Each `Family` document will contain a denormalized `members` map (e.g., `{\"uid1\": {\"role\": \"Parent\", \"joinedAt\": \"timestamp\"}}`). This map is the canonical source of truth for family membership and roles. This denormalization within the `Family` document itself allows immediate access to membership data when operating directly on the family record, satisfying the 'Collaborative Data' access model (Mandate C.3).\n\n2.  **Subcollection Denormalization for Authorization Independence (Mandate A):** To eliminate the need for `get()` calls to parent documents in security rules and support atomic operations, all subcollection documents (`Expense`, `Goal`, `Insight`, `GamificationRecord`) will carry a denormalized `familyRoles` map (e.g., `{\"uid1\": \"Parent\", \"uid2\": \"Child\"}`). This `familyRoles` map will be a simplified version of the `Family` document's `members` map, containing only the `userId` and `role`. This ensures that security rules for operations on `expenses`, `goals`, `insights`, and `gamificationRecords` can directly check `resource.data.familyRoles[request.auth.uid]` without relying on fetching the parent `Family` document. This directly addresses the 'Authorization Independence' mandate by embedding the necessary authorization context within each document.\n\n3.  **Structural Segregation (Mandate B):** All documents within a given subcollection (e.g., all `expenses` under a specific `familyId`) share the same security posture. This is achieved by nesting `expenses`, `goals`, `insights`, and `gamificationRecords` under `families/{familyId}`. This simplifies security rules, as rules for a specific subcollection can assume the context of its parent family.\n\n4.  **Querying and Authorization Performance (QAPs):**\n    *   **Efficient List Queries:** All subcollection documents include their `familyId` as a direct field (already present in their schemas). This enables efficient `list` operations using `collectionGroup` queries combined with a `.where('familyId', '==', currentFamilyId)` filter. Security rules can then enforce that the `request.auth.uid` is a member of the `familyId` specified in the query, and their `role` (from the denormalized `familyRoles` field on each document) grants the necessary permissions. For example, a `Parent` could query all expenses for their family: `db.collectionGroup('expenses').where('familyId', '==', 'family123')` and the rules would check `resource.data.familyId == 'family123'` and `resource.data.familyRoles[request.auth.uid] == 'Parent'`.\n    *   **No Filters in Rules:** Security rules will not act as filters. Instead, client queries will include all necessary filters (e.g., `familyId`), and the rules will simply validate if the user is authorized to perform the operation on the *already filtered* set of data (or on a specific document).\n\n5.  **Access Modeling (Mandate C):**\n    *   **Private Data:** The `GamificationRecord` is primarily private to a user within a family context (`/families/{familyId}/gamificationRecords/{userId}`). Access is controlled by `request.auth.uid` matching `{userId}` and membership in the `{familyId}`.\n    *   **Collaborative Data:** `Expense`, `Goal`, `Insight` are collaborative and are secured via the denormalized `familyRoles` map in each document.\n\n6.  **DBAC (Database-Backed Access Control) (Mandate C.4):** Roles (`Parent`, `Child`, `Viewer`) are stored directly in the `Family` document's `members` map and denormalized into subcollection documents' `familyRoles` maps. Authorization rules will then check `request.auth.uid`'s role against these database-stored values, rather than custom claims.\n\nThis structure prioritizes security and performance in rules evaluation by ensuring all necessary authorization context is immediately available within the document being accessed, minimizing rule complexity and reliance on cross-document lookups (get()). A Cloud Function will be responsible for maintaining the consistency of the denormalized `familyRoles` map across subcollections whenever the parent `Family`'s `members` map changes."
   }
 }
