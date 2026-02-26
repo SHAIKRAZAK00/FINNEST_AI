@@ -6,7 +6,7 @@ import type { User, Expense, Goal, Family, TrustMetric, Allowance } from '@/lib/
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, getDocs, getDoc, increment, runTransaction } from 'firebase/firestore';
-import { setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { setDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { signOut } from 'firebase/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { format } from 'date-fns';
@@ -272,6 +272,20 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const removeUser = (userId: string) => {
+    if (!currentUser || currentUser.role !== 'Parent' || !familyId || !firestore) return;
+    const memberRef = doc(firestore, 'families', familyId, 'members', userId);
+    deleteDocumentNonBlocking(memberRef);
+    toast({ title: "User Removed", description: "The member has been ejected from the family network." });
+  };
+
+  const updateUserAvatar = (avatarUrl: string) => {
+    if (!currentUser || !familyId || !firestore) return;
+    const memberRef = doc(firestore, 'families', familyId, 'members', currentUser.id);
+    updateDocumentNonBlocking(memberRef, { avatarUrl });
+    toast({ title: "Photo Updated", description: "Your profile picture has been synchronized across the family network." });
+  };
+
   const updatePersonality = (personality: string) => {
     if (!currentUser || !familyId || !firestore) return;
     const memberRef = doc(firestore, 'families', familyId, 'members', currentUser.id);
@@ -312,9 +326,8 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     trustMetric, allowance, language, setLanguage, t,
     addExpense, addGoal, contributeToGoal, setMonthlyBudget,
     updatePersonality, updateLearning, setAllowance, depositToVault,
-    removeUser: (uid: string) => {},
+    removeUser, updateUserAvatar,
     loading: isGlobalLoading, 
-    updateUserAvatar: (url: string) => {},
     activeConfettiGoal, clearConfetti: () => setActiveConfettiGoal(null),
     logout, refreshFamily: findFamily,
   };
