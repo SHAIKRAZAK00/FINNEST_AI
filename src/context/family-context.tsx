@@ -5,9 +5,9 @@ import React, { createContext, useContext, useState, ReactNode, useEffect, useCa
 import type { User, Expense, Goal, Family, TrustMetric, Allowance } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, getDocs, getDoc, increment, runTransaction } from 'firebase/firestore';
+import { collection, doc, getDocs, getDoc, increment, runTransaction, limit, query, where } from 'firebase/firestore';
 import { setDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { signOut } from 'firebase/auth';
+import { signOut, linkWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { format } from 'date-fns';
 import { Language, translations } from '@/lib/translations';
@@ -34,6 +34,7 @@ interface FamilyContextType {
   updateLearning: (learningData: Partial<User['learning']>) => void;
   setAllowance: (childId: string, amount: number) => void;
   depositToVault: (amount: number) => void;
+  linkGoogleAccount: () => Promise<void>;
   loading: boolean;
   activeConfettiGoal: string | null;
   clearConfetti: () => void;
@@ -77,18 +78,27 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     if (!authUser || !firestore) return;
     setIsSearchingFamily(true);
     try {
+      // 1. Check local storage first for speed
       const cachedId = typeof window !== 'undefined' ? localStorage.getItem(`familyId_${authUser.uid}`) : null;
       if (cachedId) {
-        const memberDocRef = doc(firestore, 'families', cachedId, 'members', authUser.uid);
-        const memberSnapshot = await getDoc(memberDocRef);
-        if (memberSnapshot.exists()) {
-          setFamilyId(cachedId);
-          setHasAttemptedLookup(true);
-          setIsSearchingFamily(false);
-          return;
+        try {
+          const memberDocRef = doc(firestore, 'families', cachedId, 'members', authUser.uid);
+          const memberSnapshot = await getDoc(memberDocRef);
+          if (memberSnapshot.exists()) {
+            setFamilyId(cachedId);
+            setHasAttemptedLookup(true);
+            setIsSearchingFamily(false);
+            return;
+          }
+        } catch (e) {
+          // Stale cache or no permission for this family
+          localStorage.removeItem(`familyId_${authUser.uid}`);
         }
       }
       
+      // 2. Scan families where user might be a member
+      // Note: This is an expensive scan. In a production app, we would use a top-level 'users' collection 
+      // or custom claims to avoid this. For the MVP, we iterate safely.
       const familiesCol = collection(firestore, 'families');
       const snapshot = await getDocs(familiesCol);
       let foundFamilyId = null;
@@ -102,11 +112,14 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
             localStorage.setItem(`familyId_${authUser.uid}`, foundFamilyId);
             break;
           }
-        } catch (e) { continue; }
+        } catch (e) { 
+          // Expected for families the user doesn't belong to
+          continue; 
+        }
       }
       setFamilyId(foundFamilyId);
     } catch (err) {
-      console.error("Error finding family:", err);
+      console.error("Critical error finding family:", err);
     } finally {
       setIsSearchingFamily(false);
       setHasAttemptedLookup(true);
@@ -314,6 +327,18 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     toast({ title: "Money Deposited!", description: `₹${amount} added to your virtual vault.` });
   };
 
+  const linkGoogleAccount = async () => {
+    if (!auth.currentUser) return;
+    const provider = new GoogleAuthProvider();
+    try {
+      await linkWithPopup(auth.currentUser, provider);
+      toast({ title: "Account Linked", description: "Your Google account is now linked for easier sign-in." });
+    } catch (e: any) {
+      console.error(e);
+      toast({ variant: "destructive", title: "Linking Failed", description: e.message || "Could not link account." });
+    }
+  };
+
   const logout = () => signOut(auth).then(() => { setFamilyId(null); setHasAttemptedLookup(false); });
 
   const isProfileDetermined = hasAttemptedLookup || !!familyId;
@@ -326,6 +351,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     trustMetric, allowance, language, setLanguage, t,
     addExpense, addGoal, contributeToGoal, setMonthlyBudget,
     updatePersonality, updateLearning, setAllowance, depositToVault,
+    linkGoogleAccount,
     removeUser, updateUserAvatar,
     loading: isGlobalLoading, 
     activeConfettiGoal, clearConfetti: () => setActiveConfettiGoal(null),

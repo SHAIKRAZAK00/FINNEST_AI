@@ -94,7 +94,7 @@ function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/leaderboard'} tooltip={t.nav.leaderboard}>
               <Link href="/leaderboard"><Trophy /><span>{t.nav.leaderboard}</span></Link>
-            </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenuItem>
           
           <div className="h-px bg-white/5 my-2 mx-2" />
@@ -183,11 +183,12 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       if (!authUser) {
         router.replace('/login');
       } else if (!currentUser) {
+        // Increase timeout to 1.5s to ensure profile has time to load from Firestore
         const timer = setTimeout(() => {
           if (!currentUser && pathname !== '/signup' && !pathname.startsWith('/login')) {
             router.replace('/signup');
           }
-        }, 300);
+        }, 1500);
         return () => clearTimeout(timer);
       }
       setHasCheckedInitialState(true);
