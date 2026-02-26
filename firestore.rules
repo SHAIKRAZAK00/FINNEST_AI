@@ -61,12 +61,14 @@ service cloud.firestore {
 
       match /trustMetrics/{userId} {
         allow read: if isFamilyMember(familyId);
+        // Allow user to update their own transparency scores (automated via app logic)
         allow write: if isOwner(userId) || isFamilyParent(familyId);
       }
 
       match /allowances/{userId} {
         allow read: if isFamilyMember(familyId);
-        allow write: if isFamilyParent(familyId);
+        // Allow children to update (deposit) their own virtual allowance vault
+        allow write: if isOwner(userId) || isFamilyParent(familyId);
       }
 
       match /reports/{reportId} {
