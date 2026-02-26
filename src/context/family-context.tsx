@@ -94,12 +94,10 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
         setFamilyId(foundFamilyId);
         localStorage.setItem(`familyId_${authUser.uid}`, foundFamilyId);
       } else {
-        // Fallback: Check if user exists in any family (this can be slow/restricted, directory is preferred)
         setFamilyId(null);
       }
     } catch (err: any) {
       console.error("Critical error finding family:", err);
-      // If we get a permission error on the discovery, it's a structural issue
       setFamilyId(null);
     } finally {
       setIsSearchingFamily(false);
@@ -286,8 +284,13 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
 
   const updateUserAvatar = (avatarUrl: string) => {
     if (!currentUser || !familyId || !firestore) return;
+    // Update family member profile
     const memberRef = doc(firestore, 'families', familyId, 'members', currentUser.id);
     updateDocumentNonBlocking(memberRef, { avatarUrl });
+    // Update global user directory for identification
+    const userRef = doc(firestore, 'users', currentUser.id);
+    updateDocumentNonBlocking(userRef, { avatarUrl });
+    
     toast({ title: "Photo Updated", description: "Your profile picture has been synchronized across the family network." });
   };
 

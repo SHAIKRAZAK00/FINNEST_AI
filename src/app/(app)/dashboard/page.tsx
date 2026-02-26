@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function DashboardPage() {
   const { expenses, goals, users, family, currentUser, trustMetric, setMonthlyBudget, t } = useFamily();
@@ -31,6 +32,8 @@ export default function DashboardPage() {
       setIsBudgetDialogOpen(false);
     }
   };
+
+  const getInitials = (name: string) => name.split(" ").map((n) => n[0]).join("");
 
   return (
     <div className="flex flex-col gap-6">
@@ -176,9 +179,12 @@ export default function DashboardPage() {
                     {users.map((user) => (
                         <div key={user.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50 border border-border">
                             <div className="flex items-center gap-3">
-                                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
-                                    {user.name[0]}
-                                </div>
+                                <Avatar className="h-8 w-8 border border-primary/20">
+                                    <AvatarImage src={user.avatarUrl} alt={user.name} />
+                                    <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
+                                        {getInitials(user.name)}
+                                    </AvatarFallback>
+                                </Avatar>
                                 <div className="flex flex-col">
                                     <span className="text-sm font-bold">{user.name}</span>
                                     <span className="text-[10px] text-muted-foreground uppercase">{user.role}</span>
