@@ -257,6 +257,10 @@ export default function LearningPage() {
                                         </Button>
                                     </DialogTrigger>
                                     <DialogContent className="sm:max-w-md p-0 overflow-hidden border-none shadow-2xl">
+                                        <DialogHeader className="sr-only">
+                                          <DialogTitle>Needs vs Wants Game</DialogTitle>
+                                          <DialogDescription>Test your financial knowledge by sorting items into needs and wants.</DialogDescription>
+                                        </DialogHeader>
                                         <div className="bg-gradient-to-br from-indigo-900 via-purple-900 to-indigo-950 p-6 text-white text-center">
                                             {!gameFinished ? (
                                                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">

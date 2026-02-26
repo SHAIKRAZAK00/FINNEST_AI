@@ -278,7 +278,8 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const depositToVault = (amount: number) => {
     if (!currentUser || !familyId || !firestore || amount <= 0) return;
     const allowRef = doc(firestore, 'families', familyId, 'allowances', currentUser.id);
-    updateDocumentNonBlocking(allowRef, { saved: increment(amount) });
+    // Use set with merge to ensure the document exists, preventing crashes if parent hasn't set initial allowance
+    setDocumentNonBlocking(allowRef, { saved: increment(amount), childId: currentUser.id }, { merge: true });
     toast({ title: "Money Deposited!", description: `₹${amount} added to your virtual vault.` });
   };
 
