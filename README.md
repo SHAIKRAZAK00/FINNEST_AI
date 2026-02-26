@@ -1,61 +1,61 @@
-# FinNest AI - Smart Family Finance
+# FinNest AI - Smart Family Finance Ecosystem
 
-FinNest AI is a secure, high-performance **Next.js Web Application** designed for shared family expenses, goals, and AI-powered financial guidance. It is optimized for mobile-first usage.
+FinNest AI is a secure, high-performance **Next.js Web Application** designed for shared family expenses, goals, and AI-powered financial guidance. It is optimized for mobile-first usage and multi-generational financial literacy.
 
-## 🚀 How to Deploy
+## 🚀 Core Pillars
 
-### 1. Firebase App Hosting (Recommended)
-This project is pre-configured for **Firebase App Hosting**.
-1. Go to the [Firebase Console](https://console.firebase.google.com/).
-2. Select your project.
-3. In the left menu, go to **Build > App Hosting**.
-4. Click **Get Started** and connect your GitHub repository.
-5. Firebase will automatically build and deploy your app every time you push to GitHub.
+### 1. Security & Identity Protocol
+- **Multi-Tenant Isolation**: Families are partitioned via a unique `FamilyCode`.
+- **Role-Based Access Control (RBAC)**: 
+    - **Parents**: Auditors and Administrators.
+    - **Children**: Gamified Learners.
+    - **Viewers**: Observers.
+- **Atomic Transactions**: Firestore transactions ensure data integrity for shared goal contributions.
 
-### 2. Manual Deployment in Studio
-If you are currently in Firebase Studio:
-1. Look for the **"Deploy"** button in the header bar (usually top-right).
-2. Click it to trigger a live deployment to your Firebase project URL.
+### 2. AI Intelligence Layer (Genkit)
+- **AI CFO Assistant**: Personalized spending insights and savings opportunities.
+- **Financial DNA Scanner**: Behavioral AI that reveals your spending archetype (e.g., "Strategic Saver").
+- **OCR Receipt Scanner**: Automated expense logging via Gemini Vision.
+- **Monthly Audit Reports**: Professional report cards with discipline grades (A+ to F).
+
+### 3. Gamification & Behavioral Economics
+- **The Trust Meter**: Real-time transparency metric (60% Discipline, 40% Participation).
+- **Intelligence XP**: A 5-tier ranking system (Rising Star to Financial Master).
+- **Rewards Gallery**: Digital badges for financial milestones and discipline.
+
+### 4. Interactive Learning Mode
+- **Needs vs Wants Game**: Interactive sorting activity for kids to build financial IQ.
+- **Virtual Vault**: Savings protocol for children to manage virtual allowances.
+
+### 5. Multilingual Localization
+- Full native interface support for:
+    - **English**
+    - **Hindi (हिन्दी)**
+    - **Telugu (తెలుగు)**
+    - **Tamil (தமிழ்)**
 
 ---
 
 ## 📱 How to "Install" as an App
 
-Since this is a Progressive Web App (PWA), you can install it on your phone without an App Store:
-
 ### On iPhone (Safari)
 1. Open your deployed URL in **Safari**.
-2. Tap the **Share** button (box with upward arrow).
-3. Scroll down and tap **"Add to Home Screen"**.
-4. Tap **Add**. FinNest AI will now appear on your home screen like a native app.
+2. Tap the **Share** button.
+3. Tap **"Add to Home Screen"**.
 
 ### On Android (Chrome)
 1. Open your deployed URL in **Chrome**.
-2. Tap the **three dots** in the top-right corner.
-3. Tap **"Install app"** or **"Add to Home screen"**.
-4. Follow the prompts. It will now appear in your app drawer.
+2. Tap the **three dots** in the top-right.
+3. Tap **"Install app"**.
 
 ---
 
 ## 🛠 Local Development Setup
 
-1. **Download**: Right-click the project folder in the sidebar and select "Zip and Download".
-2. **Extract**: Unzip the file on your machine.
-3. **Install Dependencies**: Run `npm install` in the terminal.
-4. **Environment Variables**: Create a `.env.local` file and paste your Firebase config.
-5. **Run Locally**: Run `npm run dev`. Open `http://localhost:3000`.
-
-## 📤 How to Push to GitHub
-1. Create a new repository on GitHub.
-2. In your local terminal:
-   ```bash
-   git init
-   git add .
-   git commit -m "initial commit"
-   git branch -M main
-   git remote add origin YOUR_GITHUB_REPO_URL
-   git push -u origin main
-   ```
+1. **Download**: Zip and Download the project.
+2. **Install**: Run `npm install`.
+3. **Environment**: Setup `.env.local` with Firebase config.
+4. **Run**: `npm run dev`.
 
 ---
-*Built with ❤️ using Firebase and Next.js*
+*Built with ❤️ using Firebase, Next.js, and Genkit*
