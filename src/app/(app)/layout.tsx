@@ -122,7 +122,7 @@ function AppSidebar() {
           {currentUser.role === 'Parent' && (
             <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === '/reports'} tooltip={t.nav.reports}>
-                <Link href="/reports"><FileText /><span>{t.nav.reports}</span></Link>
+                  <Link href="/reports"><FileText /><span>{t.nav.reports}</span></Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
           )}
@@ -178,7 +178,6 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    // 1. Snappy unauthenticated check
     if (!loading && !authUser) {
       if (pathname !== '/login' && pathname !== '/signup') {
         router.replace('/login');
@@ -186,7 +185,6 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // 2. Definitive profile resolution check
     if (!loading && hasAttemptedLookup && authUser) {
       if (!currentUser) {
         if (pathname !== '/signup' && !pathname.startsWith('/login')) {

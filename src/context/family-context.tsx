@@ -44,6 +44,8 @@ interface FamilyContextType {
 
 const FamilyContext = createContext<FamilyContextType | undefined>(undefined);
 
+const LS_FAMILY_KEY = 'finnest_last_family_id';
+
 function FamilyDataProvider({ children }: { children: ReactNode }) {
   const { user: authUser, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
@@ -57,9 +59,15 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const [activeConfettiGoal, setActiveConfettiGoal] = useState<string | null>(null);
   const [language, setLangState] = useState<Language>('en');
 
+  // Load cache immediately for instant startup
   useEffect(() => {
-    const savedLang = typeof window !== 'undefined' ? localStorage.getItem('app_language') as Language : null;
-    if (savedLang) setLangState(savedLang);
+    if (typeof window !== 'undefined') {
+      const cachedFamilyId = localStorage.getItem(LS_FAMILY_KEY);
+      if (cachedFamilyId) setFamilyId(cachedFamilyId);
+      
+      const savedLang = localStorage.getItem('app_language') as Language;
+      if (savedLang) setLangState(savedLang);
+    }
   }, []);
 
   const setLanguage = (lang: Language) => {
@@ -72,6 +80,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const findFamily = useCallback(async (forcedId?: string) => {
     if (forcedId) {
       setFamilyId(forcedId);
+      localStorage.setItem(LS_FAMILY_KEY, forcedId);
       setHasAttemptedLookup(true);
       return;
     }
@@ -85,11 +94,13 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
       if (userSnap.exists()) {
         const foundFamilyId = userSnap.data().familyId;
         setFamilyId(foundFamilyId);
+        localStorage.setItem(LS_FAMILY_KEY, foundFamilyId);
       } else {
         setFamilyId(null);
+        localStorage.removeItem(LS_FAMILY_KEY);
       }
     } catch (err: any) {
-      console.warn("Family lookup encountered restricted access or missing data.");
+      console.warn("Family lookup encountered restricted access.");
       setFamilyId(null);
     } finally {
       setIsSearchingFamily(false);
@@ -101,8 +112,9 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     if (!isAuthLoading && !authUser) {
       setFamilyId(null);
       setCurrentUser(null);
-      setHasAttemptedLookup(true); // Quickly resolve for unauthenticated users
+      setHasAttemptedLookup(true);
       setIsSearchingFamily(false);
+      localStorage.removeItem(LS_FAMILY_KEY);
       return;
     }
     if (authUser && firestore && !hasAttemptedLookup && !isSearchingFamily) {
@@ -136,11 +148,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
           ...userProfile, 
           email: authUser.email || userProfile.email 
         });
-      } else {
-          setCurrentUser(null);
       }
-    } else {
-        setCurrentUser(null);
     }
   }, [users, authUser]);
 
@@ -149,32 +157,6 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     const memberRef = doc(firestore, 'families', familyId, 'members', userId);
     updateDocumentNonBlocking(memberRef, { points: increment(pts) });
   }, [familyId, firestore]);
-
-  const updateTrustMetrics = useCallback(async () => {
-    if (!familyId || !firestore || !authUser || !expenses || !familyData) return;
-    
-    const budget = familyData.monthlyBudget || 0;
-    const spent = familyData.currentMonthSpent || 0;
-    const discipline = budget > 0 ? Math.max(0, 100 - (spent / budget * 100)) : 100;
-    const participation = goals?.filter(g => g.contributors.includes(authUser.uid)).length || 0;
-    const contributionScore = Math.min(100, participation * 20);
-    const overall = (discipline * 0.6) + (contributionScore * 0.4);
-    
-    const trustDoc = doc(firestore, 'families', familyId, 'trustMetrics', authUser.uid);
-    setDocumentNonBlocking(trustDoc, {
-      overallTrustScore: Math.round(overall),
-      disciplineScore: Math.round(discipline),
-      contributionScore: Math.round(contributionScore),
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
-  }, [familyId, firestore, authUser, expenses, familyData, goals]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-        if (familyId && authUser) updateTrustMetrics();
-    }, 5000);
-    return () => clearTimeout(timer);
-  }, [familyId, authUser, updateTrustMetrics]);
 
   const addExpense = async (expense: Omit<Expense, 'id' | 'contributorId' | 'date' | 'familyId'>) => {
     if (!currentUser || !familyId || !firestore) return;
@@ -192,7 +174,6 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
       awardPoints(currentUser.id, 10);
       toast({ title: "Expense Added" });
     } catch (e) { 
-      console.error(e);
       toast({ variant: "destructive", title: "Sync Error", description: "Could not add expense." });
     }
   };
@@ -230,7 +211,6 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
       if (result.isCompleted) setActiveConfettiGoal(goalId);
       return { goalCompleted: result.isCompleted, success: true };
     } catch (e) {
-      console.error(e);
       return { goalCompleted: false, success: false };
     }
   };
@@ -279,10 +259,11 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     setFamilyId(null);
     setCurrentUser(null);
     setHasAttemptedLookup(true);
+    localStorage.removeItem(LS_FAMILY_KEY);
     signOut(auth);
   };
 
-  const isGlobalLoading = isAuthLoading || (authUser && !hasAttemptedLookup) || isSearchingFamily || (familyId && isFamilyLoading) || (familyId && areUsersLoading);
+  const isGlobalLoading = isAuthLoading || (authUser && !hasAttemptedLookup && !familyId);
 
   const value = { 
     family: familyData ? { ...familyData, id: familyId! } : null,
