@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -107,7 +108,7 @@ function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/learning'} tooltip={t.nav.learning}>
               <Link href="/learning"><BookOpen /><span>{t.nav.learning}</span></Link>
-            </SidebarMenuItem>
+            </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/rewards'} tooltip={t.nav.rewards}>
@@ -178,7 +179,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    // If not authenticated, go to login immediately
+    // 1. Snappy unauthenticated check
     if (!loading && !authUser) {
       if (pathname !== '/login' && pathname !== '/signup') {
         router.replace('/login');
@@ -186,20 +187,23 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // If authenticated, wait for lookup before deciding
+    // 2. Definitive profile resolution check
     if (!loading && hasAttemptedLookup && authUser) {
       if (!currentUser) {
-        // Only redirect to signup if they aren't already there
+        // Only redirect to signup if they are definitely not in a family
         if (pathname !== '/signup' && !pathname.startsWith('/login')) {
           router.replace('/signup');
         }
-      } else if (pathname === '/login' || pathname === '/signup' || pathname === '/') {
-        router.replace('/dashboard');
+      } else {
+        // Redirect home if they are logged in and on an auth page
+        if (pathname === '/login' || pathname === '/signup' || pathname === '/') {
+          router.replace('/dashboard');
+        }
       }
     }
   }, [loading, hasAttemptedLookup, authUser, currentUser, router, pathname]);
 
-  if (loading || (authUser && !hasAttemptedLookup)) return (
+  if (loading) return (
     <div className="flex h-screen w-full items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
