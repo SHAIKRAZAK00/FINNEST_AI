@@ -10,13 +10,13 @@ export default function RootPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // If we have cached auth and family, go immediately to dashboard
+    // Instant check for cached auth/family
     if (authUser && family) {
       router.replace('/dashboard');
       return;
     }
 
-    // Otherwise wait for the definitively resolved state
+    // Final definitive state check
     if (!loading && hasAttemptedLookup) {
       if (authUser) {
         if (currentUser && family) {
@@ -25,7 +25,7 @@ export default function RootPage() {
           router.replace('/signup');
         }
       } else {
-        // New device or logged out -> go to signup as requested
+        // No session found on this device -> signup
         router.replace('/signup');
       }
     }
@@ -36,7 +36,7 @@ export default function RootPage() {
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <p className="text-xs font-bold uppercase tracking-widest text-primary/40 animate-pulse">
-            Initializing Ecosystem...
+            Connecting...
         </p>
       </div>
     </div>

@@ -177,23 +177,22 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    // If we're fully loaded and have no user, go directly to signup (for new devices/logged out users)
+    // 1. Handle unauthenticated state immediately
     if (!loading && !authUser) {
-      if (pathname !== '/login' && pathname !== '/signup') {
+      if (pathname !== '/login' && pathname !== '/signup' && pathname !== '/') {
         router.replace('/signup');
       }
       return;
     }
 
-    // If we have a user and we've finished the lookup
+    // 2. Handle authenticated but missing data state
     if (!loading && hasAttemptedLookup && authUser) {
       if (!currentUser || !family) {
-        // Logged in but no profile found -> redirect to signup to finish setup
         if (pathname !== '/signup' && pathname !== '/login') {
           router.replace('/signup');
         }
       } else {
-        // Logged in and profile found -> go to dashboard if on auth pages
+        // Logged in and data found -> dashboard
         if (pathname === '/login' || pathname === '/signup' || pathname === '/') {
           router.replace('/dashboard');
         }
@@ -201,7 +200,6 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     }
   }, [loading, hasAttemptedLookup, authUser, currentUser, family, router, pathname]);
 
-  // Show a blank loading screen only if we truly have nothing yet
   if (loading && !family) return (
     <div className="flex h-screen w-full items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">

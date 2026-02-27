@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
@@ -52,23 +51,23 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const auth = useAuth();
   const { toast } = useToast();
 
-  const [familyId, setFamilyId] = useState<string | null>(null);
+  const [familyId, setFamilyId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+        return localStorage.getItem(LS_FAMILY_KEY);
+    }
+    return null;
+  });
   const [isSearchingFamily, setIsSearchingFamily] = useState(false);
   const [hasAttemptedLookup, setHasAttemptedLookup] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeConfettiGoal, setActiveConfettiGoal] = useState<string | null>(null);
-  const [language, setLangState] = useState<Language>('en');
-
-  // Load cache immediately for instant startup
-  useEffect(() => {
+  const [language, setLangState] = useState<Language>(() => {
     if (typeof window !== 'undefined') {
-      const cachedFamilyId = localStorage.getItem(LS_FAMILY_KEY);
-      if (cachedFamilyId) setFamilyId(cachedFamilyId);
-      
-      const savedLang = localStorage.getItem('app_language') as Language;
-      if (savedLang) setLangState(savedLang);
+        const saved = localStorage.getItem('app_language') as Language;
+        return saved || 'en';
     }
-  }, []);
+    return 'en';
+  });
 
   const setLanguage = (lang: Language) => {
     setLangState(lang);
@@ -98,11 +97,10 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
           localStorage.setItem(LS_FAMILY_KEY, data.familyId);
         }
       } else {
-        // No family mapping found for this user in the global directory
         setFamilyId(null);
+        localStorage.removeItem(LS_FAMILY_KEY);
       }
     } catch (err: any) {
-      console.warn("Family lookup encountered restricted access or missing profile.");
       setFamilyId(null);
     } finally {
       setIsSearchingFamily(false);
@@ -125,10 +123,10 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   }, [authUser, firestore, isAuthLoading, hasAttemptedLookup, isSearchingFamily, findFamily]);
   
   const familyRef = useMemoFirebase(() => familyId ? doc(firestore, 'families', familyId) : null, [firestore, familyId]);
-  const { data: familyData, isLoading: isFamilyLoading } = useDoc<Family>(familyRef);
+  const { data: familyData } = useDoc<Family>(familyRef);
 
   const membersRef = useMemoFirebase(() => familyId ? collection(firestore, 'families', familyId, 'members') : null, [firestore, familyId]);
-  const { data: users, isLoading: areUsersLoading } = useCollection<User>(membersRef);
+  const { data: users } = useCollection<User>(membersRef);
 
   const expensesRef = useMemoFirebase(() => familyId ? collection(firestore, 'families', familyId, 'expenses') : null, [firestore, familyId]);
   const { data: expenses } = useCollection<Expense>(expensesRef);
@@ -176,7 +174,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
       awardPoints(currentUser.id, 10);
       toast({ title: "Expense Added" });
     } catch (e) { 
-      toast({ variant: "destructive", title: "Sync Error", description: "Could not add expense." });
+      toast({ variant: "destructive", title: "Sync Error" });
     }
   };
 
@@ -258,11 +256,10 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    // Instant clear for snappy experience
     setFamilyId(null);
     setCurrentUser(null);
     setHasAttemptedLookup(true);
-    localStorage.removeItem(LS_FAMILY_KEY);
+    if (typeof window !== 'undefined') localStorage.removeItem(LS_FAMILY_KEY);
     signOut(auth);
   };
 
