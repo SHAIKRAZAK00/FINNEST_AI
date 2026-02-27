@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -178,10 +177,10 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    // If we're fully loaded and have no user, go to login
+    // If we're fully loaded and have no user, go directly to signup (for new devices/logged out users)
     if (!loading && !authUser) {
       if (pathname !== '/login' && pathname !== '/signup') {
-        router.replace('/login');
+        router.replace('/signup');
       }
       return;
     }

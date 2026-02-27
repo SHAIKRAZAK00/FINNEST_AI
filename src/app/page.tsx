@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect } from 'react';
@@ -11,7 +10,7 @@ export default function RootPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // SNAPPY REDIRECT: If we have cached auth and family, go immediately
+    // If we have cached auth and family, go immediately to dashboard
     if (authUser && family) {
       router.replace('/dashboard');
       return;
@@ -26,7 +25,8 @@ export default function RootPage() {
           router.replace('/signup');
         }
       } else {
-        router.replace('/login');
+        // New device or logged out -> go to signup as requested
+        router.replace('/signup');
       }
     }
   }, [loading, hasAttemptedLookup, authUser, currentUser, family, router]);
