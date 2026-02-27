@@ -10,22 +10,17 @@ export default function RootPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Instant check for cached auth/family
-    if (authUser && family) {
-      router.replace('/dashboard');
-      return;
-    }
-
-    // Final definitive state check
+    // Definitive check for new device or session expiry
     if (!loading && hasAttemptedLookup) {
       if (authUser) {
         if (currentUser && family) {
           router.replace('/dashboard');
         } else {
+          // Logged in but no family setup found - likely halfway through signup
           router.replace('/signup');
         }
       } else {
-        // No session found on this device -> signup
+        // No session found on this device -> send to Signup for a clean start
         router.replace('/signup');
       }
     }
