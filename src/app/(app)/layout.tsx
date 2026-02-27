@@ -173,11 +173,12 @@ function AppSidebar() {
 }
 
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
-  const { loading, hasAttemptedLookup, currentUser, authUser } = useFamily();
+  const { loading, hasAttemptedLookup, currentUser, authUser, family } = useFamily();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
+    // If we're fully loaded and have no user, go to login
     if (!loading && !authUser) {
       if (pathname !== '/login' && pathname !== '/signup') {
         router.replace('/login');
@@ -185,20 +186,24 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // If we have a user and we've finished the lookup
     if (!loading && hasAttemptedLookup && authUser) {
-      if (!currentUser) {
-        if (pathname !== '/signup' && !pathname.startsWith('/login')) {
+      if (!currentUser || !family) {
+        // Logged in but no profile found -> redirect to signup to finish setup
+        if (pathname !== '/signup' && pathname !== '/login') {
           router.replace('/signup');
         }
       } else {
+        // Logged in and profile found -> go to dashboard if on auth pages
         if (pathname === '/login' || pathname === '/signup' || pathname === '/') {
           router.replace('/dashboard');
         }
       }
     }
-  }, [loading, hasAttemptedLookup, authUser, currentUser, router, pathname]);
+  }, [loading, hasAttemptedLookup, authUser, currentUser, family, router, pathname]);
 
-  if (loading) return (
+  // Show a blank loading screen only if we truly have nothing yet
+  if (loading && !family) return (
     <div className="flex h-screen w-full items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

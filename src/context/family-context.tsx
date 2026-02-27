@@ -92,15 +92,17 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
       const userSnap = await getDoc(userRef);
       
       if (userSnap.exists()) {
-        const foundFamilyId = userSnap.data().familyId;
-        setFamilyId(foundFamilyId);
-        localStorage.setItem(LS_FAMILY_KEY, foundFamilyId);
+        const data = userSnap.data();
+        if (data.familyId) {
+          setFamilyId(data.familyId);
+          localStorage.setItem(LS_FAMILY_KEY, data.familyId);
+        }
       } else {
+        // No family mapping found for this user in the global directory
         setFamilyId(null);
-        localStorage.removeItem(LS_FAMILY_KEY);
       }
     } catch (err: any) {
-      console.warn("Family lookup encountered restricted access.");
+      console.warn("Family lookup encountered restricted access or missing profile.");
       setFamilyId(null);
     } finally {
       setIsSearchingFamily(false);
@@ -256,6 +258,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    // Instant clear for snappy experience
     setFamilyId(null);
     setCurrentUser(null);
     setHasAttemptedLookup(true);
