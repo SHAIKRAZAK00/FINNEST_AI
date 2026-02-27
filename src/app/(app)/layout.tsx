@@ -60,7 +60,6 @@ function AppSidebar() {
         <SidebarContent>
           <div className="p-4 flex flex-col items-center justify-center gap-4">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Syncing Identity...</p>
           </div>
         </SidebarContent>
       </Sidebar>
@@ -190,12 +189,10 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     // 2. Definitive profile resolution check
     if (!loading && hasAttemptedLookup && authUser) {
       if (!currentUser) {
-        // Only redirect to signup if they are definitely not in a family
         if (pathname !== '/signup' && !pathname.startsWith('/login')) {
           router.replace('/signup');
         }
       } else {
-        // Redirect home if they are logged in and on an auth page
         if (pathname === '/login' || pathname === '/signup' || pathname === '/') {
           router.replace('/dashboard');
         }
@@ -206,8 +203,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   if (loading) return (
     <div className="flex h-screen w-full items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-xs font-bold uppercase tracking-[0.3em] text-white/40 animate-pulse">Synchronizing Identity...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     </div>
   );

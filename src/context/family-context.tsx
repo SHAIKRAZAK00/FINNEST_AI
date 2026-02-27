@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
@@ -100,7 +101,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     if (!isAuthLoading && !authUser) {
       setFamilyId(null);
       setCurrentUser(null);
-      setHasAttemptedLookup(false);
+      setHasAttemptedLookup(true); // Quickly resolve for unauthenticated users
       setIsSearchingFamily(false);
       return;
     }
@@ -110,10 +111,10 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   }, [authUser, firestore, isAuthLoading, hasAttemptedLookup, isSearchingFamily, findFamily]);
   
   const familyRef = useMemoFirebase(() => familyId ? doc(firestore, 'families', familyId) : null, [firestore, familyId]);
-  const { data: familyData, isLoading: isFamilyLoading, error: familyError } = useDoc<Family>(familyRef);
+  const { data: familyData, isLoading: isFamilyLoading } = useDoc<Family>(familyRef);
 
   const membersRef = useMemoFirebase(() => familyId ? collection(firestore, 'families', familyId, 'members') : null, [firestore, familyId]);
-  const { data: users, isLoading: areUsersLoading, error: areUsersError } = useCollection<User>(membersRef);
+  const { data: users, isLoading: areUsersLoading } = useCollection<User>(membersRef);
 
   const expensesRef = useMemoFirebase(() => familyId ? collection(firestore, 'families', familyId, 'expenses') : null, [firestore, familyId]);
   const { data: expenses } = useCollection<Expense>(expensesRef);
@@ -126,16 +127,6 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
 
   const allowanceRef = useMemoFirebase(() => (familyId && authUser) ? doc(firestore, 'families', familyId, 'allowances', authUser.uid) : null, [firestore, familyId, authUser]);
   const { data: allowance } = useDoc<Allowance>(allowanceRef);
-
-  useEffect(() => {
-    if (familyError || areUsersError) {
-      const isPermissionError = (familyError as any)?.name === 'FirebaseError' || (areUsersError as any)?.name === 'FirebaseError';
-      if (isPermissionError && familyId) {
-        setFamilyId(null);
-        setHasAttemptedLookup(true);
-      }
-    }
-  }, [familyError, areUsersError, familyId]);
 
   useEffect(() => {
     if (users && authUser) {
@@ -285,10 +276,9 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    // Immediate local state reset
     setFamilyId(null);
     setCurrentUser(null);
-    setHasAttemptedLookup(false);
+    setHasAttemptedLookup(true);
     signOut(auth);
   };
 

@@ -7,7 +7,7 @@ import { useFamily } from '@/context/family-context';
 import { Loader2 } from 'lucide-react';
 
 /**
- * RootPage acts as a smart redirector. 
+ * RootPage acts as a fast redirector.
  */
 export default function RootPage() {
   const { authUser, currentUser, loading, hasAttemptedLookup } = useFamily();
@@ -29,12 +29,7 @@ export default function RootPage() {
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-background">
-      <div className="flex flex-col items-center gap-4">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground animate-pulse">
-          Initializing Ecosystem...
-        </p>
-      </div>
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
     </div>
   );
 }
