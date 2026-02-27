@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
@@ -76,6 +75,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
       return;
     }
     if (!authUser || !firestore) return;
+    
     setIsSearchingFamily(true);
     try {
       const userRef = doc(firestore, 'users', authUser.uid);
@@ -84,10 +84,8 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
       if (userSnap.exists()) {
         const foundFamilyId = userSnap.data().familyId;
         setFamilyId(foundFamilyId);
-        if (typeof window !== 'undefined') localStorage.setItem(`familyId_${authUser.uid}`, foundFamilyId);
       } else {
         setFamilyId(null);
-        if (typeof window !== 'undefined') localStorage.removeItem(`familyId_${authUser.uid}`);
       }
     } catch (err: any) {
       console.warn("Family lookup encountered restricted access or missing data.");
@@ -287,11 +285,10 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    // Immediate state reset for responsiveness
+    // Immediate local state reset
     setFamilyId(null);
     setCurrentUser(null);
     setHasAttemptedLookup(false);
-    if (typeof window !== 'undefined') localStorage.removeItem(`familyId_${authUser?.uid}`);
     signOut(auth);
   };
 

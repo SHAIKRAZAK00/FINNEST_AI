@@ -1,8 +1,7 @@
-
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -49,7 +48,7 @@ function AppSidebar() {
   const { family, currentUser, logout, language, setLanguage, t } = useFamily();
   const pathname = usePathname();
 
-  const getInitials = (name: string) => name.split(" ").map((n) => n[0]).join("");
+  const getInitials = (name: string) => name?.split(" ").map((n) => n[0]).join("") || "??";
 
   if (!currentUser || !family) {
     return (
@@ -58,8 +57,9 @@ function AppSidebar() {
           <AppLogo size="sm" />
         </SidebarHeader>
         <SidebarContent>
-          <div className="p-4 flex justify-center">
+          <div className="p-4 flex flex-col items-center justify-center gap-4">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Syncing Identity...</p>
           </div>
         </SidebarContent>
       </Sidebar>
@@ -107,7 +107,7 @@ function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/learning'} tooltip={t.nav.learning}>
               <Link href="/learning"><BookOpen /><span>{t.nav.learning}</span></Link>
-            </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === '/rewards'} tooltip={t.nav.rewards}>
@@ -178,17 +178,18 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Instant redirect for unauthenticated users
-    if (!authUser && !loading) {
+    // If not authenticated, go to login immediately
+    if (!loading && !authUser) {
       if (pathname !== '/login' && pathname !== '/signup') {
         router.replace('/login');
       }
       return;
     }
 
-    // Logic for authenticated users after database lookup
+    // If authenticated, wait for lookup before deciding
     if (!loading && hasAttemptedLookup && authUser) {
       if (!currentUser) {
+        // Only redirect to signup if they aren't already there
         if (pathname !== '/signup' && !pathname.startsWith('/login')) {
           router.replace('/signup');
         }

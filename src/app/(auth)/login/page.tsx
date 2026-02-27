@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -47,10 +46,9 @@ export default function LoginPage() {
     const password = (form.elements.namedItem("password") as HTMLInputElement).value;
     
     try {
-      const userCred = await signInWithEmailAndPassword(auth, email, password);
-      // Immediately try to refresh family mapping to speed up redirect
+      await signInWithEmailAndPassword(auth, email, password);
       await refreshFamily();
-      router.replace("/dashboard");
+      // Router redirection is handled by the useEffect above
     } catch (err: any) {
       setError(err.message);
       toast({

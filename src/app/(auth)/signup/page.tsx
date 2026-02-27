@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -101,6 +100,7 @@ export default function SignupPage() {
                 };
                 batch.set(familyDocRef, newFamily);
 
+                // Global discovery record
                 batch.set(doc(firestore, "users", user.uid), {
                   uid: user.uid,
                   familyId: familyDocRef.id,
@@ -109,6 +109,7 @@ export default function SignupPage() {
                   avatarUrl: `https://picsum.photos/seed/${fullName.split(' ')[0]}/200/200`
                 });
 
+                // Family member record
                 const userProfile = {
                     id: user.uid,
                     familyId: familyDocRef.id,
@@ -140,6 +141,7 @@ export default function SignupPage() {
                 const familyDoc = querySnapshot.docs[0];
                 const familyId = familyDoc.id;
 
+                // Global discovery record
                 batch.set(doc(firestore, "users", user.uid), {
                   uid: user.uid,
                   familyId: familyId,
@@ -148,6 +150,7 @@ export default function SignupPage() {
                   avatarUrl: `https://picsum.photos/seed/${fullName.split(' ')[0]}/200/200`
                 });
 
+                // Family member record
                 const userProfile = {
                     id: user.uid,
                     familyId: familyId,
