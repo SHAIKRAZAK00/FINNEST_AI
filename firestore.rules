@@ -23,7 +23,7 @@ service cloud.firestore {
 
     // --- GLOBAL USER DIRECTORY ---
     match /users/{userId} {
-      allow get: if isOwner(userId);
+      allow get: if isSignedIn();
       allow create: if isOwner(userId);
       allow update: if isOwner(userId);
       allow delete: if isOwner(userId);
@@ -38,7 +38,8 @@ service cloud.firestore {
       allow get: if isMember(familyId) || (isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.familyId == familyId);
       
       allow create: if isSignedIn();
-      allow update: if isParent(familyId);
+      // Allow members to update (required for shared counters like currentMonthSpent)
+      allow update: if isMember(familyId);
       allow delete: if isParent(familyId);
 
       match /members/{userId} {
