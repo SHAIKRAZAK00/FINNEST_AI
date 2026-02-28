@@ -177,7 +177,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    // 1. Handle unauthenticated state immediately - redirect new devices to signup
+    // 1. Handle unauthenticated state immediately
     if (!loading && hasAttemptedLookup && !authUser) {
       if (pathname !== '/login' && pathname !== '/signup' && pathname !== '/') {
         router.replace('/signup');

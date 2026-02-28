@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect } from 'react';
@@ -11,17 +10,16 @@ export default function RootPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Definitive check for new device or session expiry
+    // Aggressive redirect for instant open feel
     if (!loading && hasAttemptedLookup) {
       if (authUser) {
         if (currentUser && family) {
           router.replace('/dashboard');
         } else {
-          // Logged in but no family setup found - likely halfway through signup
           router.replace('/signup');
         }
       } else {
-        // No session found on this device -> send to Signup for a clean start
+        // On new devices with no session, go straight to signup
         router.replace('/signup');
       }
     }

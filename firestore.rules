@@ -62,7 +62,9 @@ service cloud.firestore {
 
       match /allowances/{userId} {
         allow get: if isOwner(userId) || isParent(familyId);
-        allow create, update, delete: if isParent(familyId);
+        // Parents can set allowances. Children (owners) can update their own vault records to save.
+        allow create, update: if isParent(familyId) || (isOwner(userId) && isMember(familyId));
+        allow delete: if isParent(familyId);
       }
 
       match /trustMetrics/{userId} {
