@@ -12,11 +12,11 @@ export default function RootPage() {
 
   useEffect(() => {
     // Ultra-aggressive redirect for instant open feel
-    if (!loading) {
+    if (!loading && hasAttemptedLookup) {
       if (authUser) {
         // Redirect to dashboard immediately on auth session detection
         router.replace('/dashboard');
-      } else if (hasAttemptedLookup) {
+      } else {
         // New device/no session found, go to signup
         router.replace('/signup');
       }
@@ -28,7 +28,7 @@ export default function RootPage() {
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <p className="text-xs font-bold uppercase tracking-widest text-primary/40 animate-pulse">
-            Connecting...
+            Initializing Ecosystem...
         </p>
       </div>
     </div>

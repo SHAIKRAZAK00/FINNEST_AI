@@ -13,7 +13,6 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Robust helper to check if a user is a member of a family.
     function isMember(familyId) {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid)) ||
@@ -64,10 +63,7 @@ service cloud.firestore {
       }
 
       match /allowances/{userId} {
-        allow get: if isOwner(userId) || isParent(familyId);
-        // Allow the owner (child) or a parent to manage the vault
-        allow create, update: if isOwner(userId) || isParent(familyId);
-        allow delete: if isParent(familyId);
+        allow read, write: if isOwner(userId) || isParent(familyId);
       }
 
       match /trustMetrics/{userId} {

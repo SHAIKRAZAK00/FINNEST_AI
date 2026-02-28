@@ -44,15 +44,12 @@ const analyzeExpensesPrompt = ai.definePrompt({
   output: {schema: AnalyzeExpensesAndGenerateInsightsOutputSchema},
   prompt: `You are a personal finance advisor. The currency for all amounts is Indian Rupees (₹). Analyze the family's expenses and provide personalized insights.
 
-Consider their budget status:
+Budget Context:
 {{#if monthlyBudget}}
 - Monthly Budget: ₹{{monthlyBudget}}
-- Spent So Far This Month: ₹{{currentMonthSpent}}
-{{#if (gt currentMonthSpent (mult monthlyBudget 0.7))}}
-- Alert: They have used more than 70% of their budget.
-{{/if}}
+- Current Spend: ₹{{currentMonthSpent}}
 {{else}}
-- Note: They haven't set a monthly budget yet. Suggest setting one.
+- They have no budget set. Recommend setting one.
 {{/if}}
 
 Family Expenses (in ₹):
@@ -60,7 +57,7 @@ Family Expenses (in ₹):
 - Category: {{this.category}}, Amount: ₹{{this.amount}}, Contributor: {{this.contributor}}, Date: {{this.date}}
 {{/each}}
 
-Provide 3 brief, high-impact insights. If they are over budget or close to it, prioritize warnings. If they are doing well, provide positive reinforcement.`,
+Provide 3 brief, high-impact insights. Analyze if they are nearing or exceeding their budget. If they are doing well, provide positive reinforcement.`,
 });
 
 const analyzeExpensesAndGenerateInsightsFlow = ai.defineFlow(
