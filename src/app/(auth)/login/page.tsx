@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -27,15 +28,16 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
-  const { authUser, currentUser, loading, t, language, setLanguage } = useFamily();
+  const { authUser, t, language, setLanguage } = useFamily();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Instant redirect as soon as session is identified
   useEffect(() => {
-    if (!loading && authUser && currentUser) {
+    if (authUser) {
       router.replace("/dashboard");
     }
-  }, [loading, authUser, currentUser, router]);
+  }, [authUser, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,9 +48,8 @@ export default function LoginPage() {
     const password = (form.elements.namedItem("password") as HTMLInputElement).value;
     
     try {
-      // Direct sign-in without blocking on family refresh
-      // The FamilyProvider useEffect will pick up the auth change instantly
       await signInWithEmailAndPassword(auth, email, password);
+      // authUser effect will handle the redirect
     } catch (err: any) {
       setError(err.message);
       toast({

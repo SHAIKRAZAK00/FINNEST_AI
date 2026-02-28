@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect } from 'react';
@@ -6,24 +7,21 @@ import { useFamily } from '@/context/family-context';
 import { Loader2 } from 'lucide-react';
 
 export default function RootPage() {
-  const { authUser, currentUser, loading, hasAttemptedLookup, family } = useFamily();
+  const { authUser, loading, hasAttemptedLookup } = useFamily();
   const router = useRouter();
 
   useEffect(() => {
-    // Aggressive redirect for instant open feel
-    if (!loading && hasAttemptedLookup) {
+    // Ultra-aggressive redirect for instant open feel
+    if (!loading) {
       if (authUser) {
-        if (currentUser && family) {
-          router.replace('/dashboard');
-        } else {
-          router.replace('/signup');
-        }
-      } else {
-        // On new devices with no session, go straight to signup
+        // Redirect to dashboard immediately on auth session detection
+        router.replace('/dashboard');
+      } else if (hasAttemptedLookup) {
+        // New device/no session found, go to signup
         router.replace('/signup');
       }
     }
-  }, [loading, hasAttemptedLookup, authUser, currentUser, family, router]);
+  }, [loading, hasAttemptedLookup, authUser, router]);
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-background">

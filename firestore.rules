@@ -14,7 +14,6 @@ service cloud.firestore {
     }
 
     // Robust helper to check if a user is a member of a family.
-    // Checks both the family members collection and the user's global profile for redundancy.
     function isMember(familyId) {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid)) ||
@@ -66,8 +65,8 @@ service cloud.firestore {
 
       match /allowances/{userId} {
         allow get: if isOwner(userId) || isParent(familyId);
-        // Ensure child can create/update their own allowance record (Virtual Vault)
-        allow create, update: if isMember(familyId) && isOwner(userId) || isParent(familyId);
+        // Allow the owner (child) or a parent to manage the vault
+        allow create, update: if isOwner(userId) || isParent(familyId);
         allow delete: if isParent(familyId);
       }
 

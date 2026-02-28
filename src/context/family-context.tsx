@@ -84,7 +84,10 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
       setHasAttemptedLookup(true);
       return;
     }
-    if (!authUser || !firestore) return;
+    if (!authUser || !firestore) {
+      if (!isAuthLoading && !authUser) setHasAttemptedLookup(true);
+      return;
+    }
     
     setIsSearchingFamily(true);
     try {
@@ -107,7 +110,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
       setIsSearchingFamily(false);
       setHasAttemptedLookup(true);
     }
-  }, [authUser, firestore]);
+  }, [authUser, firestore, isAuthLoading]);
 
   useEffect(() => {
     if (!isAuthLoading && !authUser) {
@@ -264,7 +267,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     signOut(auth);
   };
 
-  const isGlobalLoading = isAuthLoading || (authUser && !hasAttemptedLookup && !familyId);
+  const isGlobalLoading = isAuthLoading;
 
   const value = { 
     family: familyData ? { ...familyData, id: familyId! } : null,
