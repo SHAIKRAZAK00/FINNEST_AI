@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -162,14 +161,15 @@ function AppSidebar() {
 }
 
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
-  const { loading, hasAttemptedLookup, currentUser, authUser, family } = useFamily();
+  const { loading, hasAttemptedLookup, authUser, currentUser } = useFamily();
   const router = useRouter();
   const pathname = usePathname();
 
-  // Instant redirect logic for authenticated vs non-authenticated users
+  // Optimized redirect for instant-open feel
   useEffect(() => {
     if (!loading && hasAttemptedLookup) {
       if (!authUser) {
+        // Redirect guest users to signup immediately
         if (pathname !== '/login' && pathname !== '/signup' && pathname !== '/') {
           router.replace('/signup');
         }
@@ -181,6 +181,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen w-full items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-xs font-bold uppercase tracking-widest text-primary/40 animate-pulse">Initializing Identity...</p>
       </div>
     </div>
   );

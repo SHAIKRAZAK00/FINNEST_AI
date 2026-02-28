@@ -42,22 +42,28 @@ const analyzeExpensesPrompt = ai.definePrompt({
   name: 'analyzeExpensesPrompt',
   input: {schema: AnalyzeExpensesAndGenerateInsightsInputSchema},
   output: {schema: AnalyzeExpensesAndGenerateInsightsOutputSchema},
-  prompt: `You are a personal finance advisor. The currency for all amounts is Indian Rupees (₹). Analyze the family's expenses and provide personalized insights.
+  prompt: `You are a Senior Family Financial Advisor. All amounts are in Indian Rupees (₹). 
 
-Budget Context:
+Your task is to analyze the family's spending habits and provide 3 high-impact, personalized insights.
+
+Budget Summary:
 {{#if monthlyBudget}}
 - Monthly Budget: ₹{{monthlyBudget}}
-- Current Spend: ₹{{currentMonthSpent}}
+- Total Spent So Far: ₹{{currentMonthSpent}}
 {{else}}
-- They have no budget set. Recommend setting one.
+- The family has no budget set. Recommend initializing a budget protocol.
 {{/if}}
 
-Family Expenses (in ₹):
+Recent Transactions:
 {{#each expenses}}
-- Category: {{this.category}}, Amount: ₹{{this.amount}}, Contributor: {{this.contributor}}, Date: {{this.date}}
+- {{this.date}}: ₹{{this.amount}} for {{this.category}} (logged by {{this.contributor}})
 {{/each}}
 
-Provide 3 brief, high-impact insights. Analyze if they are nearing or exceeding their budget. If they are doing well, provide positive reinforcement.`,
+Analysis Guidelines:
+1. Identify if they are nearing or over their budget.
+2. Look for spending patterns (e.g., high "Entertainment" costs).
+3. Provide positive reinforcement if they are within limits.
+4. Keep insights professional, direct, and actionable.`,
 });
 
 const analyzeExpensesAndGenerateInsightsFlow = ai.defineFlow(
