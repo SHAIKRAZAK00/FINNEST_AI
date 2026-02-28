@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -65,8 +66,8 @@ service cloud.firestore {
 
       match /allowances/{userId} {
         allow get: if isOwner(userId) || isParent(familyId);
-        // Ensure child can create/update their own allowance record
-        allow create, update: if isParent(familyId) || isOwner(userId);
+        // Ensure child can create/update their own allowance record (Virtual Vault)
+        allow create, update: if isMember(familyId) && isOwner(userId) || isParent(familyId);
         allow delete: if isParent(familyId);
       }
 

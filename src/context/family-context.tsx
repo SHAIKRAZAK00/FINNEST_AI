@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
@@ -185,7 +186,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   };
 
   const addGoal = (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors' | 'familyId'>) => {
-    if (!currentUser || currentUser.role !== 'Parent' || !familyId || !firestore) return;
+    if (!currentUser || (currentUser.role !== 'Parent' && currentUser.role !== 'Child') || !familyId || !firestore) return;
     const goalDocRef = doc(collection(firestore, 'families', familyId, 'goals'));
     setDocumentNonBlocking(goalDocRef, { ...goal, id: goalDocRef.id, familyId, currentAmount: 0, contributors: [] }, {});
     awardPoints(currentUser.id, 50);

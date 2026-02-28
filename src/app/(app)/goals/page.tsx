@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -49,7 +50,7 @@ export default function GoalsPage() {
     }
   }, [activeConfettiGoal, clearConfetti]);
   
-  const isActionAllowed = currentUser?.role === 'Parent';
+  const isActionAllowed = currentUser?.role === 'Parent' || currentUser?.role === 'Child';
 
   const getUserById = (id: string) => users.find((u) => u.id === id);
   const getInitials = (name: string) => name.split(" ").map((n) => n[0]).join("");
