@@ -12,13 +12,21 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Helper to check if a user is a member of a family.
+    // Robust helper to check if a user is a member of a family.
+    // Checks both the family members collection and the user's global profile for redundancy.
     function isMember(familyId) {
-      return isSignedIn() && exists(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid));
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid)) ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.familyId == familyId
+      );
     }
 
     function isParent(familyId) {
-      return isMember(familyId) && get(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid)).data.role == 'Parent';
+      return isMember(familyId) && (
+        (exists(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid)).data.role == 'Parent') ||
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Parent')
+      );
     }
 
     // --- GLOBAL USER DIRECTORY ---
@@ -31,14 +39,9 @@ service cloud.firestore {
 
     // --- FAMILY COLLECTION RULES ---
     match /families/{familyId} {
-      // Allow authenticated users to search for families by code
       allow list: if isSignedIn();
-      
-      // Allow access if the user is a member OR if they are currently authenticating and need to find their family
       allow get: if isMember(familyId) || (isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.familyId == familyId);
-      
       allow create: if isSignedIn();
-      // Allow members to update (required for shared counters like currentMonthSpent)
       allow update: if isMember(familyId);
       allow delete: if isParent(familyId);
 
@@ -62,8 +65,8 @@ service cloud.firestore {
 
       match /allowances/{userId} {
         allow get: if isOwner(userId) || isParent(familyId);
-        // Parents can set allowances. Children (owners) can update their own vault records to save.
-        allow create, update: if isParent(familyId) || (isOwner(userId) && isMember(familyId));
+        // Ensure child can create/update their own allowance record
+        allow create, update: if isParent(familyId) || isOwner(userId);
         allow delete: if isParent(familyId);
       }
 

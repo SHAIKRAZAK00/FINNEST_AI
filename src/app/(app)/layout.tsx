@@ -120,9 +120,9 @@ function AppSidebar() {
           </SidebarMenuItem>
           {currentUser.role === 'Parent' && (
             <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === '/reports'} tooltip={t.nav.reports}>
-                  <Link href="/reports"><FileText /><span>{t.nav.reports}</span></Link>
-                </SidebarMenuButton>
+              <SidebarMenuButton asChild isActive={pathname === '/reports'} tooltip={t.nav.reports}>
+                <Link href="/reports"><FileText /><span>{t.nav.reports}</span></Link>
+              </SidebarMenuButton>
             </SidebarMenuItem>
           )}
         </SidebarMenu>
@@ -177,24 +177,20 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    // 1. Handle unauthenticated state immediately
-    if (!loading && hasAttemptedLookup && !authUser) {
-      if (pathname !== '/login' && pathname !== '/signup' && pathname !== '/') {
-        router.replace('/signup');
-      }
-      return;
-    }
-
-    // 2. Handle authenticated but missing data state
-    if (!loading && hasAttemptedLookup && authUser) {
-      if (!currentUser || !family) {
-        if (pathname !== '/signup' && pathname !== '/login') {
+    if (!loading && hasAttemptedLookup) {
+      if (!authUser) {
+        if (pathname !== '/login' && pathname !== '/signup' && pathname !== '/') {
           router.replace('/signup');
         }
       } else {
-        // Logged in and data found -> dashboard
-        if (pathname === '/login' || pathname === '/signup' || pathname === '/') {
-          router.replace('/dashboard');
+        if (!currentUser || !family) {
+          if (pathname !== '/signup' && pathname !== '/login') {
+            router.replace('/signup');
+          }
+        } else {
+          if (pathname === '/login' || pathname === '/signup' || pathname === '/') {
+            router.replace('/dashboard');
+          }
         }
       }
     }
