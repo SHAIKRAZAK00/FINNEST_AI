@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -31,7 +30,6 @@ import { Confetti } from "@/components/confetti";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 
-
 export default function GoalsPage() {
   const { goals, users, currentUser, contributeToGoal, addGoal, activeConfettiGoal, clearConfetti, t } = useFamily();
   const [isNewGoalOpen, setIsNewGoalOpen] = useState(false);
@@ -50,6 +48,7 @@ export default function GoalsPage() {
     }
   }, [activeConfettiGoal, clearConfetti]);
   
+  // CRITICAL: Both Parent and Child roles can create goals
   const isActionAllowed = currentUser?.role === 'Parent' || currentUser?.role === 'Child';
 
   const getUserById = (id: string) => users.find((u) => u.id === id);

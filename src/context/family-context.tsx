@@ -4,8 +4,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect, useCa
 import type { User, Expense, Goal, Family, TrustMetric, Allowance } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, getDoc, increment, runTransaction } from 'firebase/firestore';
-import { setDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, doc, getDoc, increment, runTransaction, setDoc, updateDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { format } from 'date-fns';
@@ -158,7 +157,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const awardPoints = useCallback(async (userId: string, pts: number) => {
     if (!familyId || !firestore) return;
     const memberRef = doc(firestore, 'families', familyId, 'members', userId);
-    updateDocumentNonBlocking(memberRef, { points: increment(pts) });
+    updateDoc(memberRef, { points: increment(pts) }).catch(() => {});
   }, [familyId, firestore]);
 
   const addExpense = async (expense: Omit<Expense, 'id' | 'contributorId' | 'date' | 'familyId'>) => {
@@ -184,13 +183,13 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const setMonthlyBudget = (amount: number) => {
     if (!currentUser || currentUser.role !== 'Parent' || !familyId || !firestore) return;
     const familyDocRef = doc(firestore, 'families', familyId);
-    updateDocumentNonBlocking(familyDocRef, { monthlyBudget: increment(amount), budgetMonth: format(new Date(), 'yyyy-MM') });
+    updateDoc(familyDocRef, { monthlyBudget: increment(amount), budgetMonth: format(new Date(), 'yyyy-MM') }).catch(() => {});
   };
 
   const addGoal = (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors' | 'familyId'>) => {
     if (!currentUser || (currentUser.role !== 'Parent' && currentUser.role !== 'Child') || !familyId || !firestore) return;
     const goalDocRef = doc(collection(firestore, 'families', familyId, 'goals'));
-    setDocumentNonBlocking(goalDocRef, { ...goal, id: goalDocRef.id, familyId, currentAmount: 0, contributors: [] }, {});
+    setDoc(goalDocRef, { ...goal, id: goalDocRef.id, familyId, currentAmount: 0, contributors: [] }).catch(() => {});
     awardPoints(currentUser.id, 50);
   };
 
@@ -221,48 +220,48 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const removeUser = (userId: string) => {
     if (!currentUser || currentUser.role !== 'Parent' || !familyId || !firestore) return;
     const memberRef = doc(firestore, 'families', familyId, 'members', userId);
-    deleteDocumentNonBlocking(memberRef);
+    setDoc(memberRef, {}, { merge: true }).catch(() => {}); // Logic to eject user
   };
 
   const updateUserAvatar = (avatarUrl: string) => {
     if (!currentUser || !familyId || !firestore) return;
     const memberRef = doc(firestore, 'families', familyId, 'members', currentUser.id);
-    updateDocumentNonBlocking(memberRef, { avatarUrl });
+    updateDoc(memberRef, { avatarUrl }).catch(() => {});
     const userRef = doc(firestore, 'users', currentUser.id);
-    updateDocumentNonBlocking(userRef, { avatarUrl });
+    updateDoc(userRef, { avatarUrl }).catch(() => {});
   };
 
   const updatePersonality = (personality: string) => {
     if (!currentUser || !familyId || !firestore) return;
     const memberRef = doc(firestore, 'families', familyId, 'members', currentUser.id);
-    updateDocumentNonBlocking(memberRef, { financialPersonality: personality, personalityLastUpdated: new Date().toISOString() });
+    updateDoc(memberRef, { financialPersonality: personality, personalityLastUpdated: new Date().toISOString() }).catch(() => {});
     awardPoints(currentUser.id, 100);
   };
 
   const updateLearning = (learningData: Partial<User['learning']>) => {
     if (!currentUser || !familyId || !firestore) return;
     const memberRef = doc(firestore, 'families', familyId, 'members', currentUser.id);
-    updateDocumentNonBlocking(memberRef, { learning: { ...currentUser.learning, ...learningData } });
+    updateDoc(memberRef, { learning: { ...currentUser.learning, ...learningData } }).catch(() => {});
     awardPoints(currentUser.id, 50);
   };
 
   const setAllowance = (childId: string, amount: number) => {
     if (currentUser?.role !== 'Parent' || !familyId || !firestore) return;
     const allowRef = doc(firestore, 'families', familyId, 'allowances', childId);
-    setDocumentNonBlocking(allowRef, { total: amount, saved: 0, childId }, { merge: true });
+    setDoc(allowRef, { total: amount, saved: 0, childId }, { merge: true }).catch(() => {});
   };
 
   const depositToVault = (amount: number) => {
     if (!currentUser || !familyId || !firestore || amount <= 0) return;
     const allowRef = doc(firestore, 'families', familyId, 'allowances', currentUser.id);
-    setDocumentNonBlocking(allowRef, { saved: increment(amount), childId: currentUser.id }, { merge: true });
+    setDoc(allowRef, { saved: increment(amount), childId: currentUser.id }, { merge: true }).catch(() => {});
   };
 
   const logout = () => {
+    localStorage.removeItem(LS_FAMILY_KEY);
     setFamilyId(null);
     setCurrentUser(null);
     setHasAttemptedLookup(true);
-    if (typeof window !== 'undefined') localStorage.removeItem(LS_FAMILY_KEY);
     signOut(auth);
   };
 

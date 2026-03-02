@@ -2,9 +2,7 @@
 /**
  * @fileOverview This file defines a Genkit flow for analyzing family expenses and generating personalized financial insights.
  *
- * The flow takes in a list of expenses and returns insights and recommendations on how to optimize financial habits and prevent overspending.
- *
- * @module ai/flows/analyze-expenses-and-generate-insights
+ * The flow takes in a list of expenses and returns insights and recommendations.
  */
 
 import {ai} from '@/ai/genkit';
@@ -47,12 +45,8 @@ const analyzeExpensesPrompt = ai.definePrompt({
 Your task is to analyze the family's spending habits and provide 3 high-impact, personalized insights.
 
 Budget Summary:
-{{#if monthlyBudget}}
-- Monthly Budget: ₹{{monthlyBudget}}
-- Total Spent So Far: ₹{{currentMonthSpent}}
-{{else}}
-- The family has no budget set. Recommend initializing a budget protocol.
-{{/if}}
+- Monthly Budget: {{#if monthlyBudget}}₹{{monthlyBudget}}{{else}}Not Set{{/if}}
+- Total Spent: {{#if currentMonthSpent}}₹{{currentMonthSpent}}{{else}}0{{/if}}
 
 Recent Transactions:
 {{#each expenses}}
@@ -61,8 +55,8 @@ Recent Transactions:
 
 Analysis Guidelines:
 1. Identify if they are nearing or over their budget.
-2. Look for spending patterns (e.g., high "Entertainment" costs).
-3. Provide positive reinforcement if they are within limits.
+2. Look for spending patterns (e.g., high costs in specific categories).
+3. Provide positive reinforcement if they are doing well.
 4. Keep insights professional, direct, and actionable.`,
 });
 
@@ -74,6 +68,7 @@ const analyzeExpensesAndGenerateInsightsFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await analyzeExpensesPrompt(input);
-    return output!;
+    if (!output) throw new Error('AI failed to generate insights');
+    return output;
   }
 );

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect } from 'react';
@@ -11,13 +10,11 @@ export default function RootPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Ultra-aggressive redirect for instant open feel
+    // Parallel Boot Strategy for Instant Opening
     if (!loading && hasAttemptedLookup) {
       if (authUser) {
-        // Redirect to dashboard immediately on auth session detection
         router.replace('/dashboard');
       } else {
-        // New device/no session found, go to signup
         router.replace('/signup');
       }
     }

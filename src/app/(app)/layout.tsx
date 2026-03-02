@@ -161,15 +161,13 @@ function AppSidebar() {
 }
 
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
-  const { loading, hasAttemptedLookup, authUser, currentUser } = useFamily();
+  const { loading, hasAttemptedLookup, authUser } = useFamily();
   const router = useRouter();
   const pathname = usePathname();
 
-  // Optimized redirect for instant-open feel
   useEffect(() => {
     if (!loading && hasAttemptedLookup) {
       if (!authUser) {
-        // Redirect guest users to signup immediately
         if (pathname !== '/login' && pathname !== '/signup' && pathname !== '/') {
           router.replace('/signup');
         }
