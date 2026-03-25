@@ -21,6 +21,8 @@ interface FamilyContextType {
   allowance: Allowance | null;
   language: Language;
   setLanguage: (lang: Language) => void;
+  theme: 'light' | 'dark';
+  setTheme: (theme: 'light' | 'dark') => void;
   t: any;
   addExpense: (expense: Omit<Expense, 'id' | 'contributorId' | 'date' | 'familyId'>) => void;
   addGoal: (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors' | 'familyId'>) => void;
@@ -43,6 +45,7 @@ interface FamilyContextType {
 const FamilyContext = createContext<FamilyContextType | undefined>(undefined);
 
 const LS_FAMILY_KEY = 'finnest_last_family_id';
+const LS_THEME_KEY = 'finnest_app_theme';
 
 function FamilyDataProvider({ children }: { children: ReactNode }) {
   const { user: authUser, isUserLoading: isAuthLoading } = useUser();
@@ -67,11 +70,33 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     }
     return 'en';
   });
+  const [theme, setThemeState] = useState<'light' | 'dark'>(() => {
+    if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem(LS_THEME_KEY) as 'light' | 'dark';
+        return saved || 'dark';
+    }
+    return 'dark';
+  });
 
   const setLanguage = (lang: Language) => {
     setLangState(lang);
     if (typeof window !== 'undefined') localStorage.setItem('app_language', lang);
   };
+
+  const setTheme = (newTheme: 'light' | 'dark') => {
+    setThemeState(newTheme);
+    if (typeof window !== 'undefined') localStorage.setItem(LS_THEME_KEY, newTheme);
+  };
+
+  // Apply theme class to HTML element
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, [theme]);
 
   const t = translations[language];
 
@@ -220,7 +245,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const removeUser = (userId: string) => {
     if (!currentUser || currentUser.role !== 'Parent' || !familyId || !firestore) return;
     const memberRef = doc(firestore, 'families', familyId, 'members', userId);
-    setDoc(memberRef, {}, { merge: true }).catch(() => {}); // Logic to eject user
+    setDoc(memberRef, {}, { merge: true }).catch(() => {});
   };
 
   const updateUserAvatar = (avatarUrl: string) => {
@@ -271,7 +296,9 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     family: familyData ? { ...familyData, id: familyId! } : null,
     users: users || [], currentUser, authUser,
     expenses: expenses || [], goals: goals || [], 
-    trustMetric, allowance, language, setLanguage, t,
+    trustMetric, allowance, language, setLanguage,
+    theme, setTheme,
+    t,
     addExpense, addGoal, contributeToGoal, setMonthlyBudget,
     updatePersonality, updateLearning, setAllowance, depositToVault,
     removeUser, updateUserAvatar,

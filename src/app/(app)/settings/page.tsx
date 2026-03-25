@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef } from "react";
@@ -10,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, Trash2, Loader2, Wallet, Save } from "lucide-react";
+import { Copy, Trash2, Loader2, Wallet, Save, Moon, Sun, Palette } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +23,7 @@ import {
 import type { User } from "@/lib/types";
 
 export default function SettingsPage() {
-  const { family, currentUser, users, removeUser, updateUserAvatar, setAllowance, t } = useFamily();
+  const { family, currentUser, users, removeUser, updateUserAvatar, setAllowance, theme, setTheme, t } = useFamily();
   const { toast } = useToast();
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [userToRemove, setUserToRemove] = useState<User | null>(null);
@@ -121,7 +120,49 @@ export default function SettingsPage() {
   const children = users.filter(u => u.role === 'Child');
 
   return (
-    <div className="grid gap-6 max-w-4xl mx-auto">
+    <div className="grid gap-6 max-w-4xl mx-auto pb-10">
+      {/* Theme & Appearance Section */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+              <Palette className="h-5 w-5 text-primary" /> {t.settings.uiTitle}
+          </CardTitle>
+          <CardDescription>{t.settings.uiDesc}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-background border border-border shadow-sm">
+                <div className="flex items-center gap-4">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                        {theme === 'dark' ? <Moon className="h-5 w-5 text-primary" /> : <Sun className="h-5 w-5 text-primary" />}
+                    </div>
+                    <div>
+                        <Label htmlFor="theme-toggle" className="font-bold">{t.settings.darkMode}</Label>
+                        <p className="text-xs text-muted-foreground">{t.settings.darkModeDesc}</p>
+                    </div>
+                </div>
+                <Switch 
+                  id="theme-toggle" 
+                  checked={theme === 'dark'} 
+                  onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')} 
+                />
+            </div>
+            <div className="flex items-center justify-between">
+                <div>
+                    <Label htmlFor="email-notifications">{t.settings.emailNotif}</Label>
+                    <p className="text-xs text-muted-foreground">{t.settings.emailNotifDesc}</p>
+                </div>
+                <Switch id="email-notifications" defaultChecked/>
+            </div>
+            <div className="flex items-center justify-between">
+                <div>
+                    <Label htmlFor="push-notifications">{t.settings.pushNotif}</Label>
+                    <p className="text-xs text-muted-foreground">{t.settings.pushNotifDesc}</p>
+                </div>
+                <Switch id="push-notifications" defaultChecked />
+            </div>
+        </CardContent>
+      </Card>
+
        {currentUser.role === 'Parent' && (
         <Card className="border-primary/20 bg-primary/5">
           <CardHeader>
@@ -266,29 +307,6 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>{t.settings.uiTitle}</CardTitle>
-          <CardDescription>{t.settings.uiDesc}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <Label htmlFor="email-notifications">{t.settings.emailNotif}</Label>
-                    <p className="text-xs text-muted-foreground">{t.settings.emailNotifDesc}</p>
-                </div>
-                <Switch id="email-notifications" defaultChecked/>
-            </div>
-            <div className="flex items-center justify-between">
-                <div>
-                    <Label htmlFor="push-notifications">{t.settings.pushNotif}</Label>
-                    <p className="text-xs text-muted-foreground">{t.settings.pushNotifDesc}</p>
-                </div>
-                <Switch id="push-notifications" defaultChecked />
-            </div>
-        </CardContent>
-      </Card>
-
       <Card className="border-destructive/20 bg-destructive/5">
         <CardHeader>
           <CardTitle className="text-destructive">{t.settings.terminationTitle}</CardTitle>
