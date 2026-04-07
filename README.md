@@ -56,6 +56,3 @@ FinNest AI is a secure, high-performance **Next.js Web Application** designed fo
 2. **Install**: Run `npm install`.
 3. **Environment**: Setup `.env.local` with Firebase config.
 4. **Run**: `npm run dev`.
-
----
-*Built with ❤️ using Firebase, Next.js, and Genkit*
