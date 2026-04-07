@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
@@ -9,6 +10,7 @@ import { signOut } from 'firebase/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { format } from 'date-fns';
 import { Language, translations } from '@/lib/translations';
+import { sanitizeInput, validateAmount, isDuplicateExpense, isDuplicateGoal } from '@/lib/validation';
 
 interface FamilyContextType {
   family: Family | null;
@@ -24,8 +26,8 @@ interface FamilyContextType {
   theme: 'light' | 'dark';
   setTheme: (theme: 'light' | 'dark') => void;
   t: any;
-  addExpense: (expense: Omit<Expense, 'id' | 'contributorId' | 'date' | 'familyId'>) => void;
-  addGoal: (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors' | 'familyId'>) => void;
+  addExpense: (expense: Omit<Expense, 'id' | 'contributorId' | 'date' | 'familyId'>) => Promise<void>;
+  addGoal: (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors' | 'familyId'>) => Promise<void>;
   contributeToGoal: (goalId: string, amount: number) => Promise<{ goalCompleted: boolean; success: boolean }>;
   setMonthlyBudget: (amount: number) => void;
   removeUser: (userId: string) => void;
@@ -63,7 +65,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const [hasAttemptedLookup, setHasAttemptedLookup] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeConfettiGoal, setActiveConfettiGoal] = useState<string | null>(null);
-  const [language, setLangState] = useState<Language>(() => {
+  const [language, setLanguageState] = useState<Language>(() => {
     if (typeof window !== 'undefined') {
         const saved = localStorage.getItem('app_language') as Language;
         return saved || 'en';
@@ -79,7 +81,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   });
 
   const setLanguage = (lang: Language) => {
-    setLangState(lang);
+    setLanguageState(lang);
     if (typeof window !== 'undefined') localStorage.setItem('app_language', lang);
   };
 
@@ -88,7 +90,6 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     if (typeof window !== 'undefined') localStorage.setItem(LS_THEME_KEY, newTheme);
   };
 
-  // Apply theme class to HTML element
   useEffect(() => {
     const root = window.document.documentElement;
     if (theme === 'dark') {
@@ -187,10 +188,36 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
 
   const addExpense = async (expense: Omit<Expense, 'id' | 'contributorId' | 'date' | 'familyId'>) => {
     if (!currentUser || !familyId || !firestore) return;
+
+    // 1. Validation: Amount > 0
+    const valResult = validateAmount(expense.amount);
+    if (!valResult.isValid) {
+      toast({ variant: "destructive", title: "Invalid Input", description: valResult.message });
+      return;
+    }
+
+    // 2. Sanitization
+    const cleanDesc = sanitizeInput(expense.description);
+
+    // 3. Duplicate Check
+    const isDup = await isDuplicateExpense(firestore, familyId, currentUser.id, expense.amount, expense.category, cleanDesc);
+    if (isDup) {
+      toast({ variant: "destructive", title: "Duplicate entry detected", description: "You already logged this identical expense." });
+      return;
+    }
+
     const familyDocRef = doc(firestore, 'families', familyId);
     const expensesColRef = collection(firestore, 'families', familyId, 'expenses');
     const expenseDocRef = doc(expensesColRef);
-    const newExpense = { ...expense, id: expenseDocRef.id, familyId, contributorId: currentUser.id, date: new Date().toISOString() };
+    const newExpense = { 
+      ...expense, 
+      description: cleanDesc,
+      id: expenseDocRef.id, 
+      familyId, 
+      contributorId: currentUser.id, 
+      date: new Date().toISOString() 
+    };
+
     try {
       await runTransaction(firestore, async (tx) => {
         const famSnap = await tx.get(familyDocRef);
@@ -207,19 +234,61 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
 
   const setMonthlyBudget = (amount: number) => {
     if (!currentUser || currentUser.role !== 'Parent' || !familyId || !firestore) return;
+    
+    const valResult = validateAmount(amount);
+    if (!valResult.isValid) {
+      toast({ variant: "destructive", title: "Invalid Input", description: valResult.message });
+      return;
+    }
+
     const familyDocRef = doc(firestore, 'families', familyId);
     updateDoc(familyDocRef, { monthlyBudget: increment(amount), budgetMonth: format(new Date(), 'yyyy-MM') }).catch(() => {});
   };
 
-  const addGoal = (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors' | 'familyId'>) => {
+  const addGoal = async (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors' | 'familyId'>) => {
     if (!currentUser || (currentUser.role !== 'Parent' && currentUser.role !== 'Child') || !familyId || !firestore) return;
+
+    // 1. Validation
+    const valResult = validateAmount(goal.targetAmount);
+    if (!valResult.isValid) {
+      toast({ variant: "destructive", title: "Invalid Input", description: valResult.message });
+      return;
+    }
+
+    // 2. Sanitization
+    const cleanName = sanitizeInput(goal.name);
+    const cleanDesc = sanitizeInput(goal.description);
+
+    // 3. Duplicate Check
+    const isDup = await isDuplicateGoal(firestore, familyId, cleanName, goal.targetAmount);
+    if (isDup) {
+      toast({ variant: "destructive", title: "Duplicate entry detected", description: "A goal with this name or amount already exists." });
+      return;
+    }
+
     const goalDocRef = doc(collection(firestore, 'families', familyId, 'goals'));
-    setDoc(goalDocRef, { ...goal, id: goalDocRef.id, familyId, currentAmount: 0, contributors: [] }).catch(() => {});
+    setDoc(goalDocRef, { 
+      ...goal, 
+      name: cleanName,
+      description: cleanDesc,
+      id: goalDocRef.id, 
+      familyId, 
+      currentAmount: 0, 
+      contributors: [] 
+    }).catch(() => {});
+    
     awardPoints(currentUser.id, 50);
   };
 
   const contributeToGoal = async (goalId: string, amount: number) => {
     if (!currentUser || !familyId || !firestore) return { goalCompleted: false, success: false };
+    
+    const valResult = validateAmount(amount);
+    if (!valResult.isValid) {
+      toast({ variant: "destructive", title: "Invalid Input", description: valResult.message });
+      return { goalCompleted: false, success: false };
+    }
+
     const goalRef = doc(firestore, 'families', familyId, 'goals', goalId);
     try {
       const result = await runTransaction(firestore, async (tx) => {
@@ -272,6 +341,9 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
 
   const setAllowance = (childId: string, amount: number) => {
     if (currentUser?.role !== 'Parent' || !familyId || !firestore) return;
+    
+    if (amount < 0) return;
+
     const allowRef = doc(firestore, 'families', familyId, 'allowances', childId);
     setDoc(allowRef, { total: amount, saved: 0, childId }, { merge: true }).catch(() => {});
   };
@@ -287,7 +359,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     setFamilyId(null);
     setCurrentUser(null);
     setHasAttemptedLookup(true);
-    signOut(auth);
+    signOut(auth).catch(() => {});
   };
 
   const isGlobalLoading = isAuthLoading;

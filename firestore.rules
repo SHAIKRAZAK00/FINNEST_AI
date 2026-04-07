@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -12,7 +13,6 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Simplified membership check for reliability and speed
     function isMember(familyId) {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid)) ||
@@ -51,21 +51,21 @@ service cloud.firestore {
 
       match /expenses/{expenseId} {
         allow read: if isMember(familyId);
-        allow create: if isMember(familyId);
+        allow create: if isMember(familyId) && request.resource.data.amount > 0;
         allow update, delete: if isParent(familyId) || (resource != null && isOwner(resource.data.contributorId));
       }
 
       match /goals/{goalId} {
         allow read: if isMember(familyId);
-        allow create: if isMember(familyId);
+        allow create: if isMember(familyId) && request.resource.data.targetAmount > 0;
         allow update: if isMember(familyId);
         allow delete: if isParent(familyId);
       }
 
       match /allowances/{userId} {
         allow read: if isMember(familyId);
-        allow create: if isOwner(userId);
-        allow update: if isOwner(userId) || isParent(familyId);
+        allow create: if isOwner(userId) && request.resource.data.total >= 0;
+        allow update: if (isOwner(userId) || isParent(familyId)) && request.resource.data.total >= 0;
       }
 
       match /trustMetrics/{userId} {
