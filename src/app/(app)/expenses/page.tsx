@@ -49,7 +49,7 @@ import {
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, MoreHorizontal, Camera, Loader2, Trash2 } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Camera, Loader2, Trash2, AlertTriangle } from "lucide-react";
 import { expenseCategories } from "@/lib/data";
 import { format } from 'date-fns';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -59,6 +59,15 @@ import { useToast } from "@/hooks/use-toast";
 
 const HEAVY_AMOUNT_THRESHOLD = 10000;
 
+/**
+ * @fileOverview ExpensesPage Component
+ * 
+ * Demonstrates advanced Frontend UI patterns:
+ * 1. State Management: Handling form state, scan state, and alerts.
+ * 2. Real-time UI: Table updates automatically via FamilyContext.
+ * 3. Validation UX: "Heavy Amount" safeguard before submission.
+ * 4. Responsive Design: Mobile-optimized tables and dialogs.
+ */
 export default function ExpensesPage() {
   const { expenses, users, currentUser, addExpense, deleteExpense, t } = useFamily();
   const [open, setOpen] = useState(false);
@@ -80,9 +89,17 @@ export default function ExpensesPage() {
   }
 
   const handleAddExpenseClick = () => {
-    if (!newExpense.description || !newExpense.amount || !newExpense.category) return;
+    if (!newExpense.description || !newExpense.amount || !newExpense.category) {
+        toast({ variant: "destructive", title: "Missing Information", description: "Please fill all fields." });
+        return;
+    }
 
     const amount = parseFloat(newExpense.amount);
+    if (isNaN(amount) || amount <= 0) {
+        toast({ variant: "destructive", title: "Invalid Amount", description: "Amount must be greater than zero." });
+        return;
+    }
+
     if (amount >= HEAVY_AMOUNT_THRESHOLD) {
       setShowHeavyAmountAlert(true);
     } else {
@@ -109,7 +126,6 @@ export default function ExpensesPage() {
     if (!file) return;
 
     setIsScanning(true);
-    
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = async () => {
@@ -122,26 +138,14 @@ export default function ExpensesPage() {
                 amount: String(result.expense.amount),
                 category: result.expense.category,
             });
-            toast({
-                title: "Scan Successful",
-                description: "Receipt details have been filled in. Please review and confirm.",
-            });
+            toast({ title: "Scan Successful", description: "Details extracted via Gemini Vision." });
         } else {
-            toast({
-                variant: "destructive",
-                title: "Scan Failed",
-                description: result.error || "Could not extract details from the receipt.",
-            });
+            toast({ variant: "destructive", title: "Scan Failed", description: result.error });
         }
         setIsScanning(false);
     };
-    reader.onerror = (error) => {
-        console.error("Error reading file:", error);
-        toast({
-            variant: "destructive",
-            title: "File Error",
-            description: "Could not read the uploaded image.",
-        });
+    reader.onerror = () => {
+        toast({ variant: "destructive", title: "File Error", description: "Could not read image." });
         setIsScanning(false);
     };
   };
@@ -154,24 +158,24 @@ export default function ExpensesPage() {
   );
 
   return (
-    <>
-      <Card className="max-w-full overflow-hidden">
+    <div className="space-y-6">
+      <Card className="max-w-full overflow-hidden border-primary/20 bg-card/50 backdrop-blur-sm">
         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <CardTitle className="text-xl sm:text-2xl">{t.expenses.title}</CardTitle>
+            <CardTitle className="text-xl sm:text-2xl font-headline flex items-center gap-2">
+                <PlusCircle className="h-6 w-6 text-primary" /> {t.expenses.title}
+            </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
               {t.expenses.desc}
             </CardDescription>
           </div>
           <Dialog open={open} onOpenChange={(isOpen) => {
             setOpen(isOpen);
-            if (!isOpen) {
-              resetForm();
-            }
+            if (!isOpen) resetForm();
           }}>
             <DialogTrigger asChild>
-              <Button size="sm" className="gap-1 w-full sm:w-auto" disabled={!canAddExpense}>
-                <PlusCircle className="h-3.5 w-3.5" />
+              <Button size="sm" className="gap-1 w-full sm:w-auto shadow-lg shadow-primary/20" disabled={!canAddExpense}>
+                <PlusCircle className="h-4 w-4" />
                 <span>{t.expenses.addExpense}</span>
               </Button>
             </DialogTrigger>
@@ -184,19 +188,8 @@ export default function ExpensesPage() {
               </DialogHeader>
               
               <div className="relative grid gap-4 py-4">
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleFileChange} 
-                  className="hidden" 
-                  accept="image/*"
-                />
-                <Button 
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isScanning}
-                  className="w-full"
-                >
+                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
+                <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isScanning} className="w-full border-primary/30 text-primary hover:bg-primary/5">
                   <Camera className="mr-2 h-4 w-4" />
                   {t.expenses.scanWithAi}
                 </Button>
@@ -205,72 +198,67 @@ export default function ExpensesPage() {
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t" />
                   </div>
-                  <div className="relative flex justify-center text-xs uppercase">
+                  <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-widest">
                     <span className="bg-background px-2 text-muted-foreground">
                       {t.expenses.orManual}
                     </span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="description" className="text-right text-xs sm:text-sm">
-                    {t.expenses.description}
-                  </Label>
-                  <Input id="description" value={newExpense.description} onChange={(e) => setNewExpense({...newExpense, description: e.target.value})} className="col-span-3 h-8 sm:h-10" placeholder={t.expenses.descPlaceholder}/>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="amount" className="text-right text-xs sm:text-sm">
-                    {t.expenses.amount}
-                  </Label>
-                  <Input id="amount" type="number" value={newExpense.amount} onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})} className="col-span-3 h-8 sm:h-10" placeholder="₹4000"/>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="category" className="text-right text-xs sm:text-sm">
-                    {t.expenses.category}
-                  </Label>
-                  <Select value={newExpense.category} onValueChange={(value: ExpenseCategory) => setNewExpense({...newExpense, category: value})}>
-                    <SelectTrigger className="col-span-3 h-8 sm:h-10">
-                      <SelectValue placeholder={t.expenses.catPlaceholder} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {expenseCategories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="grid gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="description" className="text-xs uppercase font-bold text-muted-foreground">{t.expenses.description}</Label>
+                    <Input id="description" value={newExpense.description} onChange={(e) => setNewExpense({...newExpense, description: e.target.value})} placeholder={t.expenses.descPlaceholder}/>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="amount" className="text-xs uppercase font-bold text-muted-foreground">{t.expenses.amount}</Label>
+                    <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">₹</span>
+                        <Input id="amount" type="number" className="pl-7" value={newExpense.amount} onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})} placeholder="0.00"/>
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="category" className="text-xs uppercase font-bold text-muted-foreground">{t.expenses.category}</Label>
+                    <Select value={newExpense.category} onValueChange={(value: ExpenseCategory) => setNewExpense({...newExpense, category: value})}>
+                        <SelectTrigger>
+                        <SelectValue placeholder={t.expenses.catPlaceholder} />
+                        </SelectTrigger>
+                        <SelectContent>
+                        {expenseCategories.map((cat) => (
+                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 {isScanning && (
-                  <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2 rounded-lg">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      <p className="text-sm text-muted-foreground">{t.expenses.scanning}</p>
+                  <div className="absolute inset-0 bg-background/90 backdrop-blur-sm flex flex-col items-center justify-center gap-3 rounded-lg z-50">
+                      <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                      <p className="text-sm font-bold animate-pulse text-primary">{t.expenses.scanning}</p>
                   </div>
                 )}
               </div>
 
               <DialogFooter>
-                <Button type="submit" onClick={handleAddExpenseClick} disabled={isScanning} className="w-full sm:w-auto">
+                <Button type="submit" onClick={handleAddExpenseClick} disabled={isScanning} className="w-full">
                   {isScanning ? t.expenses.pleaseWait : t.expenses.addExpense}
                 </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
         </CardHeader>
-        <CardContent className="p-0 sm:p-6 overflow-x-auto">
-          <div className="min-w-[600px] sm:min-w-0">
+        <CardContent className="p-0 sm:p-6">
+          <div className="overflow-x-auto">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-muted/30">
                 <TableRow>
-                  <TableHead className="w-[150px] sm:w-auto">{t.expenses.tableContributor}</TableHead>
+                  <TableHead className="w-[180px]">{t.expenses.tableContributor}</TableHead>
                   <TableHead>{t.expenses.tableDesc}</TableHead>
                   <TableHead className="hidden sm:table-cell">{t.expenses.tableCat}</TableHead>
                   <TableHead className="hidden md:table-cell">{t.expenses.tableDate}</TableHead>
                   <TableHead className="text-right">{t.expenses.tableAmount}</TableHead>
-                  <TableHead className="w-[50px]">
-                    <span className="sr-only">{t.expenses.tableActions}</span>
-                  </TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -281,46 +269,47 @@ export default function ExpensesPage() {
                   const canDelete = isCreator || isParent;
 
                   return (
-                    <TableRow key={expense.id}>
+                    <TableRow key={expense.id} className="hover:bg-primary/5 transition-colors">
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                            <Avatar className="h-6 w-6 sm:h-8 sm:w-8">
+                        <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8 border-2 border-primary/10">
                                 <AvatarImage src={contributor?.avatarUrl} />
-                                <AvatarFallback>{contributor ? getInitials(contributor.name) : t.common.na}</AvatarFallback>
+                                <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">{contributor ? getInitials(contributor.name) : '??'}</AvatarFallback>
                             </Avatar>
-                            <span className="font-medium text-xs sm:text-sm truncate max-w-[80px] sm:max-w-none">{contributor?.name}</span>
+                            <div className="flex flex-col">
+                                <span className="font-bold text-xs truncate max-w-[100px]">{contributor?.name}</span>
+                                <span className="text-[8px] uppercase text-muted-foreground">{contributor?.role}</span>
+                            </div>
                         </div>
                       </TableCell>
-                      <TableCell className="font-medium text-xs sm:text-sm">
+                      <TableCell className="font-medium text-xs">
                         <div className="flex flex-col gap-1">
                           <span>{expense.description}</span>
                           <Badge variant="outline" className="sm:hidden w-fit text-[8px] px-1 py-0">{expense.category}</Badge>
                         </div>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
-                        <Badge variant="outline" className="text-[10px]">{expense.category}</Badge>
+                        <Badge variant="secondary" className="text-[10px] font-normal">{expense.category}</Badge>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell text-xs">{format(new Date(expense.date), "MMM d, yyyy")}</TableCell>
-                      <TableCell className="text-right text-xs sm:text-sm font-mono">
-                        ₹{expense.amount.toFixed(0)}
+                      <TableCell className="hidden md:table-cell text-xs opacity-60">{format(new Date(expense.date), "MMM d, yyyy")}</TableCell>
+                      <TableCell className="text-right text-sm font-bold font-mono">
+                        ₹{expense.amount.toLocaleString('en-IN')}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button aria-haspopup="true" size="icon" variant="ghost" className="h-8 w-8">
+                            <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-primary/10">
                               <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Toggle menu</span>
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>{t.expenses.tableActions}</DropdownMenuLabel>
-                            <DropdownMenuItem disabled={!isParent}>Edit</DropdownMenuItem>
+                            <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground">{t.expenses.tableActions}</DropdownMenuLabel>
                             {canDelete && (
                                 <DropdownMenuItem 
-                                    className="text-destructive flex items-center gap-2"
+                                    className="text-destructive font-bold flex items-center gap-2 cursor-pointer"
                                     onClick={() => deleteExpense(expense.id)}
                                 >
-                                    <Trash2 className="h-4 w-4" /> Delete
+                                    <Trash2 className="h-4 w-4" /> Delete Transaction
                                 </DropdownMenuItem>
                             )}
                           </DropdownMenuContent>
@@ -331,25 +320,37 @@ export default function ExpensesPage() {
                 })}
               </TableBody>
             </Table>
+            {sortedExpenses.length === 0 && (
+                <div className="py-20 text-center flex flex-col items-center gap-2">
+                    <div className="p-4 bg-muted rounded-full">
+                        <PlusCircle className="h-8 w-8 text-muted-foreground opacity-20" />
+                    </div>
+                    <p className="text-sm text-muted-foreground font-headline">No expenses logged in the ledger.</p>
+                </div>
+            )}
           </div>
         </CardContent>
       </Card>
 
       <AlertDialog open={showHeavyAmountAlert} onOpenChange={setShowHeavyAmountAlert}>
-        <AlertDialogContent>
+        <AlertDialogContent className="border-destructive/20">
           <AlertDialogHeader>
-            <AlertDialogTitle>Is this amount correct?</AlertDialogTitle>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-5 w-5" /> Heavy Transaction Warning
+            </AlertDialogTitle>
             <AlertDialogDescription>
-                You are about to log an expense of <strong>₹{newExpense.amount}</strong>. 
-                This is a significant amount for the family budget. Are you sure you want to proceed?
+                You are logging a significant expense of <strong>₹{parseFloat(newExpense.amount).toLocaleString('en-IN')}</strong>. 
+                This will impact the global family budget. Confirm the accuracy of this entry?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowHeavyAmountAlert(false)}>No, check again</AlertDialogCancel>
-            <AlertDialogAction onClick={executeAddExpense}>Yes, it's correct</AlertDialogAction>
+            <AlertDialogCancel className="font-bold">Check Again</AlertDialogCancel>
+            <AlertDialogAction onClick={executeAddExpense} className="bg-destructive hover:bg-destructive/90 font-bold">
+                Confirm Amount
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 }

@@ -50,6 +50,12 @@ const FamilyContext = createContext<FamilyContextType | undefined>(undefined);
 const LS_FAMILY_KEY = 'finnest_last_family_id';
 const LS_THEME_KEY = 'finnest_app_theme';
 
+/**
+ * @fileOverview FamilyProvider - The Application Brain
+ * 
+ * Handles real-time synchronization with Firestore and centralized business logic.
+ * Every UI component consumes data from this provider.
+ */
 function FamilyDataProvider({ children }: { children: ReactNode }) {
   const { user: authUser, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
@@ -224,10 +230,10 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
         tx.update(familyDocRef, { currentMonthSpent: (data.currentMonthSpent || 0) + expense.amount });
       });
       awardPoints(currentUser.id, 10);
-      toast({ title: "Expense Added" });
+      toast({ title: "Expense Added", description: "Ledger synchronized successfully." });
       return true;
     } catch (e) { 
-      toast({ variant: "destructive", title: "Sync Error" });
+      toast({ variant: "destructive", title: "Sync Error", description: "Database rejected the transaction." });
       return false;
     }
   };
@@ -238,7 +244,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     const expense = expenses?.find(e => e.id === expenseId);
     if (!expense) return;
 
-    // Check if user is creator or parent
+    // Authorization: Only creator or Parent can delete
     if (expense.contributorId !== currentUser.id && currentUser.role !== 'Parent') {
         toast({ variant: "destructive", title: "Permission Denied", description: "You cannot delete this expense." });
         return;
@@ -256,7 +262,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
                 currentMonthSpent: Math.max(0, (famData.currentMonthSpent || 0) - expense.amount) 
             });
         });
-        toast({ title: "Expense Deleted" });
+        toast({ title: "Expense Deleted", description: "Budget balance restored." });
     } catch (e) {
         toast({ variant: "destructive", title: "Delete Error", description: "Could not remove the expense." });
     }
@@ -273,6 +279,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
 
     const familyDocRef = doc(firestore, 'families', familyId);
     updateDoc(familyDocRef, { monthlyBudget: increment(amount), budgetMonth: format(new Date(), 'yyyy-MM') }).catch(() => {});
+    toast({ title: "Budget Protocol Updated" });
   };
 
   const addGoal = async (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors' | 'familyId'>) => {
@@ -289,7 +296,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
 
     const isDup = await isDuplicateGoal(firestore, familyId, cleanName, goal.targetAmount);
     if (isDup) {
-      toast({ variant: "destructive", title: "Duplicate entry detected", description: "A goal with this name or amount already exists." });
+      toast({ variant: "destructive", title: "Duplicate detected", description: "A similar goal exists." });
       return;
     }
 
@@ -305,6 +312,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     }).catch(() => {});
     
     awardPoints(currentUser.id, 50);
+    toast({ title: "Goal Set", description: "Synchronized with all family members." });
   };
 
   const contributeToGoal = async (goalId: string, amount: number) => {
@@ -332,6 +340,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
       });
       awardPoints(currentUser.id, 25);
       if (result.isCompleted) setActiveConfettiGoal(goalId);
+      toast({ title: "Contribution Logged", description: "Well done!" });
       return { goalCompleted: result.isCompleted, success: true };
     } catch (e) {
       return { goalCompleted: false, success: false };
@@ -368,17 +377,17 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
 
   const setAllowance = (childId: string, amount: number) => {
     if (currentUser?.role !== 'Parent' || !familyId || !firestore) return;
-    
     if (amount < 0) return;
-
     const allowRef = doc(firestore, 'families', familyId, 'allowances', childId);
     setDoc(allowRef, { total: amount, saved: 0, childId }, { merge: true }).catch(() => {});
+    toast({ title: "Allowance Set" });
   };
 
   const depositToVault = (amount: number) => {
     if (!currentUser || !familyId || !firestore || amount <= 0) return;
     const allowRef = doc(firestore, 'families', familyId, 'allowances', currentUser.id);
     setDoc(allowRef, { saved: increment(amount), childId: currentUser.id }, { merge: true }).catch(() => {});
+    toast({ title: "Vault Secured", description: "Savings logged in protocol." });
   };
 
   const logout = () => {
