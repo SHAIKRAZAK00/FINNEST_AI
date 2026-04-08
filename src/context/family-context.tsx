@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect, useCa
 import type { User, Expense, Goal, Family, TrustMetric, Allowance } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, getDoc, increment, runTransaction, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, increment, runTransaction, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { format } from 'date-fns';
@@ -26,7 +26,8 @@ interface FamilyContextType {
   theme: 'light' | 'dark';
   setTheme: (theme: 'light' | 'dark') => void;
   t: any;
-  addExpense: (expense: Omit<Expense, 'id' | 'contributorId' | 'date' | 'familyId'>) => Promise<void>;
+  addExpense: (expense: Omit<Expense, 'id' | 'contributorId' | 'date' | 'familyId'>) => Promise<boolean>;
+  deleteExpense: (expenseId: string) => Promise<void>;
   addGoal: (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors' | 'familyId'>) => Promise<void>;
   contributeToGoal: (goalId: string, amount: number) => Promise<{ goalCompleted: boolean; success: boolean }>;
   setMonthlyBudget: (amount: number) => void;
@@ -186,24 +187,21 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     updateDoc(memberRef, { points: increment(pts) }).catch(() => {});
   }, [familyId, firestore]);
 
-  const addExpense = async (expense: Omit<Expense, 'id' | 'contributorId' | 'date' | 'familyId'>) => {
-    if (!currentUser || !familyId || !firestore) return;
+  const addExpense = async (expense: Omit<Expense, 'id' | 'contributorId' | 'date' | 'familyId'>): Promise<boolean> => {
+    if (!currentUser || !familyId || !firestore) return false;
 
-    // 1. Validation: Amount > 0
     const valResult = validateAmount(expense.amount);
     if (!valResult.isValid) {
       toast({ variant: "destructive", title: "Invalid Input", description: valResult.message });
-      return;
+      return false;
     }
 
-    // 2. Sanitization
     const cleanDesc = sanitizeInput(expense.description);
 
-    // 3. Duplicate Check
     const isDup = await isDuplicateExpense(firestore, familyId, currentUser.id, expense.amount, expense.category, cleanDesc);
     if (isDup) {
       toast({ variant: "destructive", title: "Duplicate entry detected", description: "You already logged this identical expense." });
-      return;
+      return false;
     }
 
     const familyDocRef = doc(firestore, 'families', familyId);
@@ -227,8 +225,40 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
       });
       awardPoints(currentUser.id, 10);
       toast({ title: "Expense Added" });
+      return true;
     } catch (e) { 
       toast({ variant: "destructive", title: "Sync Error" });
+      return false;
+    }
+  };
+
+  const deleteExpense = async (expenseId: string) => {
+    if (!currentUser || !familyId || !firestore) return;
+    
+    const expense = expenses?.find(e => e.id === expenseId);
+    if (!expense) return;
+
+    // Check if user is creator or parent
+    if (expense.contributorId !== currentUser.id && currentUser.role !== 'Parent') {
+        toast({ variant: "destructive", title: "Permission Denied", description: "You cannot delete this expense." });
+        return;
+    }
+
+    const familyDocRef = doc(firestore, 'families', familyId);
+    const expenseDocRef = doc(firestore, 'families', familyId, 'expenses', expenseId);
+
+    try {
+        await runTransaction(firestore, async (tx) => {
+            const famSnap = await tx.get(familyDocRef);
+            const famData = famSnap.data() as Family;
+            tx.delete(expenseDocRef);
+            tx.update(familyDocRef, { 
+                currentMonthSpent: Math.max(0, (famData.currentMonthSpent || 0) - expense.amount) 
+            });
+        });
+        toast({ title: "Expense Deleted" });
+    } catch (e) {
+        toast({ variant: "destructive", title: "Delete Error", description: "Could not remove the expense." });
     }
   };
 
@@ -248,18 +278,15 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
   const addGoal = async (goal: Omit<Goal, 'id' | 'currentAmount' | 'contributors' | 'familyId'>) => {
     if (!currentUser || (currentUser.role !== 'Parent' && currentUser.role !== 'Child') || !familyId || !firestore) return;
 
-    // 1. Validation
     const valResult = validateAmount(goal.targetAmount);
     if (!valResult.isValid) {
       toast({ variant: "destructive", title: "Invalid Input", description: valResult.message });
       return;
     }
 
-    // 2. Sanitization
     const cleanName = sanitizeInput(goal.name);
     const cleanDesc = sanitizeInput(goal.description);
 
-    // 3. Duplicate Check
     const isDup = await isDuplicateGoal(firestore, familyId, cleanName, goal.targetAmount);
     if (isDup) {
       toast({ variant: "destructive", title: "Duplicate entry detected", description: "A goal with this name or amount already exists." });
@@ -371,7 +398,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     trustMetric, allowance, language, setLanguage,
     theme, setTheme,
     t,
-    addExpense, addGoal, contributeToGoal, setMonthlyBudget,
+    addExpense, deleteExpense, addGoal, contributeToGoal, setMonthlyBudget,
     updatePersonality, updateLearning, setAllowance, depositToVault,
     removeUser, updateUserAvatar,
     loading: isGlobalLoading, 
