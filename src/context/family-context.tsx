@@ -193,6 +193,38 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
     updateDoc(memberRef, { points: increment(pts) }).catch(() => {});
   }, [familyId, firestore]);
 
+  const syncTrustMetric = useCallback(async (actionType: 'expense' | 'goal') => {
+    if (!familyId || !authUser || !firestore) return;
+    
+    const trustDocRef = doc(firestore, 'families', familyId, 'trustMetrics', authUser.uid);
+    const trustSnap = await getDoc(trustDocRef);
+    
+    let currentDiscipline = 0;
+    let currentContribution = 0;
+    
+    if (trustSnap.exists()) {
+      const data = trustSnap.data();
+      currentDiscipline = data.disciplineScore || 0;
+      currentContribution = data.contributionScore || 0;
+    }
+
+    if (actionType === 'expense') {
+      currentDiscipline = Math.min(100, currentDiscipline + 5);
+    } else {
+      currentContribution = Math.min(100, currentContribution + 8);
+    }
+
+    const overall = Math.round((currentDiscipline + currentContribution) / 2);
+
+    await setDoc(trustDocRef, {
+      id: authUser.uid,
+      overallTrustScore: overall,
+      disciplineScore: currentDiscipline,
+      contributionScore: currentContribution,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+  }, [familyId, authUser, firestore]);
+
   const addExpense = async (expense: Omit<Expense, 'id' | 'contributorId' | 'date' | 'familyId'>): Promise<boolean> => {
     if (!currentUser || !familyId || !firestore) return false;
 
@@ -230,6 +262,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
         tx.update(familyDocRef, { currentMonthSpent: (data.currentMonthSpent || 0) + expense.amount });
       });
       awardPoints(currentUser.id, 10);
+      syncTrustMetric('expense');
       toast({ title: "Expense Added", description: "Ledger synchronized successfully." });
       return true;
     } catch (e) { 
@@ -339,6 +372,7 @@ function FamilyDataProvider({ children }: { children: ReactNode }) {
         return { isCompleted };
       });
       awardPoints(currentUser.id, 25);
+      syncTrustMetric('goal');
       if (result.isCompleted) setActiveConfettiGoal(goalId);
       toast({ title: "Contribution Logged", description: "Well done!" });
       return { goalCompleted: result.isCompleted, success: true };
